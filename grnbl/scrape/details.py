@@ -74,6 +74,15 @@ def enrich(events: list[dict], today: date, batch: int = 12) -> int:
     with cf.ThreadPoolExecutor(6) as ex:
         texts = {u: t for u, t in ex.map(read, ask_for) if t}
 
+    # Past the cache age the page is read again, but the AI only if its text changed.
+    for u in list(texts):
+        cached = CACHE / f"{_key(u)}.json"
+        last = json.loads(cached.read_text()) if cached.exists() else {}
+        if last.get("hash") == extract.text_hash(texts[u]):
+            cached.touch()
+            known[u] = last
+            del texts[u]
+
     def text_for(url):
         # Pages carry menus first: keep the part around the event title when it is found.
         t = texts[url]
@@ -98,7 +107,8 @@ def enrich(events: list[dict], today: date, batch: int = 12) -> int:
             by_k = {str(a.get("k")): a for a in answers}
             for u in chunk:
                 info = {f: by_k.get(_key(u), {}).get(f) for f in FIELDS}
-                (CACHE / f"{_key(u)}.json").write_text(json.dumps(info, ensure_ascii=False))
+                stored = {**info, "hash": extract.text_hash(texts[u])}
+                (CACHE / f"{_key(u)}.json").write_text(json.dumps(stored, ensure_ascii=False))
                 known[u] = info
 
     filled = 0

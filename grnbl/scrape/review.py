@@ -13,6 +13,7 @@ and the human has the last word.
 from __future__ import annotations
 
 import concurrent.futures as cf
+import hashlib
 import json
 from datetime import date
 from pathlib import Path
@@ -92,6 +93,18 @@ def review(events: list[dict], today: date, batch: int = 40, model: str = "sonne
         elif memory.already_posted(e, done):
             verdicts[i] = {"keep": False, "why": "Déjà partagé", "auto": True}
     taste = taste_block(today)
+    # An event already judged with the same facts keeps its verdict: only new or changed events cost tokens.
+    keys = {i: memory.event_key(e) for i, e in enumerate(events)}
+    index = {k: i for i, k in reversed(list(keys.items()))}
+    fingerprints = {}
+    for i, e in enumerate(events):
+        if i in verdicts:
+            continue
+        fingerprints[i] = _fingerprint(e, today)
+        last = _recall(fingerprints[i], today)
+        if last:
+            dup = index.get(last.pop("duplicate_key", None))
+            verdicts[i] = {**last, "duplicate_of": dup if dup is not None and dup < i else None}
     todo = [(i, e) for i, e in enumerate(events) if i not in verdicts]
     chunks = [[_compact(i, e, today) for i, e in todo[at:at + batch]] for at in range(0, len(todo), batch)]
 
@@ -107,14 +120,42 @@ def review(events: list[dict], today: date, batch: int = 40, model: str = "sonne
     with cf.ThreadPoolExecutor(3) as ex:
         for answer in ex.map(one, chunks):
             for v in answer:
-                if isinstance(v.get("i"), int):
-                    verdicts[v["i"]] = v
+                i = v.get("i")
+                if isinstance(i, int) and i in fingerprints:
+                    verdicts[i] = v
+                    dup = v.get("duplicate_of")
+                    _remember(fingerprints[i], today, {**v, "duplicate_key": keys.get(dup) if isinstance(dup, int) else None})
     out = []
     for i, e in enumerate(events):
         v = verdicts.get(i, {"keep": None, "why": "not reviewed"})
         out.append({**e, "timing": editorial.timing(e, today),
                     "review": {k: v.get(k) for k in ("keep", "why", "score", "free", "family", "rare", "duplicate_of", "line", "auto")}})
     return out
+
+
+SEEN = DATA / "review"
+# Past this age a verdict is asked again: the editor's taste has had time to move.
+REUSE_DAYS = 7
+
+
+def _fingerprint(e: dict, today: date) -> str:
+    facts = {k: v for k, v in _compact(0, e, today).items() if k != "i"}
+    return hashlib.sha1(json.dumps(facts, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:20]
+
+
+def _recall(fingerprint: str, today: date) -> dict | None:
+    path = SEEN / f"{fingerprint}.json"
+    if not path.exists():
+        return None
+    last = json.loads(path.read_text())
+    if (today - date.fromisoformat(last["day"])).days > REUSE_DAYS:
+        return None
+    return {k: v for k, v in last["verdict"].items() if k != "i"}
+
+
+def _remember(fingerprint: str, today: date, verdict: dict) -> None:
+    SEEN.mkdir(parents=True, exist_ok=True)
+    (SEEN / f"{fingerprint}.json").write_text(json.dumps({"day": today.isoformat(), "verdict": verdict}, ensure_ascii=False))
 
 
 def parse_array_any(answer: str) -> list[dict]:

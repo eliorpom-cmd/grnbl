@@ -154,34 +154,59 @@ PAGES:
 """
 
 
+BOOKING_SEEN = DETAILS.parent / "tourisme-booking"
+BOOKING_FIELDS = ("booking", "booking_opens", "booking_deadline", "booking_url", "venue")
+
+
 def add_booking(events: list[dict], texts: dict[str, str], today: date, batch: int = 12) -> None:
-    """Asks the AI about booking only for pages that mention it; others get booking=None."""
-    asking = [e for e in events if BOOKING_RE.search(texts[e["apidae"]])]
+    """Asks the AI about booking only for pages that mention it; others get booking=None.
+    A page whose text has not changed keeps the answer it got last time."""
     for e in events:
         e.update({"booking": None, "booking_opens": None, "booking_deadline": None, "booking_url": None, "sold_out": False})
     by_id = {e["apidae"]: e for e in events}
+    BOOKING_SEEN.mkdir(parents=True, exist_ok=True)
+
+    def apply(e, a):
+        for k in BOOKING_FIELDS:
+            if a.get(k):
+                e[k] = a[k]
+        e["sold_out"] = a.get("sold_out") is True
+
+    asking = []
+    for e in events:
+        text = texts[e["apidae"]]
+        if not BOOKING_RE.search(text):
+            continue
+        seen = BOOKING_SEEN / f"{e['apidae']}.json"
+        last = json.loads(seen.read_text()) if seen.exists() else None
+        if last and last["hash"] == extract.text_hash(text):
+            apply(e, last["answer"])
+        else:
+            asking.append(e)
 
     def one(chunk):
         pages = "\n\n".join(f"--- id {e['apidae']} ---\n{texts[e['apidae']][:2500]}" for e in chunk)
-        return extract.parse_array_raw(extract.ask(BOOKING_PROMPT.format(today=today.isoformat(), pages=pages)))
+        return chunk, extract.parse_array_raw(extract.ask(BOOKING_PROMPT.format(today=today.isoformat(), pages=pages)))
 
     chunks = [asking[i:i + batch] for i in range(0, len(asking), batch)]
     with cf.ThreadPoolExecutor(4) as ex:
-        for answers in ex.map(lambda c: _safe(one, c), chunks):
-            for a in answers:
-                e = by_id.get(str(a.get("apidae")))
-                if e:
-                    for k in ("booking", "booking_opens", "booking_deadline", "booking_url", "venue"):
-                        if a.get(k):
-                            e[k] = a[k]
-                    e["sold_out"] = a.get("sold_out") is True
+        for chunk, answers in ex.map(lambda c: _safe(one, c), chunks):
+            if answers is None:
+                continue
+            got = {str(a.get("apidae")): a for a in answers}
+            for e in chunk:
+                a = got.get(e["apidae"], {})
+                apply(by_id[e["apidae"]], a)
+                answer = {k: a.get(k) for k in (*BOOKING_FIELDS, "sold_out")}
+                (BOOKING_SEEN / f"{e['apidae']}.json").write_text(json.dumps(
+                    {"hash": extract.text_hash(texts[e["apidae"]]), "answer": answer}, ensure_ascii=False))
 
 
 def _safe(fn, arg):
     try:
         return fn(arg)
     except Exception:  # noqa: BLE001 - one failed batch leaves those events without booking info
-        return []
+        return arg, None
 
 
 def events(today: date, horizon: timedelta, refresh: bool = False) -> list[dict]:
