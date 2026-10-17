@@ -12,6 +12,7 @@ from statistics import median
 
 from ..http import get_json
 from ..items import Item
+from .stations import name_for, osm_stations
 
 FEED = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records"
 METRO_EPCI = "200040715"  # Grenoble-Alpes Métropole
@@ -46,9 +47,20 @@ def _fresh(stamp: str | None, now: datetime) -> bool:
         return False
 
 
-def cheapest_by_fuel(stations: list[dict], now: datetime | None = None) -> list[Item]:
+def _coords(s: dict) -> tuple[float | None, float | None]:
+    geom = s.get("geom") or {}
+    if isinstance(geom, dict) and geom.get("lat"):
+        return geom["lat"], geom["lon"]
+    try:
+        return float(s["latitude"]) / 100_000, float(s["longitude"]) / 100_000
+    except (KeyError, TypeError, ValueError):
+        return None, None
+
+
+def cheapest_by_fuel(stations: list[dict], now: datetime | None = None, osm: list[dict] | None = None) -> list[Item]:
     """One item per fuel: the cheapest station, with how much it saves on a tank."""
     now = now or datetime.now(timezone.utc)
+    osm = osm or []
     items = []
     for key, label in FUELS.items():
         offers = [
@@ -63,7 +75,8 @@ def cheapest_by_fuel(stations: list[dict], now: datetime | None = None) -> list[
         top = offers[-1][0]
         # The three cheapest stations, ties included in order of the feed.
         podium = [
-            {"price": p, "address": s["adresse"].title(), "town": s["ville"].title()}
+            {"price": p, "address": s["adresse"].title(), "town": s["ville"].title(),
+             "name": name_for(str(s["id"]), *_coords(s), osm)}
             for p, s in offers[:3]
         ]
         prices = [p for p, _ in offers]
@@ -93,4 +106,4 @@ def cheapest_by_fuel(stations: list[dict], now: datetime | None = None) -> list[
 
 
 def collect() -> list[Item]:
-    return cheapest_by_fuel(fetch_stations(metro_postcodes()))
+    return cheapest_by_fuel(fetch_stations(metro_postcodes()), osm=osm_stations())

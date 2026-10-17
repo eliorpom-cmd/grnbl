@@ -35,7 +35,8 @@ def fuel_post(items: list[Item], now: datetime) -> str | None:
         d = i.data
         lines += ["", f"*{d['label']}*"]
         for medal, s in zip(medals, d["top3"]):
-            lines.append(f"{medal} {euros(s['price'])} · {s['address']}, {s['town']}")
+            where = f"*{s['name']}*, {s['address']}, {s['town']}" if s.get("name") else f"{s['address']}, {s['town']}"
+            lines.append(f"{medal} {euros(s['price'])} · {where}")
         if d["saving_tank"] >= 3:
             lines.append(f"_Jusqu'à {euros(d['saving_tank'], 0)} d'écart sur un plein avec la plus chère_")
     lines += ["", f"_Prix officiels (prix-carburants.gouv.fr), {max(i.data['stations'] for i in rows)} stations de la Métropole._"]
@@ -96,19 +97,27 @@ def chosen(events: list[dict]) -> list[dict]:
 
 
 def picked(events: list[dict], selection: list[dict] | None, post: str) -> list[tuple[dict, str]] | None:
-    """The editor's picks for one post, in its order, minus what the human dropped. None without a selection."""
+    """The editor's picks for one post, in its order, minus what the human dropped.
+
+    Each pick the human removes is replaced by the next reserve, so the post keeps its length
+    without another run. None without a selection.
+    """
     if selection is None:
         return None
-    out = []
-    for p in selection:
-        if p.get("post") != post or not 0 <= p.get("i", -1) < len(events):
-            continue
+    mine = [p for p in selection if p.get("post") == post and 0 <= p.get("i", -1) < len(events)]
+
+    def usable(p):
+        return ((events[p["i"]].get("decision") or {}).get("status")) != "drop"
+
+    def line(p):
         e = events[p["i"]]
-        d = e.get("decision") or {}
-        if d.get("status") == "drop":
-            continue
-        out.append((e, d.get("line") or p.get("line") or (e.get("review") or {}).get("line") or ""))
-    return out
+        return (e.get("decision") or {}).get("line") or p.get("line") or (e.get("review") or {}).get("line") or ""
+
+    main = [p for p in mine if not p.get("reserve")]
+    kept = [p for p in main if usable(p)]
+    bench = [p for p in mine if p.get("reserve") and usable(p)]
+    kept += bench[: len(main) - len(kept)]
+    return [(events[p["i"]], line(p)) for p in kept]
 
 
 def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limit: int = 10,

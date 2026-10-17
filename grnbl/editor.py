@@ -19,7 +19,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import editorial
+from . import editorial, memory
 from .digest import chosen
 from .scrape import clean, details
 from .scrape.extract import ask, parse_array_raw
@@ -62,13 +62,25 @@ Choose them together, not one by one:
 - leave out anything you would not tell a friend about: ordinary league matches, commercial routine.
 The line uses only facts present in the candidate (title, dates, place, price, its line): never add a fact.
 {already}
-Return ONLY a JSON array, in the order the items should appear:
-{{"i": <candidate i>, "post": "to_book" | "week", "why": short French reason for the editor (why this one),
+{taste_calls}
+Then add up to 3 reserves per post ("reserve": true), best first: they replace a pick the human removes.
+Return ONLY a JSON array, picks in the order they should appear, then the reserves:
+{{"i": <candidate i>, "post": "to_book" | "week", "reserve": true/false,
+  "why": short French reason for the editor (why this one),
   "line": the French line for the post: warm, factual, one sentence, the useful detail first}}
 
 CANDIDATES:
 {candidates}
 """
+
+
+def _taste(today: date) -> str:
+    """The human's keep/drop calls: the editor learns what they like."""
+    calls = memory.past_decisions(today)
+    if not calls:
+        return ""
+    return ("The human editor kept or removed these earlier picks. Learn their taste from it:\n"
+            + json.dumps([{k: c[k] for k in ("title", "category", "price", "editor")} for c in calls], ensure_ascii=False) + "\n")
 
 
 def _free(e: dict) -> bool | None:
@@ -95,7 +107,7 @@ def _brief(i: int, e: dict, today: date) -> dict:
             "line": (e.get("decision") or {}).get("line") or r.get("line")}
 
 
-def select(events: list[dict], today: date, channel: str, n_book: int = 6, n_week: int = 8,
+def select(events: list[dict], today: date, channel: str, n_book: int = 5, n_week: int = 6,
            already: list[dict] | None = None) -> list[dict]:
     pool = candidates(events, today, channel)
     if not pool:
@@ -105,6 +117,7 @@ def select(events: list[dict], today: date, channel: str, n_book: int = 6, n_wee
     taken = [events[p["i"]]["title"] for p in already or []]
     prompt = PROMPT.format(channel=c["name"], promise=c["promise"], taste=c["taste"], today=today.isoformat(),
                            n_book=n_book, n_week=n_week,
+                           taste_calls=_taste(today),
                            already=f"Already in the free channel: {json.dumps(taken, ensure_ascii=False)}\n" if taken else "",
                            candidates=json.dumps([_brief(i, e, today) for i, e in pool], ensure_ascii=False))
     picks = [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
@@ -113,6 +126,7 @@ def select(events: list[dict], today: date, channel: str, n_book: int = 6, n_wee
     for p in picks:
         p["post"] = "week" if editorial.timing(events[p["i"]], today) == "this_week" else "to_book"
         p["channel"] = channel
+        p["reserve"] = p.get("reserve") is True
     return picks
 
 

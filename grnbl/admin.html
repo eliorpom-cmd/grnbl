@@ -109,7 +109,18 @@
   .pick-row .num { color: var(--mute); font-variant-numeric: tabular-nums; }
   .pick-row .pt { font-weight: 550; transition: color .15s var(--ease); }
   .pick-row .pw { color: var(--body); font-size: 13px; }
-  .notes section + section { margin-top: 32px; }
+  .notes section + section { margin-top: 28px; }
+  .summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: 12px; background: var(--hover); margin: 0 0 24px; }
+  .summary span { color: var(--body); }
+  .prow { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); transition: opacity .18s var(--ease); }
+  .prow.off { opacity: .5; } .prow.dropped .pline { text-decoration: line-through; }
+  .pt { font-weight: 600; }
+  .pline { color: var(--ink); margin-top: 2px; }
+  .pw { color: var(--mute); font-size: 12.5px; margin-top: 2px; }
+  .pact { display: flex; gap: 6px; align-items: start; }
+  .mini { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); font-size: 12.5px; transition: background .15s var(--ease), color .15s var(--ease); }
+  .mini:hover { background: var(--ink); color: var(--bg); }
+  .bench { color: var(--mute); font-size: 12px; font-weight: 600; padding: 14px 0 4px; }
   .phone { overflow: auto; background: var(--wa-bg); padding: 20px 18px 40px; }
   .chan { display: flex; align-items: center; gap: 10px; margin: -20px -18px 16px; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: -20px; z-index: 1; }
   .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--hover); display: grid; place-items: center; font-size: 18px; }
@@ -137,19 +148,19 @@
   <span class="brand">grnbl</span>
   <span class="day" id="day"></span>
   <div class="seg" id="views">
-    <button data-v="triage" class="on">Tri <kbd>1</kbd></button>
-    <button data-v="posts">Posts <kbd>2</kbd></button>
+    <button data-v="posts" class="on">Publier <kbd>1</kbd></button>
+    <button data-v="triage">Fouiller <kbd>2</kbd></button>
   </div>
   <input class="search" id="search" placeholder="Rechercher  /" autocomplete="off">
 </header>
 
-<div class="triage" id="triage">
+<div class="triage" id="triage" hidden>
   <nav class="queues" id="queues"></nav>
   <div class="list" id="list"></div>
   <aside class="insp" id="insp"></aside>
 </div>
 
-<div class="posts" id="posts" hidden>
+<div class="posts" id="posts">
   <div class="notes" id="notes"></div>
   <div class="phone" id="phone"></div>
 </div>
@@ -159,7 +170,8 @@
 <script>
 const QUEUES = [
   ["Rédaction", [
-    ["todo", "À valider", "dot"],
+    ["picks", "Sélection du jour", "accent"],
+    ["todo", "Tout ce que l'IA garde", "dot"],
     ["kept", "Gardés", "keep"],
     ["dropped", "Écartés", "drop"],
     ["dupes", "Doublons", "dot"],
@@ -176,7 +188,7 @@ const QUEUES = [
   ]],
 ];
 const TIMING = { book_now: "à réserver", opens_soon: "résa bientôt", this_week: "cette semaine", too_late: "trop tard", sold_out: "complet", later: "plus tard" };
-let events = [], view = "triage", queue = "todo", selected = null, query = "", channel = "gratuit", postsData = null;
+let events = [], view = "posts", queue = "picks", selected = null, query = "", channel = "gratuit", postsData = null;
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -190,6 +202,7 @@ function status(e) {
 function inQueue(e, q) {
   const s = status(e), t = e.timing;
   switch (q) {
+    case "picks": return !!e.pick;
     case "todo": return s === "ai-keep";
     case "kept": return s === "keep";
     case "dropped": return s === "drop" || (s === "ai-drop" && !e.review?.auto);
@@ -284,7 +297,7 @@ function renderInspector() {
       <button class="btn drop ${s === "drop" ? "on" : ""}" data-a="drop">Écarter <kbd>X</kbd></button>
       ${d ? `<button class="undo" data-a="undo">Annuler ma décision <kbd>U</kbd></button>` : ""}
     </div>
-    <div class="hint"><span><kbd>J</kbd> <kbd>K</kbd> naviguer</span><span><kbd>G</kbd> garder</span><span><kbd>X</kbd> écarter</span><span><kbd>/</kbd> chercher</span><span><kbd>2</kbd> voir les posts</span></div>`;
+    <div class="hint"><span><kbd>J</kbd> <kbd>K</kbd> naviguer</span><span><kbd>G</kbd> garder</span><span><kbd>X</kbd> écarter</span><span><kbd>/</kbd> chercher</span><span><kbd>1</kbd> publier</span></div>`;
 }
 
 function render() {
@@ -302,14 +315,18 @@ function move(step) {
   if (next) select(next.i, true);
 }
 
+async function save(e, decision) {
+  await fetch("/api/decide", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ i: e.i, decision }) });
+  e.decision = decision;
+  postsData = null;
+}
+
 async function decide(status) {
   const e = events.find((x) => x.i === selected);
   if (!e) return;
   const rs = rows(), k = rs.findIndex((x) => x.i === e.i);
   const decision = status ? { status, line: ($("line")?.value || "").trim() } : null;
-  await fetch("/api/decide", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ i: e.i, decision }) });
-  e.decision = decision;
-  postsData = null;
+  await save(e, decision);
   toast(status === "keep" ? "Gardé" : status === "drop" ? "Écarté" : "Décision annulée");
   // Move on to the next one still in the queue, like an inbox.
   const after = rows();
@@ -327,22 +344,51 @@ function wa(text) {
     .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>");
 }
 
+// Which picks go out: the main picks still standing, topped up with reserves (same rule as digest.picked).
+function inPost(picks) {
+  const out = new Set();
+  for (const post of ["to_book", "week"]) {
+    const mine = picks.filter((x) => x.post === post), main = mine.filter((x) => !x.reserve);
+    const kept = main.filter((x) => x.status !== "drop");
+    const bench = mine.filter((x) => x.reserve && x.status !== "drop");
+    [...kept, ...bench.slice(0, main.length - kept.length)].forEach((x) => out.add(x.i + post));
+  }
+  return out;
+}
+
 async function renderPosts() {
   if (!postsData) {
-    $("phone").innerHTML = `<p class="empty">Préparation des posts…</p>`;
+    if (!$("phone").innerHTML) $("phone").innerHTML = `<p class="empty">Préparation des posts…</p>`;
     postsData = await (await fetch("/api/posts")).json();
   }
   const chans = postsData.channels, c = chans.find((x) => x.id === channel) || chans[0];
-  const block = (title, lead, items) => items.length ? `<section><h2>${title}</h2><p class="lead">${lead}</p>${items.map((x, k) =>
-    `<div class="pick-row" data-i="${x.i}"><span class="num">${k + 1}</span><div><div class="pt">${esc(x.title)}</div><div class="pw">${esc(x.why)}</div></div></div>`).join("")}</section>` : "";
+  const live = inPost(c.picks);
+  const shown = c.picks.filter((x) => live.has(x.i + x.post));
+  const removed = c.picks.filter((x) => x.status === "drop").length;
+  const okAll = shown.length && shown.every((x) => x.status === "keep");
+  const row = (x) => {
+    const on = live.has(x.i + x.post), dropped = x.status === "drop";
+    return `<div class="prow ${on ? "" : "off"} ${dropped ? "dropped" : ""}" data-i="${x.i}">
+      <div class="pmain"><div class="pt">${esc(x.title)}${x.reserve ? ` <span class="b">${on ? "remplaçant entré" : "remplaçant"}</span>` : ""}${x.status === "keep" ? ` <span class="b free">validé</span>` : ""}</div>
+        <div class="pline">${esc(x.line || "")}</div><div class="pw">${esc(x.why || "")}</div></div>
+      <div class="pact">${dropped ? `<button class="mini" data-act="restore" title="Remettre">Remettre</button>`
+        : `<button class="mini" data-act="drop" title="Retirer du post">✕</button>`}
+        <button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div></div>`;
+  };
+  const section = (post, title) => {
+    const mine = c.picks.filter((x) => x.post === post);
+    if (!mine.length) return "";
+    const main = mine.filter((x) => !x.reserve || live.has(x.i + post)), bench = mine.filter((x) => x.reserve && !live.has(x.i + post));
+    return `<section><h2>${title}</h2>${main.map(row).join("")}${bench.length ? `<div class="bench">Remplaçants, entrent si tu retires une ligne</div>${bench.map(row).join("")}` : ""}</section>`;
+  };
   const watch = postsData.watch || [];
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
-  $("notes").innerHTML = tabs +
-    block("À réserver maintenant", "Choisis par le rédacteur en chef, dans l'ordre du post. Clique pour ouvrir la fiche.", c.picks.filter((x) => x.post === "to_book")) +
-    block("Cette semaine", "Entrée libre, dans les jours qui viennent.", c.picks.filter((x) => x.post === "week")) +
-    (c.id === "carburant" ? `<section><h2>Carburant</h2><p class="lead">Calculé chaque matin sur les prix officiels, sans IA ni sélection.</p></section>` : "") +
-    (watch.length && c.id !== "carburant" ? `<section><h2>À surveiller</h2><p class="lead">Dates attendues mais pas encore annoncées : rien n'est posté tant que ce n'est pas confirmé.</p>${watch.map((w) =>
-      `<div class="pick-row"><span class="num">👀</span><div><div class="pt">${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">vérifier ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
+  const summary = c.id === "carburant" ? `<p class="lead">Calculé chaque matin sur les prix officiels, rien à relire.</p>`
+    : `<div class="summary"><div><b>${shown.length} lignes à relire</b>${removed ? ` · ${removed} retirée${removed > 1 ? "s" : ""}, remplacée${removed > 1 ? "s" : ""}` : ""}<br><span>Lis l'aperçu, retire ce qui ne va pas. Le reste part tel quel.</span></div>
+       <button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button></div>`;
+  $("notes").innerHTML = tabs + summary + section("to_book", "À réserver maintenant") + section("week", "Cette semaine") +
+    (watch.length && c.id !== "carburant" ? `<section><h2>À surveiller</h2>${watch.map((w) =>
+      `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">vérifier ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
   const now = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   $("phone").innerHTML = `<div class="chan"><div class="avatar">${c.id === "gratuit" ? "🆓" : c.id === "carburant" ? "⛽" : "🎭"}</div><div><b>${esc(c.name)}</b><small>Chaîne · aperçu avant publication</small></div></div>` +
     (c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">Copier</button>${wa(t)}<span class="time">${now}</span></div>`).join("") || `<p class="empty">Rien à poster sur cette chaîne aujourd'hui.</p>`);
@@ -360,12 +406,22 @@ $("views").addEventListener("click", (ev) => { const b = ev.target.closest("butt
 $("queues").addEventListener("click", (ev) => { const b = ev.target.closest(".q"); if (b) { queue = b.dataset.q; selected = null; render(); } });
 $("list").addEventListener("click", (ev) => { const r = ev.target.closest(".row"); if (r) select(Number(r.dataset.i)); });
 $("insp").addEventListener("click", (ev) => { const b = ev.target.closest("[data-a]"); if (b) decide(b.dataset.a === "undo" ? null : b.dataset.a); });
-$("notes").addEventListener("click", (ev) => {
+$("notes").addEventListener("click", async (ev) => {
   const ch = ev.target.closest("[data-c]"); if (ch) { channel = ch.dataset.c; renderPosts(); return; }
-  const r = ev.target.closest(".pick-row[data-i]"); if (!r || ev.target.closest("a")) return;
-  queue = "todo"; const e = events.find((x) => x.i === Number(r.dataset.i));
-  if (e && !inQueue(e, "todo")) queue = status(e) === "keep" ? "kept" : "dropped";
-  selected = Number(r.dataset.i); setView("triage");
+  const act = ev.target.closest("[data-act]"); if (!act) return;
+  const c = postsData.channels.find((x) => x.id === channel);
+  if (act.dataset.act === "all") {
+    const live = inPost(c.picks);
+    for (const x of c.picks.filter((p) => live.has(p.i + p.post) && p.status !== "keep")) {
+      const e = events.find((y) => y.i === x.i); await save(e, { status: "keep", line: x.line });
+    }
+    toast("Post validé"); return renderPosts();
+  }
+  const i = Number(act.closest(".prow").dataset.i), e = events.find((y) => y.i === i), x = c.picks.find((p) => p.i === i);
+  if (act.dataset.act === "open") { queue = "picks"; selected = i; return setView("triage"); }
+  await save(e, act.dataset.act === "drop" ? { status: "drop", line: x.line } : null);
+  toast(act.dataset.act === "drop" ? "Retiré, un remplaçant prend la place" : "Remis dans le post");
+  renderPosts();
 });
 $("search").addEventListener("input", (ev) => { query = ev.target.value.trim().toLowerCase(); render(); });
 
@@ -374,8 +430,8 @@ document.addEventListener("keydown", (ev) => {
   if (ev.key === "Escape") { document.activeElement.blur(); return; }
   if (typing) { if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) { document.activeElement.blur(); decide("keep"); } return; }
   const k = ev.key.toLowerCase();
-  if (k === "1") setView("triage");
-  else if (k === "2") setView("posts");
+  if (k === "1") setView("posts");
+  else if (k === "2") setView("triage");
   else if (k === "/") { ev.preventDefault(); $("search").focus(); }
   else if (view !== "triage") return;
   else if (k === "j" || ev.key === "ArrowDown") { ev.preventDefault(); move(1); }

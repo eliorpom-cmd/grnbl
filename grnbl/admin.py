@@ -55,6 +55,20 @@ def save_decision(day: date, i: int, decision: dict | None) -> None:
     path.write_text(json.dumps(decisions, ensure_ascii=False, indent=1))
 
 
+_FUEL: dict = {}
+
+
+def fuel_cached(now: datetime) -> str | None:
+    """The fuel post, fetched at most every ten minutes: the board refreshes posts after each decision."""
+    if not _FUEL or (now - _FUEL["at"]).total_seconds() > 600:
+        try:
+            text = fuel_post(fuel.collect(), now)
+        except Exception as e:  # noqa: BLE001 - the board still shows the outings
+            text = f"(carburant indisponible : {e})"
+        _FUEL.update(at=now, text=text)
+    return _FUEL["text"]
+
+
 class Handler(BaseHTTPRequestHandler):
     day = date.today()
 
@@ -76,10 +90,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/posts":
             now = datetime.now(PARIS)
             data = load(self.day)["events"]
-            try:
-                fuel_text = fuel_post(fuel.collect(), now)
-            except Exception as e:  # noqa: BLE001 - the board still shows the outings
-                fuel_text = f"(carburant indisponible : {e})"
+            fuel_text = fuel_cached(now)
             sel_path = day_folder(self.day) / "selection.json"
             selection = json.loads(sel_path.read_text()) if sel_path.exists() else None
             watch_path = day_folder(self.day) / "watch.json"
@@ -90,7 +101,9 @@ class Handler(BaseHTTPRequestHandler):
                 channels.append({
                     "id": cid, "name": c["name"],
                     "posts": [t for t in (to_book_post(data, now, selection=sel), outings_post_reviewed(data, now, selection=sel)) if t],
-                    "picks": [{**p, "title": data[p["i"]]["title"]} for p in sel or [] if p["i"] < len(data)],
+                    "picks": [{**p, "title": data[p["i"]]["title"], "status": (data[p["i"]].get("decision") or {}).get("status"),
+                               "line": (data[p["i"]].get("decision") or {}).get("line") or p.get("line")}
+                              for p in sel or [] if p["i"] < len(data)],
                 })
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
             return self._json({"channels": channels, "watch": watch})

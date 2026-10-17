@@ -114,6 +114,25 @@ class EditorPicks(unittest.TestCase):
         self.assertIsNone(picked(events, None, "week"))
 
 
+class Reserves(unittest.TestCase):
+    def test_a_dropped_pick_is_replaced_by_the_first_reserve(self):
+        events = [{"title": t, "start": "2026-10-20"} for t in "ABCD"]
+        events[1]["decision"] = {"status": "drop"}
+        selection = [{"i": 0, "post": "week"}, {"i": 1, "post": "week"},
+                     {"i": 2, "post": "week", "reserve": True}, {"i": 3, "post": "week", "reserve": True}]
+        self.assertEqual([e["title"] for e, _ in picked(events, selection, "week")], ["A", "C"])
+
+
+class StationNames(unittest.TestCase):
+    def test_by_feed_id_then_by_distance(self):
+        from grnbl.sources.stations import name_for
+        osm = [{"lat": 45.2, "lon": 5.74, "ref": "38000015", "brand": "Esso", "name": None},
+               {"lat": 45.21, "lon": 5.75, "ref": None, "brand": "Carrefour", "name": "Carrefour Market"}]
+        self.assertEqual(name_for("38000015", None, None, osm), "Esso")
+        self.assertEqual(name_for("x", 45.2101, 5.7501, osm), "Carrefour Market")
+        self.assertIsNone(name_for("x", 45.3, 5.9, osm))
+
+
 class Channels(unittest.TestCase):
     def test_free_channel_never_gets_paid_events(self):
         from grnbl.editor import candidates
