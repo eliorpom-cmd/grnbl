@@ -12,27 +12,33 @@ Built for [Neighborhood Hacks 2026](https://neighborhoodhacks.org/).
 ## What works today
 
 ```bash
-python3 -m grnbl          # today's posts: cheapest fuel + this week's outings
-python3 -m grnbl fuel     # one topic
-python3 -m grnbl --json   # the collected items instead of the posts
+python3 -m grnbl.daily    # the morning run: collect, check booking, review, compose the posts
+python3 -m grnbl.admin    # the editor's board: http://127.0.0.1:8730
+python3 -m grnbl fuel     # the fuel post alone
 python3 -m unittest discover -s tests -t .
 ```
 
-Python 3.11+, standard library only.
+Python 3.11+, standard library only. The AI steps call Claude through the `claude` CLI.
 
-| Topic | Source | Key needed |
-| --- | --- | --- |
-| ⛽ Cheapest fuel | French Ministry of the Economy real-time fuel price feed, 49 communes of Grenoble-Alpes Métropole | no |
-| 🎭 Outings | Isère département museums agenda (Apidae export, opendata.isere.fr) | no |
+Three channels: 🆓 free outings, 🎭 outings (paid ones included), ⛽ cheapest fuel.
+
+| Data | Source |
+| --- | --- |
+| Fuel prices | French Ministry of the Economy real-time feed; station brands from OpenStreetMap |
+| Outings | The whole Grenoble tourist office database, ~30 city, venue and town agendas, five local papers, each event's own page, and a hand-kept calendar of yearly events |
 
 ## How it is built
 
 ```
-sources/  one collector per source  ->  Item (one common shape)  ->  digest.py writes the post  ->  WhatsApp
+sources -> events (one shape) -> booking timing (code) -> AI review -> AI editor-in-chief -> human check -> WhatsApp
 ```
 
-Each collector turns its source into `Item`s (`grnbl/items.py`). Everything after that never knows where an
-item came from, so another city is a list of sources, not a rewrite.
+- **Timing is code, not AI.** An event that needs booking is announced while people can still book, or on
+  the day booking opens; a walk-in event at least the day before.
+- **The AI judges interest**, the code keeps the guarantees: a paid event can never reach the free channel.
+- **The editor-in-chief** picks a varied post from the best candidates, zooms into one precise moment of a
+  festival's programme, and keeps reserves so a pick the human removes is replaced at once.
+- **The human reads about eleven lines per channel**, not hundreds of events, and their choices teach the editor.
 
 ## AI use
 
