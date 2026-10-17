@@ -3,7 +3,11 @@
 kind:
   "jsonld"  the page publishes schema.org Event data: read by code, no AI.
   "ai"      plain HTML: cleaned to text, then an AI extracts the events.
+  "tourisme" the tourist office database, every page and every event page (tourisme.py).
+  "press"   local papers: recent articles, each read once by the AI (press.py).
 """
+
+from .press import PAPERS
 
 SOURCES = [
     # Aggregators with structured data
@@ -11,7 +15,7 @@ SOURCES = [
     {"id": "eventbrite", "name": "Eventbrite Grenoble", "url": "https://www.eventbrite.fr/d/france--grenoble/events/", "kind": "jsonld"},
     {"id": "meetup", "name": "Meetup Grenoble", "url": "https://www.meetup.com/fr-FR/find/?location=fr--grenoble&source=EVENTS", "kind": "jsonld"},
     # City-wide agendas
-    {"id": "tourisme", "name": "Grenoble Tourisme", "url": "https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/", "kind": "ai"},
+    {"id": "tourisme", "name": "Grenoble Alpes Tourisme", "url": "https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/", "kind": "tourisme"},
     {"id": "ville", "name": "Ville de Grenoble", "url": "https://www.grenoble.fr/79-agenda.htm", "kind": "ai"},
     {"id": "gremag", "name": "Gre.mag", "url": "https://www.gre-mag.fr/agenda/?quand=7-jours", "kind": "ai"},
     {"id": "petitbulletin", "name": "Le Petit Bulletin", "url": "https://www.petit-bulletin.fr/grenoble/", "kind": "ai"},
@@ -40,4 +44,7 @@ SOURCES = [
     {"id": "eybens", "name": "Ville d'Eybens", "url": "https://www.eybens.fr/125-agenda-culturel.htm", "kind": "ai"},
     {"id": "seyssinet", "name": "Ville de Seyssinet-Pariset", "url": "https://seyssinet-pariset.fr/agenda/", "kind": "ai"},
     {"id": "smh", "name": "Ville de Saint-Martin-d'Hères", "url": "https://www.saintmartindheres.fr/cadre-de-vie/evenementiel/", "kind": "ai"},
-]
+    # Official pages of the yearly rendez-vous (grnbl/calendar.json), read for dates and booking
+    {"id": "tourperret", "name": "Tour Perret (Ville de Grenoble)", "url": "https://www.grenoble.fr/tourperret", "kind": "ai"},
+    {"id": "alleeschantent", "name": "Les Allées Chantent", "url": "https://www.les-allees-chantent.fr/programmation-allees-chantent/", "kind": "ai"},
+] + [{"id": p["id"], "name": p["name"], "url": p["index"][0], "kind": "press"} for p in PAPERS]

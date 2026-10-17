@@ -55,6 +55,7 @@ const TABS = [
   ["todo", "À valider"], ["kept", "Gardés"], ["dropped", "Écartés"], ["dupes", "Doublons"], ["posts", "Posts"],
 ];
 let events = [], tab = "todo", filters = new Set();
+const TIMING = { book_now: "📅 à réserver", opens_soon: "⏰ résa bientôt", this_week: "cette semaine", too_late: "trop tard", sold_out: "complet", later: "plus tard" };
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -99,7 +100,9 @@ async function render() {
   $("filters").hidden = tab === "posts";
   if (tab === "posts") {
     const p = await (await fetch("/api/posts")).json();
-    $("list").innerHTML = [p.outings, p.fuel].filter(Boolean).map((t) => `<pre>${esc(t)}</pre>`).join("") || `<p class="empty">Rien à poster.</p>`;
+    const watch = (p.watch || []).map((w) => `<li><b>${esc(w.name)}</b> · ${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">vérifier ↗</a>`).join(" ")}</li>`).join("");
+    $("list").innerHTML = (watch ? `<article class="card"><div class="title">👀 À surveiller (dates pas encore annoncées)</div><ul>${watch}</ul></article>` : "")
+      + ([p.to_book, p.outings, p.fuel].filter(Boolean).map((t) => `<pre>${esc(t)}</pre>`).join("") || `<p class="empty">Rien à poster.</p>`);
     return;
   }
   const rows = events.filter((e) => inTab(e) && passes(e))
@@ -112,7 +115,7 @@ async function render() {
         <div class="title"><span class="dot"></span>${esc(e.title)}</div>
         <div class="meta">${esc(when(e))} · ${esc(e.venue || e.town || "lieu ?")} · ${esc(e.source_name)}${e.also ? " +" + e.also.length : ""}</div>
       </div><div class="score" title="intérêt">${"●".repeat(r.score || 0)}${"○".repeat(5 - (r.score || 0))}</div></div>
-      <div style="margin-top:6px">${r.free ? '<span class="tag">🆓 gratuit</span>' : e.price ? `<span class="tag">${esc(e.price)}</span>` : ""}${r.family ? '<span class="tag">👨‍👩‍👧 famille</span>' : ""}${e.category ? `<span class="tag">${esc(e.category)}</span>` : ""}</div>
+      <div style="margin-top:6px">${TIMING[e.timing] ? `<span class="tag">${TIMING[e.timing]}</span>` : ""}${e.booking === "required" ? `<span class="tag">réservation${e.booking_opens ? " dès " + esc(String(e.booking_opens).slice(0, 10)) : ""}</span>` : ""}${r.rare ? '<span class="tag">✨ rare</span>' : ""}${r.free ? '<span class="tag">🆓 gratuit</span>' : e.price ? `<span class="tag">${esc(e.price)}</span>` : ""}${r.family ? '<span class="tag">👨‍👩‍👧 famille</span>' : ""}${e.category ? `<span class="tag">${esc(e.category)}</span>` : ""}</div>
       ${r.keep === false && r.why ? `<div class="why">IA : ${esc(r.why)}</div>` : ""}
       ${s === "dupe" ? `<div class="why">Doublon de #${r.duplicate_of}</div>` : ""}
       <textarea rows="2">${esc(e.decision?.line || r.line || "")}</textarea>

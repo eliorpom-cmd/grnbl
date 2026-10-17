@@ -24,9 +24,11 @@ _STRICT_OFF.verify_flags &= ~ssl.VERIFY_X509_STRICT
 _UNVERIFIED = ssl._create_unverified_context()
 
 
-def fetch(source_id: str, url: str, today: date | None = None, refresh: bool = False) -> str:
+def fetch(source_id: str, url: str, today: date | None = None, refresh: bool = False,
+          path: Path | None = None) -> str:
+    """`path` overrides the dated copy, for pages kept across days (event detail pages)."""
     today = today or date.today()
-    path = RAW / today.isoformat() / f"{source_id}.html"
+    path = path or RAW / today.isoformat() / f"{source_id}.html"
     if path.exists() and not refresh:
         return path.read_text(encoding="utf-8", errors="ignore")
     headers = {"User-Agent": UA, "Accept-Language": "fr-FR,fr;q=0.9", "Accept-Encoding": "gzip",

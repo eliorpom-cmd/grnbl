@@ -17,12 +17,14 @@ import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import clean, extract, jsonld
+from . import clean, details, extract, jsonld, press, tourisme
+from .. import editorial
 from .fetch import fetch
 from .sources import SOURCES
 
 DATA = Path(__file__).resolve().parents[2] / "data"
-HORIZON = timedelta(days=45)
+# Far enough to catch what must be booked weeks ahead.
+HORIZON = timedelta(days=60)
 
 
 def _key(e: dict) -> str:
@@ -37,10 +39,16 @@ def run_source(source: dict, today: date, refresh: bool = False) -> tuple[str, l
     if out_path.exists() and not refresh:
         return source["id"], json.loads(out_path.read_text()), None
     try:
-        html = fetch(source["id"], source["url"], today, refresh)
-        if source["kind"] == "jsonld":
+        if source["kind"] == "tourisme":
+            found = tourisme.events(today, HORIZON, refresh)
+        elif source["kind"] == "press":
+            paper = next(p for p in press.PAPERS if p["id"] == source["id"])
+            found = press.events(paper, today, HORIZON)
+        elif source["kind"] == "jsonld":
+            html = fetch(source["id"], source["url"], today, refresh)
             found = jsonld.events(html)
         else:
+            html = fetch(source["id"], source["url"], today, refresh)
             text = clean.to_text(html, source["url"])
             found = extract.events(text, source, today, today + HORIZON)
     except Exception as e:  # noqa: BLE001 - reported, the run goes on
@@ -67,8 +75,17 @@ def run_all(today: date | None = None, only: list[str] | None = None, refresh: b
                     merged[k].setdefault("also", []).append(e["source"])
                 else:
                     merged[k] = e
+    # Each event's own page, for how and when to book.
+    filled = details.enrich(list(merged.values()), today)
+    report.append(("details", filled, None))
+    # The yearly rendez-vous; a scraped event with the same title and day is kept instead.
+    cal, watch = editorial.calendar_events(today)
+    for e in cal:
+        merged.setdefault(_key(e), e)
+    report.append(("calendar", len(cal), None))
     events = sorted(merged.values(), key=lambda e: str(e["start"]))
-    path = DATA / "events" / today.isoformat() / "all.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(events, ensure_ascii=False, indent=1))
+    folder = DATA / "events" / today.isoformat()
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "all.json").write_text(json.dumps(events, ensure_ascii=False, indent=1))
+    (folder / "watch.json").write_text(json.dumps(watch, ensure_ascii=False, indent=1))
     return report, events, time.time() - t0

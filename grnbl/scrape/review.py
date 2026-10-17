@@ -12,53 +12,81 @@ and the human has the last word.
 
 from __future__ import annotations
 
+import concurrent.futures as cf
 import json
 from datetime import date
 from pathlib import Path
 
+from .. import editorial
 from .extract import ask, parse_array
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 
-PROMPT = """You review events scraped from Grenoble (France) agendas for a WhatsApp channel that tells
-ordinary people of the Grenoble area what is worth going to. Think like the friend who always knows what's on.
-Today is {today}.
+PROMPT = """You review events scraped from Grenoble (France) agendas and local press for a WhatsApp channel
+that tells ordinary people of the Grenoble area what is worth going to. Think like the friend who always knows
+what's on: editorial, reliable, interesting. Not a listing of everything. Today is {today}.
+Each event has a "timing": "book_now" (booking open, still time), "opens_soon" (booking opens soon),
+"this_week" (no booking, in the coming days). Timing is already decided; you judge the interest.
 
 For EACH event below, return one JSON object, in a JSON array, nothing else:
 {{"i": <the event's i>, "keep": true/false, "why": short reason in French (only when keep is false),
   "score": 1-5 (5 = a great outing for many people: big concert, festival, popular free event),
   "free": true/false/null, "family": true if suited to children,
+  "rare": true if it happens once a year or less (festival, heritage days, special opening, one-off visit),
+          false for routine things (weekly market, regular club meeting, a show on a long run),
   "duplicate_of": <i of the same event listed earlier> or null,
   "line": one short, warm, factual French line for the post (what it is, no hype, no invented facts)}}
 
 Drop: online-only events, events more than ~30 km from Grenoble, professional or paid trainings,
 private or members-only meetings, religious services, political meetings, past events, ads, and anything
 that is not an outing. Keep council meetings only if open and of general interest (rarely).
+Also drop what everybody already knows or sees everywhere: ordinary league matches (keep a sports event
+only if it is free and festive, or exceptional), commercial events (sales, shop openings, paid trade fairs
+unless huge), weekly markets, cinema screenings of ordinary releases, recurring classes and club meetings.
+Score high what people would hate to miss and rarely hear about: free and rare things, special openings
+(a monument, a backstage visit), free concerts, festivals, things that need booking soon.
 
 EVENTS:
 {events}
 """
 
 
-def _compact(i: int, e: dict) -> dict:
+POSTABLE = ("book_now", "opens_soon", "this_week")
+TIMING_WHY = {"too_late": "Trop tard : il fallait réserver avant", "sold_out": "Complet",
+              "later": "Plus tard : revu quand ce sera le moment d'en parler"}
+
+
+def _compact(i: int, e: dict, today: date) -> dict:
     return {"i": i, "title": e["title"], "start": e["start"], "end": e.get("end"), "venue": e.get("venue"),
             "town": e.get("town"), "price": e.get("price"), "category": e.get("category"),
-            "description": (e.get("description") or "")[:200], "source": e.get("source_name")}
+            "description": (e.get("description") or "")[:200], "source": e.get("source_name"),
+            "booking": e.get("booking"), "booking_opens": e.get("booking_opens"), "timing": editorial.timing(e, today)}
 
 
 def review(events: list[dict], today: date, batch: int = 70, model: str = "sonnet") -> list[dict]:
+    """The AI only sees what could go out today; the timing rules settle the rest."""
     verdicts: dict[int, dict] = {}
-    for at in range(0, len(events), batch):
-        chunk = [_compact(i, e) for i, e in enumerate(events[at:at + batch], start=at)]
-        answer = ask(PROMPT.format(today=today.isoformat(), events=json.dumps(chunk, ensure_ascii=False)),
-                     model=model, timeout=600)
-        for v in parse_array_any(answer):
-            if isinstance(v.get("i"), int):
-                verdicts[v["i"]] = v
+    for i, e in enumerate(events):
+        t = editorial.timing(e, today)
+        if t not in POSTABLE:
+            verdicts[i] = {"keep": False, "why": TIMING_WHY[t], "auto": True}
+    todo = [(i, e) for i, e in enumerate(events) if i not in verdicts]
+    chunks = [[_compact(i, e, today) for i, e in todo[at:at + batch]] for at in range(0, len(todo), batch)]
+
+    def one(chunk):
+        return parse_array_any(ask(PROMPT.format(today=today.isoformat(), events=json.dumps(chunk, ensure_ascii=False)),
+                                   model=model, timeout=900))
+
+    with cf.ThreadPoolExecutor(3) as ex:
+        for answer in ex.map(one, chunks):
+            for v in answer:
+                if isinstance(v.get("i"), int):
+                    verdicts[v["i"]] = v
     out = []
     for i, e in enumerate(events):
         v = verdicts.get(i, {"keep": None, "why": "not reviewed"})
-        out.append({**e, "review": {k: v.get(k) for k in ("keep", "why", "score", "free", "family", "duplicate_of", "line")}})
+        out.append({**e, "timing": editorial.timing(e, today),
+                    "review": {k: v.get(k) for k in ("keep", "why", "score", "free", "family", "rare", "duplicate_of", "line", "auto")}})
     return out
 
 

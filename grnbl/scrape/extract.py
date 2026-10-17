@@ -27,7 +27,11 @@ Return ONLY a JSON array, no prose. One object per event that takes place betwee
 {{"title": str, "start": "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM", "end": same format or null,
   "venue": str or null, "town": str or null, "price": str or null (as written, e.g. "12 €", "Gratuit"),
   "free": true/false/null, "url": absolute link to the event or null,
-  "category": one of {cats}, "description": one short sentence in French or null}}
+  "category": one of {cats}, "description": one short sentence in French or null,
+  "booking": "required" | "recommended" | "none" | null (only what the page says),
+  "booking_opens": "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM" or null (when booking or registration opens),
+  "booking_deadline": same format or null, "booking_url": str or null,
+  "sold_out": true only if the page says "complet"}}
 
 Rules: copy facts from the page only, never invent a date, a price or a place. If the year is missing,
 use the next occurrence after today. Skip events without a usable date, past events, and navigation or
@@ -48,12 +52,16 @@ def ask(prompt: str, model: str = "haiku", timeout: int = 240) -> str:
     return out.stdout
 
 
-def parse_array(answer: str) -> list[dict]:
+def parse_array_raw(answer: str) -> list[dict]:
+    """The JSON array in a model answer, whatever prose surrounds it."""
     start, end = answer.find("["), answer.rfind("]")
     if start < 0 or end < start:
         return []
-    data = json.loads(answer[start:end + 1])
-    return [e for e in data if isinstance(e, dict) and e.get("title") and e.get("start")]
+    return [e for e in json.loads(answer[start:end + 1]) if isinstance(e, dict)]
+
+
+def parse_array(answer: str) -> list[dict]:
+    return [e for e in parse_array_raw(answer) if e.get("title") and e.get("start")]
 
 
 def events(text: str, source: dict, today: date, until: date) -> list[dict]:

@@ -1,0 +1,177 @@
+{
+ "about": "The yearly rendez-vous of the Grenoble area that a weekly scrape sees too late: when they happen, whether they are free, and when booking opens. Dates marked confirmed=false are the usual pattern, not an announcement: they are never posted, they only tell the admin board to look at the official page. Each entry lists the pages that announced it.",
+ "events": [
+  {
+   "id": "premier-dimanche",
+   "name": "Premier dimanche du mois au musée",
+   "what": "Musée de Grenoble gratuit pour tous, visites guidées gratuites au Musée dauphinois, au musée Arcabas (La Tronche) et au musée Champollion (Vif), Magasin CNAC gratuit.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Chaque premier dimanche du mois.",
+   "monthly": "first-sunday",
+   "booking": {"required": false, "note": "Les visites guidées ont un nombre de places limité : arriver tôt."},
+   "announce_days": 6,
+   "watch": ["https://www.museedegrenoble.fr/1902-tout-l-agenda.htm", "https://musees.isere.fr/"],
+   "sources": ["https://www.evous.fr/grenoble/musees-gratuits.html", "https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/"]
+  },
+  {
+   "id": "jna",
+   "name": "Journées nationales de l'architecture",
+   "what": "La tour Perret ouverte gratuitement, sur créneau réservé en ligne, et des visites d'architecture partout dans la métropole.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Mi-octobre, du jeudi au dimanche.",
+   "occurrences": [
+    {"start": "2026-10-15", "end": "2026-10-18", "confirmed": true, "note": "Tour Perret gratuite le dimanche 18, créneaux à réserver en ligne."},
+    {"start": "2027-10-14", "end": "2027-10-17", "confirmed": false}
+   ],
+   "booking": {"required": true, "lead_days": 14, "url": "https://www.grenoble.fr/tourperret", "note": "Les créneaux gratuits de la tour partent en quelques jours."},
+   "announce_days": 21,
+   "watch": ["https://www.grenoble.fr/tourperret", "https://journeesarchitecture.culture.gouv.fr/"],
+   "sources": ["https://www.lessentiel.fr/grenoble/idees-sorties/2026-10-15/grenoble-larchitecture-sinvite-pres-de-chez-vous-30357", "https://www.francetelevisions.fr/et-vous/notre-tele/on-soutient/journees-nationales-de-larchitecture-2026-60878"]
+  },
+  {
+   "id": "jep",
+   "name": "Journées européennes du patrimoine",
+   "what": "Monuments, coulisses et lieux fermés le reste de l'année ouverts gratuitement, dont la tour Perret sur réservation.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Troisième week-end de septembre.",
+   "occurrences": [
+    {"start": "2026-09-19", "end": "2026-09-20", "confirmed": true, "booking_opens": "2026-09-10", "note": "Tour Perret : créneaux gratuits réservables dès le 10 septembre."},
+    {"start": "2027-09-18", "end": "2027-09-19", "confirmed": false}
+   ],
+   "booking": {"required": true, "lead_days": 10, "url": "https://www.grenoble.fr/tourperret"},
+   "announce_days": 21,
+   "watch": ["https://www.grenoble.fr/tourperret", "https://journeesdupatrimoine.culture.gouv.fr/"],
+   "sources": ["https://www.grenoble.fr/article/1930/561-les-journees-europeennes-du-patrimoine-a-la-tour-perret.htm"]
+  },
+  {
+   "id": "nuit-musees",
+   "name": "Nuit européenne des musées",
+   "what": "Les musées ouverts gratuitement en soirée, avec animations.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Un samedi de mai.",
+   "occurrences": [
+    {"start": "2026-05-23", "end": "2026-05-23", "confirmed": true},
+    {"start": "2027-05-15", "end": "2027-05-15", "confirmed": false}
+   ],
+   "booking": {"required": false},
+   "announce_days": 10,
+   "watch": ["https://nuitdesmusees.culture.gouv.fr/"],
+   "sources": ["https://www.culture.gouv.fr/switchToLanguage/434428/fre-FR"]
+  },
+  {
+   "id": "allees-chantent",
+   "name": "Les Allées Chantent",
+   "what": "Concerts gratuits dans des lieux de patrimoine de l'Isère (châteaux, églises, musées), environ 80 par an.",
+   "free": true, "family": true, "town": "Isère",
+   "rule": "Saisons de printemps et d'automne, un artiste joue trois dates dans trois communes.",
+   "occurrences": [
+    {"start": "2026-10-23", "end": "2026-10-25", "confirmed": true, "note": "Rùn (musique irlandaise) : Saint-Chef, Vinay, Crémieu, loin de Grenoble."},
+    {"start": "2026-10-30", "end": "2026-11-01", "confirmed": true, "note": "Douar Trio (jazz) : La Tour-du-Pin, La Côte-Saint-André (réservation obligatoire au 04 74 20 24 88), Saint-Pierre-de-Chartreuse le dimanche 1er à 16 h."}
+   ],
+   "booking": {"required": false, "note": "Réservation parfois obligatoire quand la salle est petite : voir chaque date."},
+   "announce_days": 10,
+   "watch": ["https://www.les-allees-chantent.fr/programmation-allees-chantent/"],
+   "sources": ["https://www.les-allees-chantent.fr/programmation/douar-trio/", "https://www.les-allees-chantent.fr/programmation/run/"]
+  },
+  {
+   "id": "cine-montagne",
+   "name": "Rencontres Ciné Montagne",
+   "what": "Cinq soirées de films de montagne au Palais des sports, le grand rendez-vous des Grenoblois en octobre.",
+   "free": false, "family": true, "town": "Grenoble",
+   "rule": "Mi-octobre, cinq soirs.",
+   "occurrences": [
+    {"start": "2026-10-13", "end": "2026-10-17", "confirmed": true, "booking_opens": "2026-09-17", "note": "9 €, pass 5 soirées 37 €."},
+    {"start": "2027-10-12", "end": "2027-10-16", "confirmed": false}
+   ],
+   "booking": {"required": true, "lead_days": 26, "url": "https://www.cine-montagne.com/"},
+   "announce_days": 30,
+   "watch": ["https://www.grenoble.fr/384-rencontres-cine-montagne.htm"],
+   "sources": ["https://www.grenoble-tourisme.com/en/catalog/detail/rencontres-cine-montagne-383854/"]
+  },
+  {
+   "id": "foire-grenoble",
+   "name": "Foire de Grenoble",
+   "what": "La grande foire d'automne à Alpexpo : exposants, animations, invitations gratuites en ligne.",
+   "free": false, "family": true, "town": "Grenoble",
+   "rule": "Fin octobre, début novembre.",
+   "occurrences": [
+    {"start": "2026-10-30", "end": "2026-11-08", "confirmed": true}
+   ],
+   "booking": {"required": false},
+   "announce_days": 7,
+   "watch": ["https://foiredegrenoble.com/"],
+   "sources": ["https://www.alpexpo.com/agenda/foire-de-grenoble/"]
+  },
+  {
+   "id": "film-nature",
+   "name": "Festival du film Nature & Environnement",
+   "what": "Le festival de FNE Isère, 50 ans cette année : films nature au Club et dans les cinémas de la métropole.",
+   "free": false, "family": true, "town": "Grenoble",
+   "rule": "Fin novembre.",
+   "occurrences": [
+    {"start": "2026-11-22", "end": "2026-11-29", "confirmed": false, "note": "4 à 7 €. Dates à confirmer à l'annonce du programme."}
+   ],
+   "booking": {"required": false},
+   "announce_days": 10,
+   "watch": ["https://www.fne-aura.org/isere/"],
+   "sources": ["https://www.festivalenfrance.com/festival/festival-du-cinema-nature-environnement"]
+  },
+  {
+   "id": "marche-noel",
+   "name": "Marché de Noël de Grenoble",
+   "what": "Une centaine de chalets place Victor-Hugo, entrée libre.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "De fin novembre au 24 décembre.",
+   "occurrences": [
+    {"start": "2026-11-20", "end": "2026-12-24", "confirmed": true}
+   ],
+   "booking": {"required": false},
+   "announce_days": 5,
+   "watch": ["https://www.grenoble.fr/79-agenda.htm"],
+   "sources": ["https://www.grenoble.fr/uploads/AnnonceFichier/anf_fichier/7c/119_639_Appel-petit-format-artistique_Marche_Noel_2026.pdf"]
+  },
+  {
+   "id": "cabaret-frappe",
+   "name": "Cabaret Frappé",
+   "what": "Cinq soirées de concerts gratuits en plein air au Jardin de Ville, sans réservation.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Une semaine de juillet.",
+   "occurrences": [
+    {"start": "2027-07-19", "end": "2027-07-24", "confirmed": false}
+   ],
+   "booking": {"required": false},
+   "announce_days": 10,
+   "watch": ["https://www.cabaret-frappe.com/"],
+   "sources": ["https://www.jds.fr/grenoble/manifestations/festival/cabaret-frappe-1539760_A"]
+  },
+  {
+   "id": "street-art-fest",
+   "name": "Street Art Fest Grenoble-Alpes",
+   "what": "Cinq semaines de fresques peintes en direct, visites et ateliers gratuits.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Fin mai à fin juin.",
+   "occurrences": [
+    {"start": "2026-05-26", "end": "2026-06-28", "confirmed": true},
+    {"start": "2027-05-25", "end": "2027-06-27", "confirmed": false}
+   ],
+   "booking": {"required": false},
+   "announce_days": 7,
+   "watch": ["https://www.streetartfest.org/"],
+   "sources": ["https://www.festivalenfrance.com/festival/street-art-fest-grenoble-alpes"]
+  },
+  {
+   "id": "fete-musique",
+   "name": "Fête de la musique",
+   "what": "Concerts gratuits dans toute la ville.",
+   "free": true, "family": true, "town": "Grenoble",
+   "rule": "Le 21 juin.",
+   "occurrences": [
+    {"start": "2027-06-21", "end": "2027-06-21", "confirmed": true}
+   ],
+   "booking": {"required": false},
+   "announce_days": 5,
+   "watch": ["https://www.grenoble.fr/79-agenda.htm"],
+   "sources": []
+  }
+ ]
+}

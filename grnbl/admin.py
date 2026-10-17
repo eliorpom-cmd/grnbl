@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from .digest import fuel_post, outings_post_reviewed
+from .digest import fuel_post, outings_post_reviewed, to_book_post
 from .sources import fuel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,7 +75,10 @@ class Handler(BaseHTTPRequestHandler):
                 fuel_text = fuel_post(fuel.collect(), now)
             except Exception as e:  # noqa: BLE001 - the board still shows the outings
                 fuel_text = f"(carburant indisponible : {e})"
-            return self._json({"fuel": fuel_text, "outings": outings_post_reviewed(data, now)})
+            watch_path = day_folder(self.day) / "watch.json"
+            watch = json.loads(watch_path.read_text()) if watch_path.exists() else []
+            return self._json({"fuel": fuel_text, "to_book": to_book_post(data, now),
+                               "outings": outings_post_reviewed(data, now), "watch": watch})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):

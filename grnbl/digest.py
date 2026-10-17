@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from . import editorial
 from .items import Item
 
 PARIS = ZoneInfo("Europe/Paris")
@@ -95,10 +96,15 @@ def chosen(events: list[dict]) -> list[dict]:
 
 
 def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limit: int = 10) -> str | None:
-    """The week's outings from the scraped agendas, free things first, then the best."""
+    """The week's outings from the scraped agendas, free things first, then the best.
+
+    Only what needs no booking, or is already running: what must be booked goes in to_book_post.
+    """
     until = now + timedelta(days=days)
     rows = []
     for e in chosen(events):
+        if editorial.timing(e, now.date()) != "this_week":
+            continue
         start = _parse_start(e.get("start"))
         end = _parse_start(e.get("end")) if e.get("end") else None
         # Running now (exhibitions) or starting this week.
@@ -135,4 +141,48 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
         for x in free:
             lines += entry(x)
     lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
+    return "\n".join(lines)
+
+
+def _short_day(d: datetime) -> str:
+    return f"{DAYS[d.weekday()]} {d.day}/{d.month:02d}" + (f" à {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour else "")
+
+
+def to_book_post(events: list[dict], now: datetime, limit: int = 8) -> str | None:
+    """"À réserver maintenant": what needs booking, soonest deadline first.
+
+    The post the weekly digest cannot be: by the time a free visit is "this
+    week", its slots are gone. Booking that opens in the coming days is
+    announced with its opening date, so people can be there at the minute.
+    """
+    today = now.date()
+    rows = []
+    for e in chosen(events):
+        t = editorial.timing(e, today)
+        if t not in ("book_now", "opens_soon"):
+            continue
+        start = _parse_start(e.get("start"))
+        if not start:
+            continue
+        r, d = e.get("review") or {}, e.get("decision") or {}
+        rows.append((t != "opens_soon", start, -(r.get("score") or 0), e, d.get("line") or r.get("line") or e.get("description") or ""))
+    if not rows:
+        return None
+    rows.sort(key=lambda x: (x[0], x[1], x[2]))
+    lines = ["📅 *À réserver maintenant*", "_Ce qui part vite : les places se prennent avant le jour J._", ""]
+    for opens_first, start, _, e, line in rows[:limit]:
+        r = e.get("review") or {}
+        icon = "🆓" if (r.get("free") if r.get("free") is not None else e.get("free")) is True else "🎟️"
+        where = e.get("venue") or e.get("town") or ""
+        lines.append(f"{icon} *{e['title'].strip()}* · {_short_day(start)}{' · ' + where if where else ''}")
+        if line:
+            lines.append(f"   {line}")
+        opens = _parse_start(e.get("booking_opens")) if e.get("booking_opens") else None
+        deadline = _parse_start(e.get("booking_deadline")) if e.get("booking_deadline") else None
+        link = e.get("booking_url") or e.get("url")
+        if opens and opens.date() > today:
+            lines.append(f"   ⏰ Réservations dès {_short_day(opens)}{' : ' + link if link else ''}")
+        else:
+            lines.append(f"   👉 Réserver{' avant ' + _short_day(deadline) if deadline else ''}{' : ' + link if link else ''}")
+    lines += ["", "_Réagis avec 👍 si tu as réservé._"]
     return "\n".join(lines)
