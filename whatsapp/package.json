@@ -1,0 +1,11 @@
+{
+  "name": "grnbl-whatsapp",
+  "private": true,
+  "type": "module",
+  "description": "Links grnbl to a WhatsApp account and sends one message per call.",
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "pino": "9.6.0",
+    "qrcode-terminal": "0.12.0"
+  }
+}

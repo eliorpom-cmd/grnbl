@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 
 from .digest import fuel_post, outings_post_reviewed, to_book_post
 from .editor import CHANNELS
+from . import publish
 from .sources import fuel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,13 +107,20 @@ class Handler(BaseHTTPRequestHandler):
                               for p in sel or [] if p["i"] < len(data)],
                 })
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
+            sent, ids = publish.status(self.day), publish.channel_ids()
+            for c in channels:
+                c["outbox"], c["linked"] = sent.get(c["id"], {}), c["id"] in ids
             return self._json({"channels": channels, "watch": watch})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):
-        if self.path != "/api/decide":
+        if self.path not in ("/api/decide", "/api/publish"):
             return self._send(404, b"not found", "text/plain")
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        if self.path == "/api/publish":
+            # Sends the channel's approved posts that are not out yet; the outbox prevents doubles.
+            report = publish.run(self.day, send=True, only=[str(body.get("channel"))])
+            return self._json({"ok": True, "report": report})
         i = body.get("i")
         if not isinstance(i, int):
             return self._json({"ok": False}, 400)

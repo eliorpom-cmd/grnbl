@@ -15,8 +15,13 @@ Built for [Neighborhood Hacks 2026](https://neighborhoodhacks.org/).
 python3 -m grnbl.daily    # the morning run: collect, check booking, review, compose the posts
 python3 -m grnbl.admin    # the editor's board: http://127.0.0.1:8730
 python3 -m grnbl fuel     # the fuel post alone
+python3 -m grnbl.publish  # the outbox: what is approved and ready (add --send to send)
 python3 -m unittest discover -s tests -t .
 ```
+
+Publishing goes through `whatsapp/send.mjs` (Node, [Baileys](https://github.com/WhiskeySockets/Baileys), an
+unofficial WhatsApp Web client): it connects as a linked device, sends one message and disconnects, so no
+server has to stay up. `deploy/morning.sh` is the daily run for any scheduler (launchd on a Mac, cron on Linux).
 
 Python 3.11+, standard library only. The AI steps call Claude through the `claude` CLI.
 

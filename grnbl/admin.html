@@ -112,6 +112,10 @@
   .notes section + section { margin-top: 28px; }
   .summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: 12px; background: var(--hover); margin: 0 0 24px; }
   .summary span { color: var(--body); }
+  .summary .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn.send { background: var(--keep); border-color: var(--keep); color: #fff; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .summary .sent { color: var(--keep); font-weight: 600; white-space: nowrap; }
   .prow { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); transition: opacity .18s var(--ease); }
   .prow.off { opacity: .5; } .prow.dropped .pline { text-decoration: line-through; }
   .pt { font-weight: 600; }
@@ -356,6 +360,15 @@ function inPost(picks) {
   return out;
 }
 
+// The WhatsApp step: offered once the post is approved, then shows what the outbox says.
+function sendButton(c, ready) {
+  const out = Object.values(c.outbox || {}), sent = out.filter((r) => r.status === "sent"), failed = out.find((r) => r.status === "failed");
+  if (out.length && sent.length === out.length) return `<span class="sent">Envoyé à ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
+  if (!ready) return "";
+  if (!c.linked) return `<button class="btn" disabled title="Relie la chaîne : node whatsapp/send.mjs channel <lien>">Chaîne pas encore reliée</button>`;
+  return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? "Réessayer l'envoi" : "Publier sur WhatsApp"}</button>`;
+}
+
 async function renderPosts() {
   if (!postsData) {
     if (!$("phone").innerHTML) $("phone").innerHTML = `<p class="empty">Préparation des posts…</p>`;
@@ -383,9 +396,9 @@ async function renderPosts() {
   };
   const watch = postsData.watch || [];
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
-  const summary = c.id === "carburant" ? `<p class="lead">Calculé chaque matin sur les prix officiels, rien à relire.</p>`
+  const summary = c.id === "carburant" ? `<div class="summary"><div><b>Envoi automatique</b><br><span>Calculé chaque matin sur les prix officiels, rien à relire.</span></div>${sendButton(c, true)}</div>`
     : `<div class="summary"><div><b>${shown.length} lignes à relire</b>${removed ? ` · ${removed} retirée${removed > 1 ? "s" : ""}, remplacée${removed > 1 ? "s" : ""}` : ""}<br><span>Lis l'aperçu, retire ce qui ne va pas. Le reste part tel quel.</span></div>
-       <button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button></div>`;
+       <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button>${sendButton(c, okAll)}</div></div>`;
   $("notes").innerHTML = tabs + summary + section("to_book", "À réserver maintenant") + section("week", "Cette semaine") +
     (watch.length && c.id !== "carburant" ? `<section><h2>À surveiller</h2>${watch.map((w) =>
       `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">vérifier ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
@@ -410,6 +423,13 @@ $("notes").addEventListener("click", async (ev) => {
   const ch = ev.target.closest("[data-c]"); if (ch) { channel = ch.dataset.c; renderPosts(); return; }
   const act = ev.target.closest("[data-act]"); if (!act) return;
   const c = postsData.channels.find((x) => x.id === channel);
+  if (act.dataset.act === "publish") {
+    act.disabled = true; act.textContent = "Envoi…";
+    const r = await (await fetch("/api/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel }) })).json();
+    const bad = (r.report || []).filter(([, what]) => what.startsWith("échec"));
+    toast(bad.length ? `Échec : ${bad[0][1]}` : "Envoyé sur WhatsApp");
+    postsData = null; return renderPosts();
+  }
   if (act.dataset.act === "all") {
     const live = inPost(c.picks);
     for (const x of c.picks.filter((p) => live.has(p.i + p.post) && p.status !== "keep")) {

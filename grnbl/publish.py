@@ -77,6 +77,15 @@ def _path(day: date, item: dict) -> Path:
     return DATA / "outbox" / day.isoformat() / f"{item['channel']}-{item['post']}.json"
 
 
+def status(day: date) -> dict[str, dict[str, dict]]:
+    """What the outbox says per channel and post: status, sent_at, error."""
+    out: dict[str, dict[str, dict]] = {}
+    for path in sorted((DATA / "outbox" / day.isoformat()).glob("*.json")):
+        r = json.loads(path.read_text())
+        out.setdefault(r["channel"], {})[r["post"]] = {k: r.get(k) for k in ("status", "sent_at", "error")}
+    return out
+
+
 def channel_ids() -> dict[str, str]:
     return json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
 
