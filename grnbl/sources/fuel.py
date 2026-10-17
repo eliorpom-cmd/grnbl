@@ -61,6 +61,11 @@ def cheapest_by_fuel(stations: list[dict], now: datetime | None = None) -> list[
         offers.sort(key=lambda o: o[0])
         price, best = offers[0]
         top = offers[-1][0]
+        # The three cheapest stations, ties included in order of the feed.
+        podium = [
+            {"price": p, "address": s["adresse"].title(), "town": s["ville"].title()}
+            for p, s in offers[:3]
+        ]
         prices = [p for p, _ in offers]
         items.append(
             Item(
@@ -73,6 +78,7 @@ def cheapest_by_fuel(stations: list[dict], now: datetime | None = None) -> list[
                 lon=float(best["longitude"]) if best.get("longitude") else None,
                 data={
                     "fuel": key,
+                    "top3": podium,
                     "label": label,
                     "price": price,
                     "max": top,

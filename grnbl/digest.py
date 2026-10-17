@@ -22,19 +22,22 @@ def euros(x: float, digits: int = 3) -> str:
 
 
 def fuel_post(items: list[Item], now: datetime) -> str | None:
-    """The morning fuel post: cheapest station per fuel, and what it saves on a tank."""
+    """The morning fuel post: the three cheapest stations per fuel. Pure data, no AI."""
     by_fuel = {i.data["fuel"]: i for i in items if i.topic == "fuel"}
     order = ["gazole", "e10", "sp98", "e85", "gplc"]
     rows = [by_fuel[k] for k in order if k in by_fuel]
     if not rows:
         return None
-    lines = [f"⛽ *Le plein le moins cher ce {DAYS[now.weekday()]}*", ""]
+    medals = ["🥇", "🥈", "🥉"]
+    lines = [f"⛽ *Les pleins les moins chers ce {DAYS[now.weekday()]}*"]
     for i in rows:
         d = i.data
-        lines.append(f"*{d['label']}* : {euros(d['price'])} à {i.text}")
+        lines += ["", f"*{d['label']}*"]
+        for medal, s in zip(medals, d["top3"]):
+            lines.append(f"{medal} {euros(s['price'])} · {s['address']}, {s['town']}")
         if d["saving_tank"] >= 3:
-            lines.append(f"   _{euros(d['saving_tank'], 0)} de moins sur un plein que la plus chère de la Métropole_")
-    lines += ["", f"_Prix officiels relevés sur {max(i.data['stations'] for i in rows)} stations de la Métropole._"]
+            lines.append(f"_Jusqu'à {euros(d['saving_tank'], 0)} d'écart sur un plein avec la plus chère_")
+    lines += ["", f"_Prix officiels (prix-carburants.gouv.fr), {max(i.data['stations'] for i in rows)} stations de la Métropole._"]
     return "\n".join(lines)
 
 
