@@ -71,3 +71,68 @@ def outings_post(items: list[Item], now: datetime, days: int = 7, limit: int = 8
             lines.append(f"• {i.title.strip()} · {i.place} · jusqu'au {i.end.day}/{i.end.month:02d}")
     lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
     return "\n".join(lines)
+
+
+def _parse_start(raw) -> datetime | None:
+    try:
+        d = datetime.fromisoformat(str(raw)[:16])
+    except ValueError:
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=PARIS)
+
+
+def chosen(events: list[dict]) -> list[dict]:
+    """What goes out: the human's decision wins, otherwise the AI's verdict."""
+    out = []
+    for e in events:
+        d, r = e.get("decision") or {}, e.get("review") or {}
+        if d.get("status") == "drop":
+            continue
+        if d.get("status") != "keep" and (not r.get("keep") or r.get("duplicate_of") is not None):
+            continue
+        out.append(e)
+    return out
+
+
+def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limit: int = 10) -> str | None:
+    """The week's outings from the scraped agendas, free things first, then the best."""
+    until = now + timedelta(days=days)
+    rows = []
+    for e in chosen(events):
+        start = _parse_start(e.get("start"))
+        end = _parse_start(e.get("end")) if e.get("end") else None
+        # Running now (exhibitions) or starting this week.
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if not start or (start < midnight and not (end and end >= now)) or start > until:
+            continue
+        r, d = e.get("review") or {}, e.get("decision") or {}
+        rows.append((r.get("free") is not True, -(r.get("score") or 0), start, e, d.get("line") or r.get("line") or e["title"]))
+    if not rows:
+        return None
+    # Two parts: the best of the week whatever the price, then the best free ones.
+    by_score = sorted(rows, key=lambda x: (x[1], x[2]))
+    top = by_score[:4]
+    free = [x for x in by_score if not x[0] and x not in top][: max(0, limit - len(top))]
+    free_total = sum(1 for x in rows if not x[0])
+
+    def entry(x):
+        _, _, start, e, line = x
+        end = _parse_start(e.get("end")) if e.get("end") else None
+        if start < now.replace(hour=0, minute=0, second=0, microsecond=0) and end:
+            when = f"jusqu'au {end.day}/{end.month:02d}"  # already running
+        else:
+            when = DAYS[start.weekday()] + f" {start.day}" + (f" à {start.hour}h{start.minute:02d}".replace("h00", "h") if start.hour else "")
+        where = e.get("venue") or e.get("town") or ""
+        free = (e.get("review") or {}).get("free")
+        icon = "🆓" if free is True else "🎟️" if free is False else "📍"
+        return [f"{icon} *{e['title'].strip()}* · {when}{' · ' + where.title() if where.isupper() and len(where) > 6 else ' · ' + where if where else ''}", f"   {line}"]
+
+    lines = [f"🎭 *Cette semaine à Grenoble* · {len(rows)} sorties repérées, dont {free_total} gratuites", "", "⭐ *Les immanquables*"]
+    for x in top:
+        lines += entry(x)
+    if free:
+        lines += ["", "🆓 *Gratuit*"]
+        for x in free:
+            lines += entry(x)
+    lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
+    return "\n".join(lines)
