@@ -151,12 +151,14 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
         return [f"{icon} *{e['title'].strip()}* · {when}{' · ' + where.title() if where.isupper() and len(where) > 6 else ' · ' + where if where else ''}", f"   {line}"]
 
     picks = picked(events, selection, "week")
-    if picks:
+    if picks is not None:
+        if not picks:
+            return None
         lines = [f"🎭 *Cette semaine à Grenoble* · notre sélection parmi {len(rows)} sorties repérées", ""]
         for e, line in picks:
             start = _parse_start(e.get("start"))
             if start:
-                lines += entry((None, None, start, e, line))
+                lines += ([""] if len(lines) > 2 else []) + entry((None, None, start, e, line))
         lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
         return "\n".join(lines)
 
@@ -200,7 +202,7 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
         r, d = e.get("review") or {}, e.get("decision") or {}
         rows.append((t != "opens_soon", start, -(r.get("score") or 0), e, d.get("line") or r.get("line") or e.get("description") or ""))
     picks = picked(events, selection, "to_book")
-    if picks:
+    if picks is not None:
         order = {id(e): k for k, (e, _) in enumerate(picks)}
         lines_by = {id(e): line for e, line in picks}
         rows = [(r[0], r[1], order[id(r[3])], r[3], lines_by[id(r[3])]) for r in rows if id(r[3]) in order]
@@ -214,6 +216,8 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
         r = e.get("review") or {}
         icon = "🆓" if (r.get("free") if r.get("free") is not None else e.get("free")) is True else "🎟️"
         where = _place(e)
+        if lines[-1]:
+            lines.append("")
         lines.append(f"{icon} *{e['title'].strip()}* · {_short_day(start)}{' · ' + where if where else ''}")
         if line:
             lines.append(f"   {line}")

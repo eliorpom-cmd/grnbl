@@ -15,6 +15,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .digest import fuel_post, outings_post_reviewed, to_book_post
+from .editor import CHANNELS
 from .sources import fuel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,9 +34,13 @@ def load(day: date) -> dict:
     events = json.loads(reviewed.read_text()) if reviewed.exists() else []
     decisions_path = DATA / "decisions" / f"{day.isoformat()}.json"
     decisions = json.loads(decisions_path.read_text()) if decisions_path.exists() else {}
+    selection_path = folder / "selection.json"
+    picks = json.loads(selection_path.read_text()) if selection_path.exists() else []
+    by_i = {p["i"]: {**p, "rank": rank} for rank, p in enumerate(picks)}
     for i, e in enumerate(events):
         e["i"] = i
         e["decision"] = decisions.get(str(i))
+        e["pick"] = by_i.get(i)
     return {"day": day.isoformat(), "events": events}
 
 
@@ -79,10 +84,16 @@ class Handler(BaseHTTPRequestHandler):
             selection = json.loads(sel_path.read_text()) if sel_path.exists() else None
             watch_path = day_folder(self.day) / "watch.json"
             watch = json.loads(watch_path.read_text()) if watch_path.exists() else []
-            picks = [{**p, "title": data[p["i"]]["title"]} for p in selection or [] if p["i"] < len(data)]
-            return self._json({"fuel": fuel_text, "to_book": to_book_post(data, now, selection=selection),
-                               "outings": outings_post_reviewed(data, now, selection=selection),
-                               "watch": watch, "picks": picks})
+            channels = []
+            for cid, c in CHANNELS.items():
+                sel = [p for p in selection or [] if p.get("channel", "sorties") == cid] if selection is not None else None
+                channels.append({
+                    "id": cid, "name": c["name"],
+                    "posts": [t for t in (to_book_post(data, now, selection=sel), outings_post_reviewed(data, now, selection=sel)) if t],
+                    "picks": [{**p, "title": data[p["i"]]["title"]} for p in sel or [] if p["i"] < len(data)],
+                })
+            channels.append({"id": "carburant", "name": "grnbl · Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
+            return self._json({"channels": channels, "watch": watch})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):

@@ -114,5 +114,16 @@ class EditorPicks(unittest.TestCase):
         self.assertIsNone(picked(events, None, "week"))
 
 
+class Channels(unittest.TestCase):
+    def test_free_channel_never_gets_paid_events(self):
+        from grnbl.editor import candidates
+        ok = {"review": {"keep": True, "score": 4}}
+        events = [{"title": "Concert", "start": "2026-10-20", "free": False, **ok},
+                  {"title": "Visite", "start": "2026-10-20", "review": {"keep": True, "score": 3, "free": True}},
+                  {"title": "Atelier", "start": "2026-10-20", "free": None, **ok}]
+        self.assertEqual([e["title"] for _, e in candidates(events, TODAY, "gratuit")], ["Visite"])
+        self.assertEqual(len(candidates(events, TODAY, "sorties")), 3)
+
+
 if __name__ == "__main__":
     unittest.main()
