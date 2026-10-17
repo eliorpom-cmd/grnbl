@@ -57,9 +57,9 @@ def timing(e: dict, today: date) -> str:
         if lead < NOTICE_BOOKING:
             return "too_late"
         return "book_now" if lead <= BOOK_AHEAD else "later"
-    # Running already (an exhibition): fine for the weekly post until it closes.
-    if start < today and end and end >= today:
-        return "this_week"
+    # Running already (an exhibition): fine for the weekly post while there is a day left after the post.
+    if start < today and end:
+        return "this_week" if (end - today).days >= NOTICE_WALK_IN else "too_late"
     if lead < NOTICE_WALK_IN:
         return "too_late"
     if booking == "recommended" and lead > WEEK and lead <= BOOK_AHEAD:

@@ -6,7 +6,8 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from grnbl import editorial
+from grnbl import editorial, memory
+from grnbl.digest import picked
 from grnbl.scrape import press, tourisme
 
 TODAY = date(2026, 10, 17)
@@ -39,6 +40,8 @@ class Timing(unittest.TestCase):
     def test_running_exhibition_and_sold_out(self):
         self.assertEqual(editorial.timing(self.ev("2026-09-01", end="2026-11-03"), TODAY), "this_week")
         self.assertEqual(editorial.timing(self.ev("2026-10-25", sold_out=True), TODAY), "sold_out")
+        # Last day today: nobody can plan for it from a morning post.
+        self.assertEqual(editorial.timing(self.ev("2026-10-13", end="2026-10-17"), TODAY), "too_late")
 
 
 class Calendar(unittest.TestCase):
@@ -87,6 +90,28 @@ class Press(unittest.TestCase):
         page = '<a href="https://www.placegrenet.fr/2026/10/07/rencontres-cine-montagne/691079">x</a>'
         (url,) = press.article_links(paper, page, "https://www.placegrenet.fr/")
         self.assertEqual(press.published(paper, url), date(2026, 10, 7))
+
+
+class Memory(unittest.TestCase):
+    def test_routine_needs_three_dates(self):
+        seen = {"marche saint bruno": {"2026-10-17", "2026-10-18", "2026-10-20"}, "tour perret": {"2026-10-18"}}
+        self.assertTrue(memory.is_routine({"title": "Marché Saint-Bruno", "start": "2026-10-21"}, seen))
+        self.assertFalse(memory.is_routine({"title": "Tour Perret", "start": "2026-10-18"}, seen))
+
+    def test_already_posted_matches_title_and_day(self):
+        done = {"visites gratuites de la tour perret|2026-10-18": "2026-10-07"}
+        self.assertTrue(memory.already_posted({"title": "Visites gratuites de la Tour Perret", "start": "2026-10-18T10:00"}, done))
+        self.assertFalse(memory.already_posted({"title": "Visites gratuites de la Tour Perret", "start": "2027-10-17"}, done))
+
+
+class EditorPicks(unittest.TestCase):
+    def test_order_and_human_drop_win(self):
+        events = [{"title": "A", "start": "2026-10-20"}, {"title": "B", "start": "2026-10-21", "decision": {"status": "drop"}},
+                  {"title": "C", "start": "2026-10-22", "decision": {"status": "keep", "line": "mine"}}]
+        selection = [{"i": 2, "post": "week", "line": "ai"}, {"i": 1, "post": "week"}, {"i": 0, "post": "week", "line": "a"}]
+        got = picked(events, selection, "week")
+        self.assertEqual([(e["title"], line) for e, line in got], [("C", "mine"), ("A", "a")])
+        self.assertIsNone(picked(events, None, "week"))
 
 
 if __name__ == "__main__":

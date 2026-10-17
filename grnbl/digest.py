@@ -95,7 +95,24 @@ def chosen(events: list[dict]) -> list[dict]:
     return out
 
 
-def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limit: int = 10) -> str | None:
+def picked(events: list[dict], selection: list[dict] | None, post: str) -> list[tuple[dict, str]] | None:
+    """The editor's picks for one post, in its order, minus what the human dropped. None without a selection."""
+    if selection is None:
+        return None
+    out = []
+    for p in selection:
+        if p.get("post") != post or not 0 <= p.get("i", -1) < len(events):
+            continue
+        e = events[p["i"]]
+        d = e.get("decision") or {}
+        if d.get("status") == "drop":
+            continue
+        out.append((e, d.get("line") or p.get("line") or (e.get("review") or {}).get("line") or ""))
+    return out
+
+
+def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limit: int = 10,
+                          selection: list[dict] | None = None) -> str | None:
     """The week's outings from the scraped agendas, free things first, then the best.
 
     Only what needs no booking, or is already running: what must be booked goes in to_book_post.
@@ -133,6 +150,16 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
         icon = "🆓" if free is True else "🎟️" if free is False else "📍"
         return [f"{icon} *{e['title'].strip()}* · {when}{' · ' + where.title() if where.isupper() and len(where) > 6 else ' · ' + where if where else ''}", f"   {line}"]
 
+    picks = picked(events, selection, "week")
+    if picks:
+        lines = [f"🎭 *Cette semaine à Grenoble* · notre sélection parmi {len(rows)} sorties repérées", ""]
+        for e, line in picks:
+            start = _parse_start(e.get("start"))
+            if start:
+                lines += entry((None, None, start, e, line))
+        lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
+        return "\n".join(lines)
+
     lines = [f"🎭 *Cette semaine à Grenoble* · {len(rows)} sorties repérées, dont {free_total} gratuites", "", "⭐ *Les immanquables*"]
     for x in top:
         lines += entry(x)
@@ -144,11 +171,17 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
     return "\n".join(lines)
 
 
+def _place(e: dict) -> str:
+    """Venue or town, without the shouting some agendas use."""
+    where = (e.get("venue") or e.get("town") or "").strip()
+    return where.title() if where.isupper() and len(where) > 6 else where
+
+
 def _short_day(d: datetime) -> str:
     return f"{DAYS[d.weekday()]} {d.day}/{d.month:02d}" + (f" à {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour else "")
 
 
-def to_book_post(events: list[dict], now: datetime, limit: int = 8) -> str | None:
+def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: list[dict] | None = None) -> str | None:
     """"À réserver maintenant": what needs booking, soonest deadline first.
 
     The post the weekly digest cannot be: by the time a free visit is "this
@@ -166,14 +199,21 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8) -> str | Non
             continue
         r, d = e.get("review") or {}, e.get("decision") or {}
         rows.append((t != "opens_soon", start, -(r.get("score") or 0), e, d.get("line") or r.get("line") or e.get("description") or ""))
+    picks = picked(events, selection, "to_book")
+    if picks:
+        order = {id(e): k for k, (e, _) in enumerate(picks)}
+        lines_by = {id(e): line for e, line in picks}
+        rows = [(r[0], r[1], order[id(r[3])], r[3], lines_by[id(r[3])]) for r in rows if id(r[3]) in order]
+        rows.sort(key=lambda x: x[2])
+    else:
+        rows.sort(key=lambda x: (x[0], x[1], x[2]))
     if not rows:
         return None
-    rows.sort(key=lambda x: (x[0], x[1], x[2]))
     lines = ["📅 *À réserver maintenant*", "_Ce qui part vite : les places se prennent avant le jour J._", ""]
     for opens_first, start, _, e, line in rows[:limit]:
         r = e.get("review") or {}
         icon = "🆓" if (r.get("free") if r.get("free") is not None else e.get("free")) is True else "🎟️"
-        where = e.get("venue") or e.get("town") or ""
+        where = _place(e)
         lines.append(f"{icon} *{e['title'].strip()}* · {_short_day(start)}{' · ' + where if where else ''}")
         if line:
             lines.append(f"   {line}")

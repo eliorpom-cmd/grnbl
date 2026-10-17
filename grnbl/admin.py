@@ -75,10 +75,14 @@ class Handler(BaseHTTPRequestHandler):
                 fuel_text = fuel_post(fuel.collect(), now)
             except Exception as e:  # noqa: BLE001 - the board still shows the outings
                 fuel_text = f"(carburant indisponible : {e})"
+            sel_path = day_folder(self.day) / "selection.json"
+            selection = json.loads(sel_path.read_text()) if sel_path.exists() else None
             watch_path = day_folder(self.day) / "watch.json"
             watch = json.loads(watch_path.read_text()) if watch_path.exists() else []
-            return self._json({"fuel": fuel_text, "to_book": to_book_post(data, now),
-                               "outings": outings_post_reviewed(data, now), "watch": watch})
+            picks = [{**p, "title": data[p["i"]]["title"]} for p in selection or [] if p["i"] < len(data)]
+            return self._json({"fuel": fuel_text, "to_book": to_book_post(data, now, selection=selection),
+                               "outings": outings_post_reviewed(data, now, selection=selection),
+                               "watch": watch, "picks": picks})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):

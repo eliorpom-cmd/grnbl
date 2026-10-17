@@ -17,7 +17,7 @@ import json
 from datetime import date
 from pathlib import Path
 
-from .. import editorial
+from .. import editorial, memory
 from .extract import ask, parse_array
 
 DATA = Path(__file__).resolve().parents[2] / "data"
@@ -35,7 +35,8 @@ For EACH event below, return one JSON object, in a JSON array, nothing else:
   "rare": true if it happens once a year or less (festival, heritage days, special opening, one-off visit),
           false for routine things (weekly market, regular club meeting, a show on a long run),
   "duplicate_of": <i of the same event listed earlier> or null,
-  "line": one short, warm, factual French line for the post (what it is, no hype, no invented facts)}}
+  "line": one short, warm, factual French line for the post (what it is, no hype). Only facts given in the
+          event: no date, history or detail from your own knowledge, they are often out of date}}
 
 Drop: online-only events, events more than ~30 km from Grenoble, professional or paid trainings,
 private or members-only meetings, religious services, political meetings, past events, ads, and anything
@@ -45,6 +46,10 @@ only if it is free and festive, or exceptional), commercial events (sales, shop 
 unless huge), weekly markets, cinema screenings of ordinary releases, recurring classes and club meetings.
 Score high what people would hate to miss and rarely hear about: free and rare things, special openings
 (a monument, a backstage visit), free concerts, festivals, things that need booking soon.
+Signals given with each event: "sources" = how many agendas list it, "press" = a journalist wrote about it
+(both mean people talk about it: raise the score a little), "routine" = it came back on 3+ different dates
+lately (a weekly thing: lower the score, rarely worth a post).
+{taste}
 
 EVENTS:
 {events}
@@ -60,22 +65,44 @@ def _compact(i: int, e: dict, today: date) -> dict:
     return {"i": i, "title": e["title"], "start": e["start"], "end": e.get("end"), "venue": e.get("venue"),
             "town": e.get("town"), "price": e.get("price"), "category": e.get("category"),
             "description": (e.get("description") or "")[:200], "source": e.get("source_name"),
-            "booking": e.get("booking"), "booking_opens": e.get("booking_opens"), "timing": editorial.timing(e, today)}
+            "booking": e.get("booking"), "booking_opens": e.get("booking_opens"), "timing": editorial.timing(e, today),
+            "sources": 1 + len(e.get("also") or []),
+            "press": any(str(s).startswith("press-") for s in [e.get("source"), *(e.get("also") or [])]),
+            "routine": bool(e.get("routine"))}
 
 
-def review(events: list[dict], today: date, batch: int = 70, model: str = "sonnet") -> list[dict]:
+def taste_block(today: date) -> str:
+    """The editor's past calls, so the review learns the channel's taste."""
+    calls = memory.past_decisions(today)
+    if not calls:
+        return ""
+    return ("The human editor of the channel corrected earlier reviews. Follow their taste:\n"
+            + json.dumps(calls, ensure_ascii=False))
+
+
+def review(events: list[dict], today: date, batch: int = 40, model: str = "sonnet") -> list[dict]:
     """The AI only sees what could go out today; the timing rules settle the rest."""
     verdicts: dict[int, dict] = {}
+    seen, done = memory.start_dates(today), memory.posted()
     for i, e in enumerate(events):
+        e["routine"] = memory.is_routine(e, seen)
         t = editorial.timing(e, today)
         if t not in POSTABLE:
             verdicts[i] = {"keep": False, "why": TIMING_WHY[t], "auto": True}
+        elif memory.already_posted(e, done):
+            verdicts[i] = {"keep": False, "why": "Déjà partagé", "auto": True}
+    taste = taste_block(today)
     todo = [(i, e) for i, e in enumerate(events) if i not in verdicts]
     chunks = [[_compact(i, e, today) for i, e in todo[at:at + batch]] for at in range(0, len(todo), batch)]
 
     def one(chunk):
-        return parse_array_any(ask(PROMPT.format(today=today.isoformat(), events=json.dumps(chunk, ensure_ascii=False)),
-                                   model=model, timeout=900))
+        prompt = PROMPT.format(today=today.isoformat(), taste=taste, events=json.dumps(chunk, ensure_ascii=False))
+        for attempt in range(2):
+            try:
+                return parse_array_any(ask(prompt, model=model, timeout=900))
+            except Exception:  # noqa: BLE001 - retried once, then that batch stays "not reviewed"
+                continue
+        return []
 
     with cf.ThreadPoolExecutor(3) as ex:
         for answer in ex.map(one, chunks):
