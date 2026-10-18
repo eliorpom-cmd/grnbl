@@ -13,7 +13,7 @@ import re
 BARGAIN = re.compile(r"vide[- ]?grenier|brocante|braderie|bourse (?:aux|au|à|de)|\btroc\b|vente (?:solidaire|de livres|"
                      r"au déballage|de jouets)|déstockage|\bpuces\b|ressourcerie|recyclerie|foire aux|vide[- ]?dressing|"
                      r"gratiferia|repair caf", re.I)
-NATURE = re.compile(r"randonn|\brando|balade|sortie nature|\bnature\b|oiseau|ornitho|\bfaune|\bflore\b|forêt|montagne|"
+NATURE = re.compile(r"randonn|\brando|balade (?:nature|botanique|naturaliste|en (?:montagne|forêt))|sortie nature|\bnature\b|oiseau|ornitho|\bfaune|\bflore\b|forêt|montagne|"
                     r"sommet|bastille|\bski\b|raquette|escalade|via ferrata|trail|cueillette|champignon|astronom|"
                     r"étoiles|marais|\blpo\b|espace naturel|alpin|glacier|grimpe", re.I)
 

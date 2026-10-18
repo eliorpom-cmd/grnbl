@@ -84,6 +84,8 @@ class Channels(unittest.TestCase):
         show = {"title": "Concert", "category": "concert", "review": {"free": False}}
         self.assertEqual([c for c in channels.CHANNELS if channels.accepts(c, broc)], ["gratuit", "sorties", "bonsplans"])
         self.assertTrue(channels.accepts("nature", walk))
+        self.assertFalse(channels.accepts("nature", {"title": "Balade théâtralisée - Cadavres exquis",
+                                                     "venue": "Musée archéologique"}))
         self.assertTrue(channels.accepts("famille", kids))
         self.assertFalse(any(channels.accepts(c, show) for c in ("gratuit", "famille", "bonsplans", "nature")))
 
