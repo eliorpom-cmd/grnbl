@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from datetime import date
+from datetime import date, timedelta
 
 # Words that start sentences or carry no fact of their own.
 COMMON = set("""
@@ -38,8 +38,22 @@ def haystack(e: dict, page: str = "") -> str:
     facts = [str(e.get(k) or "") for k in ("title", "description", "venue", "town", "price", "periods",
                                              "start", "end", "booking_opens", "booking_deadline", "source_name")]
     facts += [str(d) for d in e.get("dates") or []]
+    facts.append(_days_between(e.get("start"), e.get("end")))
     # Not the review's line: it is AI text too, and carried the same inventions.
     return " " + norm(" ".join(facts) + " " + page) + " "
+
+
+def _days_between(start, end) -> str:
+    """Every day of a run (an exhibition, a festival): a line may name any of them."""
+    try:
+        d, last = date.fromisoformat(str(start)[:10]), date.fromisoformat(str(end)[:10])
+    except ValueError:
+        return ""
+    days = []
+    while d <= last and len(days) < 120:
+        days.append(str(d.day))
+        d += timedelta(days=1)
+    return " ".join(days)
 
 
 def vocabulary(events: list[dict]) -> dict[str, int]:

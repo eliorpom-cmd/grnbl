@@ -132,6 +132,10 @@ class FactCheck(unittest.TestCase):
     def test_facts_from_the_page_pass(self):
         self.assertEqual(factcheck.check("Jeudi 22 octobre à 20h, Alex Henley au Trankilou.", self.EVENT), [])
 
+    def test_any_day_of_a_run_passes(self):
+        run = {"title": "Jeu de piste", "start": "2026-10-17", "end": "2026-11-01"}
+        self.assertEqual(factcheck.check("Samedi 24 octobre, jeu de piste.", run), [])
+
     def test_added_name_number_and_wrong_weekday_are_flagged(self):
         got = factcheck.check("Mardi 22 octobre, Alex Henley et l'Orchestre national, 12 €.", self.EVENT)
         self.assertEqual(got, ["mardi 22 octobre (c'est un jeudi)", "orchestre", "12"])
