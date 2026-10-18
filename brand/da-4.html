@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, directions artistiques (4e tour)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Tilt+Warp&family=Gloock&family=Jost:wght@400..800&family=Commissioner:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f6f6f3; --ink: #151517; --muted: #6b6c71; --line: #e1e1dc; --card: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 50px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+.lead { color: var(--muted); max-width: 760px; margin: 0 0 36px; font-size: 18px; }
+.da { border-radius: 24px; overflow: hidden; margin-bottom: 22px; border: 1px solid var(--line); background: var(--card); }
+.da-main { display: grid; grid-template-columns: 1.6fr 1fr; }
+.hero { position: relative; height: 330px; }
+.hero svg { position: absolute; left: 56px; right: 56px; top: 48px; bottom: 48px; width: calc(100% - 112px); height: calc(100% - 96px); overflow: visible; }
+.side { padding: 24px; display: flex; flex-direction: column; gap: 18px; justify-content: center; }
+.avs { display: flex; gap: 12px; align-items: center; }
+.av { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; position: relative; flex: none; }
+.av.sq { border-radius: 16px; }
+.av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.post { border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.post .chip { align-self: flex-start; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 99px; }
+.post .t { font-size: 22px; line-height: 1.1; }
+.post .m { font-size: 13px; opacity: .75; }
+.txt { padding: 16px 24px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.txt h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.txt h3 span { color: var(--muted); margin-right: 6px; }
+.txt p { margin: 0; color: var(--muted); font-size: 14.5px; flex: 1 1 380px; }
+.end { color: var(--muted); max-width: 760px; margin-top: 48px; }
+@media (max-width: 760px) {
+  main { padding: 32px 16px 80px; }
+  .da-main { grid-template-columns: 1fr; }
+  .hero { height: 220px; }
+  .hero svg { left: 24px; top: 28px; width: calc(100% - 48px); height: calc(100% - 56px); }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : 10 directions artistiques avec les bulles</h1>
+  <p class="lead">Chaque bande est un style complet : le logo, la photo de la communauté, deux photos de groupe et une carte de post. Toutes partent du H1 (une bulle par lettre) ou de l'autocollant. Les bulles sont proportionnées à l'épaisseur des lettres, pas posées au hasard.</p>
+  <div id="list"></div>
+  <p class="end">Donne-moi 1 à 3 numéros. On garde ensuite le style choisi et on règle les détails : police, couleurs, bulles au-dessus ou en dessous.</p>
+</main>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+let uid = 0;
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== undefined) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const FONT = {
+  bagel: "font-family:'Bagel Fat One';font-weight:400", tilt: "font-family:'Tilt Warp';font-weight:400",
+  gloock: "font-family:Gloock;font-weight:400", jost: "font-family:Jost;font-weight:600",
+};
+function word(g, f, attrs = {}, x = 0, y = 0, s = "grnbl") {
+  const t = el("text", { x, y, style: `${FONT[f]};font-size:100px;font-feature-settings:'liga' 0`, ...attrs }, g);
+  t.textContent = s; return t;
+}
+function centers(t) {
+  const ex = [0, 1, 2, 3, 4].map(i => t.getExtentOfChar(i));
+  return { cx: ex.map(e => e.x + e.width / 2), ex, W: t.getComputedTextLength() };
+}
+
+// Train geometry. "below": cable under the word, rising to the right. "above": train passes over the word, clearing the ascenders of b and l.
+function trainPoints(m, layout, r, stem, lift = 0) {
+  const { cx, W } = m;
+  if (layout === "below") {
+    const cy = x => 48 - 16 * (x / W);
+    return { cable: [[-10, cy(-10)], [W + 10, cy(W + 10)]], hangs: cx.map(x => ({ x, y: cy(x), by: cy(x) + stem + r })) };
+  }
+  const bottom = x => -64 - lift - 40 * ((x - cx[0]) / (cx[4] - cx[0]));
+  const hangs = cx.map(x => { const by = bottom(x) - r; return { x, by, y: by - r - stem }; });
+  const k = (hangs[4].y - hangs[0].y) / (cx[4] - cx[0]), y0 = hangs[0].y;
+  const cy = x => y0 + k * (x - cx[0]);
+  return { cable: [[cx[0] - 40, cy(cx[0] - 40)], [cx[4] + 40, cy(cx[4] + 40)]], hangs };
+}
+// Draw cable + hangers + bubbles; bubble(g, x, y, r, i) paints one bubble
+function drawTrain(g, P, o) {
+  el("line", { x1: P.cable[0][0], y1: P.cable[0][1], x2: P.cable[1][0], y2: P.cable[1][1], stroke: o.cable, "stroke-width": o.cw, "stroke-linecap": "round" }, g);
+  P.hangs.forEach((h, i) => {
+    el("line", { x1: h.x, y1: h.y, x2: h.x, y2: h.by - o.r + 1, stroke: o.cable, "stroke-width": o.sw }, g);
+    if (o.dot) el("circle", { cx: h.x, cy: h.y, r: o.dot, fill: o.cable }, g);
+  });
+  P.hangs.forEach((h, i) => o.bubble(g, h.x, h.by, o.r, i));
+}
+function grad(svg, color, light, dark) {
+  const id = "g" + uid++;
+  const defs = svg.querySelector("defs") || el("defs", {}, svg);
+  const rg = el("radialGradient", { id, cx: "35%", cy: "30%", r: "75%" }, defs);
+  el("stop", { offset: "0", "stop-color": light }, rg); el("stop", { offset: ".55", "stop-color": color }, rg); el("stop", { offset: "1", "stop-color": dark }, rg);
+  return `url(#${id})`;
+}
+function shade(hex, k) {
+  const n = hex.slice(1).match(/../g).map(x => parseInt(x, 16));
+  return "#" + n.map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)).toString(16).padStart(2, "0")).join("");
+}
+function fit(svg, pad = 6) {
+  const bb = svg.querySelector("g").getBBox();
+  svg.setAttribute("viewBox", `${bb.x - pad} ${bb.y - pad} ${bb.width + pad * 2} ${bb.height + pad * 2}`);
+}
+
+// ---------- Directions ----------
+const DA = [
+  { n: "Autocollant", d: "Lettres blanches cernées de noir, ombre de couleur décalée, bulles-autocollants accrochées dessous. Le plus fun.",
+    bg: "#FFF4E4", ink: "#121212", cols: ["#FFC21A", "#FF6A2B", "#2F6BFF", "#FF5FA8", "#1DB36B"], font: "bagel",
+    logo(g, svg, c, icon) {
+      const t = word(g, "bagel"); const m = centers(t); t.remove();
+      const P = trainPoints(m, "below", 15, 7);
+      const sticker = (gg, x, y, r, i) => { el("circle", { cx: x + 4, cy: y + 5, r: r + 2.5, fill: c.ink }, gg); el("circle", { cx: x, cy: y, r, fill: c.cols[i], stroke: c.ink, "stroke-width": 5 }, gg); };
+      drawTrain(g, P, { cable: c.ink, cw: 7, sw: 5, r: 15, bubble: sticker });
+      if (icon) return;
+      const sh = word(g, "bagel", { fill: c.cols[1], stroke: c.cols[1], "stroke-width": 16, "stroke-linejoin": "round" }, 6, 8);
+      word(g, "bagel", { fill: "#fff", stroke: c.ink, "stroke-width": 12, "stroke-linejoin": "round", "paint-order": "stroke" });
+    } },
+  { n: "Autocollant découpé", d: "Tout le logo devient un seul sticker : bord blanc épais autour des lettres et des bulles, ombre douce, sur un fond de couleur forte.",
+    bg: "#2F4BFF", ink: "#111111", cols: ["#FFC21A", "#FF6A2B", "#18C27A", "#FF5FA8", "#8F6BFF"], font: "bagel",
+    logo(g, svg, c, icon) {
+      const id = "f" + uid++, defs = el("defs", {}, svg), f = el("filter", { id, x: "-20%", y: "-30%", width: "140%", height: "170%" }, defs);
+      el("feMorphology", { in: "SourceAlpha", operator: "dilate", radius: 9, result: "d" }, f);
+      el("feGaussianBlur", { in: "d", stdDeviation: 5, result: "b" }, f);
+      el("feOffset", { in: "b", dx: 0, dy: 6, result: "o" }, f);
+      el("feFlood", { "flood-color": "#000", "flood-opacity": .28 }, f); el("feComposite", { in2: "o", operator: "in", result: "s" }, f);
+      el("feFlood", { "flood-color": "#fff" }, f); el("feComposite", { in2: "d", operator: "in", result: "w" }, f);
+      const mg = el("feMerge", {}, f); ["s", "w", "SourceGraphic"].forEach(x => el("feMergeNode", { in: x }, mg));
+      const inner = el("g", { filter: `url(#${id})` }, g);
+      const t = word(inner, "bagel", { fill: c.ink }); const m = centers(t);
+      if (icon) t.remove();
+      drawTrain(inner, trainPoints(m, "above", 15, 6), { cable: c.ink, cw: 6, sw: 5, r: 15, bubble: (gg, x, y, r, i) => el("circle", { cx: x, cy: y, r, fill: c.cols[i] }, gg) });
+    } },
+  { n: "Train au-dessus", d: "Le train passe au-dessus du nom en montant, comme sur le câble. Aplats nets, aucune décoration : le plus « marque ».",
+    bg: "#FFFFFF", ink: "#111111", cols: ["#FF6A2B", "#FFB800", "#18B26B", "#2F6BFF", "#A85CFF"], font: "tilt",
+    logo(g, svg, c, icon) {
+      const t = word(g, "tilt", { fill: c.ink }); const m = centers(t); if (icon) t.remove();
+      drawTrain(g, trainPoints(m, "above", 14, 6), { cable: c.ink, cw: 6, sw: 5, r: 14, bubble: (gg, x, y, r, i) => el("circle", { cx: x, cy: y, r, fill: c.cols[i] }, gg) });
+    } },
+  { n: "Éditorial", d: "Serif contrastée, câble très fin, petites bulles noires et une seule en couleur. Sobre, chic, à l'aise sur un site comme sur une affiche.",
+    bg: "#F3EFE7", ink: "#161412", cols: ["#161412", "#161412", "#161412", "#161412", "#E8572A"], font: "gloock",
+    logo(g, svg, c, icon) {
+      const t = word(g, "gloock", { fill: c.ink }); const m = centers(t); if (icon) t.remove();
+      drawTrain(g, trainPoints(m, "below", 9, 8), { cable: c.ink, cw: 2.2, sw: 1.8, r: 9, dot: 2.6, bubble: (gg, x, y, r, i) => el("circle", { cx: x, cy: y, r, fill: c.cols[i] }, gg) });
+    } },
+  { n: "Système", d: "Le câble a l'épaisseur des lettres, les bulles la taille de leurs boucles. Tout en noir, une bulle bleue. Rigoureux, très lisible.",
+    bg: "#EEF0F2", ink: "#0F1012", cols: ["#2F55FF", "#0F1012", "#0F1012", "#0F1012", "#0F1012"], font: "jost",
+    logo(g, svg, c, icon) {
+      const t = word(g, "jost", { fill: c.ink }); const m = centers(t); if (icon) t.remove();
+      drawTrain(g, trainPoints(m, "above", 15, 5, 12), { cable: c.ink, cw: 9, sw: 9, r: 15, bubble: (gg, x, y, r, i) => el("circle", { cx: x, cy: y, r, fill: c.cols[i] }, gg) });
+    } },
+  { n: "Brillant", d: "Bulles en verre bombé avec reflet, lettres rondes et pleines. Ludique, un peu années 2000.",
+    bg: "#EDE6FF", ink: "#1B1340", cols: ["#FF7AB8", "#FFB020", "#33C3FF", "#5ED68E", "#9B7BFF"], font: "bagel",
+    logo(g, svg, c, icon) {
+      const t = word(g, "bagel", { fill: c.ink }); const m = centers(t); if (icon) t.remove();
+      drawTrain(g, trainPoints(m, "below", 16, 6), { cable: c.ink, cw: 5, sw: 4, r: 16, dot: 3.5,
+        bubble: (gg, x, y, r, i) => { el("circle", { cx: x, cy: y, r, fill: grad(svg, c.cols[i], shade(c.cols[i], .55), shade(c.cols[i], -.35)) }, gg);
+          el("ellipse", { cx: x - r * .35, cy: y - r * .42, rx: r * .38, ry: r * .22, fill: "#fff", "fill-opacity": .8, transform: `rotate(-30 ${x - r * .35} ${y - r * .42})` }, gg); } });
+    } },
+  { n: "Néon", d: "Tout en traits lumineux sur fond nuit : lettres en contour, bulles en anneaux de couleur. Pour le soir et les sorties.",
+    bg: "#0E1022", ink: "#D7FF3A", cols: ["#FF5FD2", "#FFB020", "#3DF2FF", "#7CFF8A", "#A98BFF"], font: "tilt",
+    logo(g, svg, c, icon) {
+      const t = word(g, "tilt", { fill: "none", stroke: c.ink, "stroke-width": 3.2 }); const m = centers(t); if (icon) t.remove();
+      drawTrain(g, trainPoints(m, "above", 14, 6), { cable: c.ink, cw: 3.2, sw: 3, r: 14, bubble: (gg, x, y, r, i) => el("circle", { cx: x, cy: y, r: r - 1.5, fill: "none", stroke: c.cols[i], "stroke-width": 4 }, gg) });
+    } },
+  { n: "Lettres en couleur", d: "Chaque lettre prend la couleur d'un groupe, les bulles restent noires. La couleur est dans le nom, pas dans le symbole.",
+    bg: "#FFFFFF", ink: "#121212", cols: ["#FF6A2B", "#FFB800", "#18B26B", "#2F6BFF", "#FF5FA8"], font: "tilt",
+    logo(g, svg, c, icon) {
+      const t = word(g, "tilt", { fill: "none" }); const m = centers(t); t.remove();
+      if (!icon) "grnbl".split("").forEach((ch, i) => word(g, "tilt", { fill: c.cols[i] }, m.ex[i].x, 0, ch));
+      drawTrain(g, trainPoints(m, "below", 12, 7), { cable: c.ink, cw: 5, sw: 4, r: 12, bubble: (gg, x, y, r) => el("circle", { cx: x, cy: y, r, fill: c.ink }, gg) });
+    } },
+  { n: "Pastille ronde", d: "Le logo tient dans un grand rond de couleur avec un liseré blanc, comme un badge à épingler. Prêt pour la photo de profil.",
+    bg: "#FFF7EC", ink: "#121212", cols: ["#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"], disc: "#FF6A2B", font: "bagel",
+    logo(g, svg, c, icon) {
+      const inner = el("g", {}, g);
+      const t = word(inner, "bagel", { fill: "#fff" }); const m = centers(t);
+      drawTrain(inner, trainPoints(m, "above", 14, 6), { cable: "#fff", cw: 6, sw: 5, r: 14, bubble: (gg, x, y, r) => el("circle", { cx: x, cy: y, r, fill: "#fff" }, gg) });
+      const bb = inner.getBBox(), cx = bb.x + bb.width / 2, cy = bb.y + bb.height / 2, R = Math.max(bb.width, bb.height) / 2 + 30;
+      const back = el("g", {}, null);
+      el("circle", { cx: cx + 4, cy: cy + 7, r: R + 9, fill: "#000", "fill-opacity": .14 }, back);
+      el("circle", { cx, cy, r: R + 9, fill: "#fff" }, back);
+      el("circle", { cx, cy, r: R, fill: c.disc }, back);
+      g.insertBefore(back, inner);
+    } },
+  { n: "Grandes bulles", d: "Des bulles plus grandes que les lettres, derrière le nom, avec le câble qui les relie. Effet affiche, très joyeux.",
+    bg: "#FFFFFF", ink: "#121212", cols: ["#FFD84D", "#FF9B6A", "#7FD3FF", "#FF9ACB", "#8FE3A8"], font: "bagel",
+    logo(g, svg, c, icon) {
+      const back = el("g", {}, g);
+      const t = word(g, "bagel", { fill: c.ink }); const m = centers(t); if (icon) t.remove();
+      const ys = m.cx.map((x, i) => -36 - i * 7), R = 40;
+      const k = (ys[4] - ys[0]) / (m.cx[4] - m.cx[0]);
+      el("line", { x1: m.cx[0] - 60, y1: ys[0] - R - 14 - 60 * k, x2: m.cx[4] + 60, y2: ys[4] - R - 14 + 60 * k, stroke: c.ink, "stroke-width": 5, "stroke-linecap": "round" }, back);
+      m.cx.forEach((x, i) => { el("line", { x1: x, y1: ys[i] - R - 14, x2: x, y2: ys[i] - R, stroke: c.ink, "stroke-width": 4 }, back); el("circle", { cx: x, cy: ys[i], r: R, fill: c.cols[i] }, back); });
+    } },
+];
+
+function avatarSVG(host, d, mode) {
+  const svg = el("svg", {}, host), g = el("g", {}, svg);
+  const c = { ink: d.ink, cols: d.cols, disc: d.disc };
+  if (mode === "community") { d.logo(g, svg, c, true); fit(svg, 22); }
+  else { const tx = el("text", { x: 0, y: 0, "text-anchor": "middle", fill: mode.fg, style: `${FONT[d.font]};font-size:60px` }, g); tx.textContent = mode.ch; fit(svg, 26);
+    const vb = svg.getAttribute("viewBox").split(" ").map(Number), s = Math.max(vb[2], vb[3]);
+    svg.setAttribute("viewBox", `${vb[0] + vb[2] / 2 - s / 2} ${vb[1] + vb[3] / 2 - s / 2} ${s} ${s}`); }
+}
+function lum(hex) { return hex.slice(1).match(/../g).map(x => parseInt(x, 16) / 255).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0); }
+
+function render() {
+  const list = document.getElementById("list"); list.innerHTML = "";
+  DA.forEach((d, i) => {
+    const box = document.createElement("section"); box.className = "da";
+    const dark = lum(d.bg) < .35, fg = dark ? "#F3F3F7" : "#141414";
+    const accent = d.disc || d.cols.find(x => x !== d.ink && x !== "#FFFFFF" && x !== "#161412" && x !== "#0F1012") || d.cols[0];
+    box.innerHTML = `<div class="da-main">
+      <div class="hero" style="background:${d.bg}"><svg></svg></div>
+      <div class="side" style="background:${dark ? shade(d.bg, .06) : shade(d.bg, -.03)};color:${fg}">
+        <div class="avs"><div class="av sq" style="background:${d.disc ? d.bg : d.bg};box-shadow:inset 0 0 0 1px rgba(127,127,127,.25)"></div>
+          <div class="av" style="background:${d.cols[1] === d.ink ? accent : d.cols[1]}"></div><div class="av" style="background:${d.cols[3] === d.ink ? accent : d.cols[3]}"></div></div>
+        <div class="post" style="background:${dark ? shade(d.bg, .12) : "#fff"};color:${fg}">
+          <span class="chip" style="background:${accent};color:${lum(accent) > .55 ? "#141414" : "#fff"}">Gratuit</span>
+          <span class="t" style="${FONT[d.font]}">Tour Perret ouverte dimanche</span><span class="m">Créneaux à réserver avant samedi</span></div>
+      </div></div>
+      <div class="txt"><h3><span>${i + 1}.</span>${d.n}</h3><p>${d.d}</p></div>`;
+    list.appendChild(box);
+    const svg = box.querySelector(".hero svg"), g = el("g", {}, svg);
+    d.logo(g, svg, { ink: d.ink, cols: d.cols, disc: d.disc }, false); fit(svg);
+    const avs = box.querySelectorAll(".av");
+    avatarSVG(avs[0], d, "community");
+    const c1 = d.cols[1] === d.ink ? accent : d.cols[1], c3 = d.cols[3] === d.ink ? accent : d.cols[3];
+    avatarSVG(avs[1], d, { ch: "s", fg: lum(c1) > .55 ? "#141414" : "#fff" });
+    avatarSVG(avs[2], d, { ch: "b", fg: lum(c3) > .55 ? "#141414" : "#fff" });
+  });
+}
+Promise.allSettled(["Bagel Fat One", "Tilt Warp", "Gloock"].map(f => document.fonts.load(`400 100px "${f}"`, "grnbl")).concat(document.fonts.load(`600 100px Jost`, "grnbl"))).then(render);
+</script>
+</body>
+</html>
