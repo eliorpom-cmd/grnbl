@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, couleurs (6e tour)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Host+Grotesk:wght@400..800&family=Funnel+Sans:wght@400..800&family=Familjen+Grotesk:wght@400..700&family=Commissioner:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f4f4f6; --ink: #151517; --muted: #6b6c71; --line: #e0e0e4; --card: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 50px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+h2 { font: 800 28px/1.1 "Commissioner"; letter-spacing: -0.02em; margin: 72px 0 6px; }
+.lead, .sub { color: var(--muted); max-width: 780px; margin: 0 0 28px; }
+.lead { font-size: 18px; }
+.da { border-radius: 24px; overflow: hidden; margin-bottom: 22px; border: 1px solid var(--line); background: var(--card); }
+.da-main { display: grid; grid-template-columns: 1.6fr 1fr; }
+.hero { position: relative; height: 340px; }
+.hero svg { position: absolute; left: 56px; top: 44px; width: calc(100% - 112px); height: calc(100% - 88px); overflow: visible; }
+.side { padding: 24px; display: flex; flex-direction: column; gap: 18px; justify-content: center; background: #ececef; }
+.avs { display: flex; gap: 14px; align-items: center; }
+.av { border-radius: 50%; overflow: hidden; position: relative; flex: none; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+.av svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.avs small { font-size: 12px; color: #6b6c71; }
+.post { border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; background: #fff; color: #141414; }
+.post .chip { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+.post .t { font-size: 22px; line-height: 1.12; letter-spacing: -0.01em; }
+.post .m { font-size: 14px; opacity: .7; }
+.txt { padding: 16px 24px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.txt h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.txt h3 span { color: var(--muted); margin-right: 6px; }
+.txt p { margin: 0; color: var(--muted); font-size: 14.5px; flex: 1 1 380px; }
+.fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.fbox { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.fbox .name { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.fbox .t { font-size: 26px; line-height: 1.1; }
+.fbox .p { font-size: 15px; line-height: 1.5; }
+.pcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.pc { border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.pc-hero { position: relative; height: 210px; }
+.pc-hero svg { position: absolute; left: 44px; top: 34px; width: calc(100% - 88px); height: calc(100% - 68px); overflow: visible; }
+.pc-foot { display: flex; gap: 14px; align-items: center; padding: 14px 18px; }
+.pc-foot h3 { margin: 0; font-size: 16px; font-weight: 800; } .pc-foot h3 span { color: var(--muted); margin-right: 6px; }
+.pc-foot code { font-size: 12px; color: var(--muted); }
+.end { color: var(--muted); max-width: 760px; margin-top: 48px; }
+@media (max-width: 760px) {
+  main { padding: 32px 16px 80px; }
+  .da-main { grid-template-columns: 1fr; }
+  .hero { height: 230px; }
+  .hero svg { left: 24px; top: 26px; width: calc(100% - 48px); height: calc(100% - 52px); }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : 12 associations de couleurs</h1>
+  <p class="lead">Même logo partout (l'autocollant sur fond de couleur), seules les deux couleurs changent : le fond, et les bulles. En dessous, la pastille ronde en photo de profil à 72 px et 32 px. Plus de jaune.</p>
+  <div class="pcs" id="list"></div>
+  <p class="end">Donne-moi 1 à 3 numéros.</p>
+</main>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const BLUE = "#2F4BFF", YEL = "#FFC800", PINK = "#FF4FA0", INK = "#121212";
+let uid = 0;
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== undefined) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function word(g, attrs = {}, x = 0, y = 0, size = 100) {
+  const t = el("text", { x, y, style: `font-family:'Bagel Fat One';font-size:${size}px;font-feature-settings:'liga' 0`, ...attrs }, g);
+  t.textContent = "grnbl"; return t;
+}
+// Five bubbles evenly spaced over the word width
+const evenX = (W, m = 0.1) => [0, 1, 2, 3, 4].map(i => W * m + i * (W * (1 - 2 * m)) / 4);
+
+function cable(g, x1, y1, x2, y2, w) { el("line", { x1, y1, x2, y2, stroke: INK, "stroke-width": w, "stroke-linecap": "round" }, g); }
+function stickerBubble(g, x, y, r, fill, shadow = INK) {
+  if (shadow) el("circle", { cx: x + 4, cy: y + 5, r: r + 2.5, fill: shadow }, g);
+  el("circle", { cx: x, cy: y, r, fill, stroke: INK, "stroke-width": 5 }, g);
+}
+// Train under the word (cable rising to the right) or above it (clears b and l)
+function train(g, W, where, o) {
+  const xs = evenX(W), r = o.r || 15, stem = o.stem || 7;
+  let cy;
+  if (where === "below") cy = x => 50 - 16 * (x / W);
+  else cy = x => -118 - 46 * (x / W);
+  cable(g, -12, cy(-12), W + 12, cy(W + 12), o.cw || 7);
+  xs.forEach((x, i) => {
+    el("line", { x1: x, y1: cy(x), x2: x, y2: cy(x) + stem + 2, stroke: INK, "stroke-width": 5 }, g);
+    stickerBubble(g, x, cy(x) + stem + r, r, o.cols[i % o.cols.length], o.shadow === undefined ? INK : o.shadow);
+  });
+}
+// White die-cut border around everything, with a thin dark cut line and a soft shadow
+function dieCut(svg, g, { radius = 11, line = true } = {}) {
+  const id = "f" + uid++, defs = el("defs", {}, svg), f = el("filter", { id, x: "-25%", y: "-35%", width: "150%", height: "180%" }, defs);
+  el("feMorphology", { in: "SourceAlpha", operator: "dilate", radius, result: "d" }, f);
+  el("feMorphology", { in: "SourceAlpha", operator: "dilate", radius: radius + 3, result: "d2" }, f);
+  el("feGaussianBlur", { in: "d2", stdDeviation: 6, result: "b" }, f);
+  el("feOffset", { in: "b", dx: 0, dy: 8, result: "o" }, f);
+  el("feFlood", { "flood-color": "#000", "flood-opacity": .3 }, f); el("feComposite", { in2: "o", operator: "in", result: "s" }, f);
+  el("feFlood", { "flood-color": INK }, f); el("feComposite", { in2: "d2", operator: "in", result: "k" }, f);
+  el("feFlood", { "flood-color": "#fff" }, f); el("feComposite", { in2: "d", operator: "in", result: "w" }, f);
+  const mg = el("feMerge", {}, f); ["s", ...(line ? ["k"] : []), "w", "SourceGraphic"].forEach(x => el("feMergeNode", { in: x }, mg));
+  g.setAttribute("filter", `url(#${id})`);
+}
+function outlinedWord(g, fill, shadow, opts = {}) {
+  const w = opts.w || 12;
+  if (shadow) word(g, { fill: shadow, stroke: shadow, "stroke-width": w + 4, "stroke-linejoin": "round" }, 6, 8);
+  return word(g, { fill, stroke: INK, "stroke-width": w, "stroke-linejoin": "round", "paint-order": "stroke" });
+}
+
+// Round badge: cable from edge to edge, evenly spaced bubbles, word below
+function badge(svg, g, o) {
+  const R = 150;
+  if (o.sticker) { el("circle", { cx: 6, cy: 9, r: R + 16, fill: INK }, g); el("circle", { cx: 0, cy: 0, r: R + 16, fill: "#fff", stroke: INK, "stroke-width": 5 }, g); }
+  el("circle", { cx: 0, cy: 0, r: R, fill: o.disc, stroke: INK, "stroke-width": o.sticker ? 5 : 0 }, g);
+  const id = "c" + uid++; const cp = el("clipPath", { id }, g); el("circle", { cx: 0, cy: 0, r: R }, cp);
+  const inner = el("g", { "clip-path": `url(#${id})` }, g);
+  const a1 = o.icon ? 200 : 170, a2 = o.icon ? 22 : 35;
+  const p1 = [R * Math.cos(a1 * Math.PI / 180), -R * Math.sin(a1 * Math.PI / 180)], p2 = [R * Math.cos(a2 * Math.PI / 180), -R * Math.sin(a2 * Math.PI / 180)];
+  const k = (p2[1] - p1[1]) / (p2[0] - p1[0]), cy = x => p1[1] + k * (x - p1[0]);
+  cable(inner, p1[0] - 10, cy(p1[0] - 10), p2[0] + 10, cy(p2[0] + 10), o.icon ? 9 : 7);
+  const r = o.icon ? 24 : 16, stem = o.icon ? 10 : 7, span = o.icon ? 98 : 92;
+  [-2, -1, 0, 1, 2].forEach((j, i) => {
+    const x = j * span / 2 * (o.icon ? 1 : 1.0) * (o.icon ? 1 : 1) + (o.icon ? 0 : -6);
+    el("line", { x1: x, y1: cy(x), x2: x, y2: cy(x) + stem + 2, stroke: INK, "stroke-width": o.icon ? 6 : 5 }, inner);
+    stickerBubble(inner, x, cy(x) + stem + r, r, o.cols[i % o.cols.length]);
+  });
+  if (!o.icon) {
+    const wg = el("g", {}, g); const t = outlinedWord(wg, "#fff", null, { w: 11 }); const W = t.getComputedTextLength();
+    const s = 205 / W; wg.setAttribute("transform", `translate(${-W * s / 2} ${86}) scale(${s})`);
+  }
+}
+
+// ---------- Color pairs: A = background / disc, B = bubbles ----------
+const PAIRS = [
+  { n: "Bleu électrique + rose", a: "#2F4BFF", b: "#FF4FA0" },
+  { n: "Bleu électrique + citron vert", a: "#2F4BFF", b: "#C6FF3D" },
+  { n: "Bleu électrique + menthe", a: "#2F4BFF", b: "#5CFFC1" },
+  { n: "Bleu électrique + blanc", a: "#2F4BFF", b: "#FFFFFF" },
+  { n: "Violet + citron vert", a: "#6A35FF", b: "#C6FF3D" },
+  { n: "Violet + rose", a: "#6A35FF", b: "#FF8AD8" },
+  { n: "Rose + bleu nuit", a: "#FF4FA0", b: "#1E2A78" },
+  { n: "Fuchsia + orange", a: "#E5157A", b: "#FF9A1F" },
+  { n: "Vert vif + rose", a: "#00B86B", b: "#FF8AD8" },
+  { n: "Orange + bleu ciel", a: "#FF5A1F", b: "#7FD8FF" },
+  { n: "Citron vert + rose", a: "#C6FF3D", b: "#FF4FA0" },
+  { n: "Turquoise + violet", a: "#00C2B8", b: "#6A35FF" },
+];
+function fit(svg, pad = 10, square = false) {
+  const bb = svg.querySelector("g").getBBox();
+  let [x, y, w, h] = [bb.x - pad, bb.y - pad, bb.width + pad * 2, bb.height + pad * 2];
+  if (square) { const s = Math.max(w, h); x -= (s - w) / 2; y -= (s - h) / 2; w = h = s; }
+  svg.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
+}
+function render() {
+  const list = document.getElementById("list"); list.innerHTML = "";
+  PAIRS.forEach((p, i) => {
+    const box = document.createElement("section"); box.className = "pc";
+    box.innerHTML = `<div class="pc-hero" style="background:${p.a}"><svg></svg></div>
+      <div class="pc-foot"><div class="av" style="width:72px;height:72px"><svg></svg></div><div class="av" style="width:32px;height:32px"><svg></svg></div>
+      <div><h3><span>${i + 1}.</span>${p.n}</h3><code>${p.a} · ${p.b}</code></div></div>`;
+    list.appendChild(box);
+    const svg = box.querySelector(".pc-hero svg"), g = el("g", {}, svg);
+    const t = word(g, { fill: "none" }); const W = t.getComputedTextLength(); t.remove();
+    train(g, W, "below", { cols: [p.b] }); outlinedWord(g, "#fff", INK); fit(svg);
+    box.querySelectorAll(".av svg").forEach(s => { const gg = el("g", {}, s); badge(s, gg, { disc: p.a, cols: [p.b], sticker: true, icon: true }); fit(s, 4, true); });
+  });
+}
+document.fonts.load("400 100px 'Bagel Fat One'", "grnbl").then(render, render);
+</script>
+</body>
+</html>
