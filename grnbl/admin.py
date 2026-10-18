@@ -1,17 +1,25 @@
-"""The admin board: `python3 -m grnbl.admin` then open http://127.0.0.1:8730
+"""The admin board: `python3 -m grnbl.admin`, then open the link it prints.
 
 Shows today's reviewed events with the AI's verdict, lets the human approve,
 drop or rewrite each one, and previews the posts exactly as they will go out.
 Decisions are kept in data/decisions/<day>.json; the AI never publishes alone.
+
+The board can publish to WhatsApp, so it is reachable only with its key
+(data/board-key, made on first start): the link `/?key=<key>` sets a cookie,
+every page and API call checks it. The same rule holds behind a tunnel, on a
+server or locally, with no dependency on the host.
 """
 
 from __future__ import annotations
 
+import hmac
 import json
+import secrets
 import sys
 from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
 from .digest import fuel_post, outings_post_reviewed, to_book_post
@@ -23,6 +31,18 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 PAGE = Path(__file__).with_name("admin.html")
 PARIS = ZoneInfo("Europe/Paris")
+
+
+KEY_FILE = DATA / "board-key"
+COOKIE = "grnbl_key"
+
+
+def board_key() -> str:
+    if not KEY_FILE.exists():
+        KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        KEY_FILE.write_text(secrets.token_urlsafe(32))
+        KEY_FILE.chmod(0o600)
+    return KEY_FILE.read_text().strip()
 
 
 def day_folder(day: date) -> Path:
@@ -71,7 +91,29 @@ def fuel_cached(now: datetime) -> str | None:
 
 
 class Handler(BaseHTTPRequestHandler):
-    day = date.today()
+    # None = follow the calendar: the board runs for days and must show today's run.
+    pinned: date | None = None
+
+    @property
+    def day(self) -> date:
+        return self.pinned or datetime.now(PARIS).date()
+
+    def _allowed(self) -> bool:
+        """The key from the cookie, or from ?key= once (then kept in a cookie and dropped from the URL)."""
+        key = board_key()
+        cookies = dict(c.strip().split("=", 1) for c in (self.headers.get("Cookie") or "").split(";") if "=" in c)
+        if hmac.compare_digest(cookies.get(COOKIE, ""), key):
+            return True
+        query = parse_qs(urlsplit(self.path).query).get("key", [""])[0]
+        if query and hmac.compare_digest(query, key):
+            self.send_response(303)
+            self.send_header("Location", urlsplit(self.path).path or "/")
+            secure = "; Secure" if self.headers.get("X-Forwarded-Proto") == "https" or self.headers.get("Cf-Visitor") else ""
+            self.send_header("Set-Cookie", f"{COOKIE}={key}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000{secure}")
+            self.end_headers()
+            return False
+        self._send(403, "Lien du tableau requis : ouvre le lien du message Discord.".encode(), "text/plain; charset=utf-8")
+        return False
 
     def _send(self, code: int, body: bytes, kind: str) -> None:
         self.send_response(code)
@@ -84,6 +126,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(code, json.dumps(data, ensure_ascii=False).encode(), "application/json; charset=utf-8")
 
     def do_GET(self):
+        if not self._allowed():
+            return
+        self.path = urlsplit(self.path).path
         if self.path == "/":
             return self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
         if self.path == "/api/events":
@@ -114,6 +159,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):
+        if not self._allowed():
+            return
         if self.path not in ("/api/decide", "/api/publish"):
             return self._send(404, b"not found", "text/plain")
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
@@ -136,9 +183,9 @@ class Handler(BaseHTTPRequestHandler):
 
 def main(argv: list[str]) -> int:
     if argv:
-        Handler.day = date.fromisoformat(argv[0])
+        Handler.pinned = date.fromisoformat(argv[0])
     server = ThreadingHTTPServer(("127.0.0.1", 8730), Handler)
-    print(f"grnbl admin: http://127.0.0.1:8730  ({Handler.day})")
+    print(f"grnbl admin: http://127.0.0.1:8730/?key={board_key()}  ({Handler.pinned or 'today'})", flush=True)
     server.serve_forever()
     return 0
 

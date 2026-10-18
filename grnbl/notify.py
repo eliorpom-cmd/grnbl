@@ -4,7 +4,8 @@
     python3 -m grnbl.notify --failed 1 the run failed (exit code), with where the log is
 
 Settings in data/notify.json (not versioned):
-    {"discord": "https://discord.com/api/webhooks/...", "board": "https://..."}
+    {"discord": "https://discord.com/api/webhooks/...", "board": "https://grnbl.byelior.dev"}
+The link carries the board's key (data/board-key), so one tap opens it signed in.
 Nothing is sent without a webhook, so the run never depends on Discord.
 """
 
@@ -16,6 +17,7 @@ import urllib.request
 from datetime import datetime
 
 from . import publish
+from .admin import board_key
 from .editor import CHANNELS
 
 CONFIG = publish.DATA / "notify.json"
@@ -55,7 +57,7 @@ def failure(code: str, now: datetime) -> str:
 def post(text: str, cfg: dict) -> bool:
     if not cfg.get("discord"):
         return False
-    board = cfg.get("board")
+    board = f"{cfg['board'].rstrip('/')}/?key={board_key()}" if cfg.get("board") else None
     # Discord uses **bold**; the summary is written with WhatsApp's *bold*.
     body = {"content": text.replace("*", "**") + (f"\n→ Ouvrir le tableau : {board}" if board else ""),
             "allowed_mentions": {"parse": []}}
