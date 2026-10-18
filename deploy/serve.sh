@@ -2,7 +2,7 @@
 # Container entrypoint: what launchd does on the Mac, in one process.
 # - first start on an empty volume: unpack deploy/seed/data.tgz (made by make-seed.sh)
 # - the board, restarted if it ever stops
-# - morning.sh at 10:00 and 14:00 Paris time (it runs at most once a day by itself)
+# - tick.sh every hour on the hour, Paris time (grnbl/tick.py does what is due)
 set -u
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p data/logs
@@ -25,7 +25,7 @@ fi
 
 while true; do
   case "$(date +%H:%M)" in
-    10:00|14:00) bash deploy/morning.sh & ;;
+    *:00) bash deploy/tick.sh & ;;
   esac
   sleep $((60 - 10#$(date +%S)))
 done

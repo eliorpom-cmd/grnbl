@@ -27,7 +27,7 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import memory
+from . import memory, schedule
 from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
 from .channels import CHANNELS
 from .sources import alerts, fuel
@@ -89,6 +89,15 @@ def day_events(day: date) -> tuple[list[dict], list[dict] | None]:
     return events, apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
 
 
+def read_at(day: date, channel: str, now: datetime) -> datetime:
+    """When people will read a group's post of that edition: its sending time (schedule.py)."""
+    slot = schedule.slot_of(channel)
+    if not slot:
+        return now
+    at = schedule.send_time(day, slot).replace(tzinfo=PARIS)
+    return max(at, now) if at.date() == now.date() else at
+
+
 def outbox(day: date, now: datetime, fuel_text: str | None = None, alerts_text: str | None = None) -> list[dict]:
     """Every post of the day, with whether the human approved it."""
     events, selection = day_events(day)
@@ -96,7 +105,7 @@ def outbox(day: date, now: datetime, fuel_text: str | None = None, alerts_text: 
     for cid in CHANNELS:
         sel = [p for p in selection if p.get("channel", "sorties") == cid] if selection is not None else None
         for post, write in POSTS:
-            text = write(events, now, selection=sel)
+            text = write(events, read_at(day, cid, now), selection=sel)
             lines = picked(events, sel, post) or []
             if not text or not lines:
                 continue

@@ -31,8 +31,13 @@ PHENOMENA = {"1": "vent violent", "2": "pluie-inondation", "3": "orages", "4": "
              "6": "canicule", "7": "grand froid", "8": "avalanches"}
 COLORS = {2: ("🟡", "jaune"), 3: ("🟠", "orange"), 4: ("🔴", "rouge")}
 AIR_LEVELS = {1: "bonne", 2: "moyenne", 3: "dégradée", 4: "mauvaise", 5: "très mauvaise", 6: "extrêmement mauvaise"}
-# The lines most people take: trams and Chrono buses of the TAG.
-MAIN_LINES = re.compile(r"^SEM_(?:[A-E]|C[1-8])$")
+# Only what is serious enough to interrupt someone's day (the human approves every send):
+WEATHER_MIN = 3   # orange or red
+AIR_MIN = 4       # "mauvaise" or worse
+# a tram line cut or on strike, not a stop moved or a bus diverted.
+MAIN_LINES = re.compile(r"^SEM_[A-E]$")
+SERIOUS = re.compile(r"grève|interrompu|interruption|ne circule pas|ne circulera pas|aucun tram|pas de tram|"
+                     r"coupé|suspendu|remplacé par des bus|bus de substitution|perturbation majeure", re.I)
 
 
 def weather(domain: str = "38") -> list[dict]:
@@ -42,7 +47,7 @@ def weather(domain: str = "38") -> list[dict]:
     for p in data.get("phenomenons_max_colors") or []:
         level = int(p.get("phenomenon_max_color_id") or 1)
         name = PHENOMENA.get(str(p.get("phenomenon_id")))
-        if level >= 2 and name:
+        if level >= WEATHER_MIN and name:
             out.append({"kind": "weather", "level": level, "what": name})
     return sorted(out, key=lambda a: -a["level"])
 
@@ -65,7 +70,7 @@ def air(today: date) -> list[dict]:
     for offset in (0, 1):
         d = (today + timedelta(days=offset)).isoformat()
         level = round(days.get(d, {}).get("index", 0))
-        if level >= 3:
+        if level >= AIR_MIN:
             out.append({"kind": "air", "level": level, "day": d, "what": AIR_LEVELS.get(level, "dégradée"),
                         "comment": days[d].get("comment")})
     return out
@@ -93,7 +98,9 @@ def transit_from(records: dict, now: datetime, ahead: timedelta = timedelta(hour
         if not (now - timedelta(hours=12) <= start <= now + ahead) or end < now:
             continue
         title, _, rest = (r.get("texte") or "").partition("|")
-        out.append({"kind": "transit", "lines": [l.split("_")[1] for l in lines], "title": title.strip(),
+        if not SERIOUS.search(r.get("texte") or ""):
+            continue
+        out.append({"code": r.get("code"), "kind": "transit", "lines": [l.split("_")[1] for l in lines], "title": title.strip(),
                     "detail": _first_sentence(rest.split("|")[-1]), "start": start.isoformat(timespec="minutes"),
                     "end": end.isoformat(timespec="minutes")})
     return sorted(out, key=lambda a: a["start"])

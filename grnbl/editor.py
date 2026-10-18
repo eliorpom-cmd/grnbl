@@ -19,7 +19,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import editorial, memory
+from . import editorial, memory, schedule
 from .channels import CHANNELS, accepts
 from .digest import chosen
 from .scrape import clean, details
@@ -155,7 +155,10 @@ def _programme(url: str, today: date) -> str:
 
 def zoom(picks: list[dict], events: list[dict], today: date) -> None:
     """For each umbrella pick, one precise moment of its programme becomes the line."""
+    edition = today
+
     def one(p):
+        today = schedule.channel_day(edition, p["channel"])
         e = events[p["i"]]
         if not is_umbrella(e) or not e.get("url"):
             return
@@ -185,12 +188,14 @@ def run(today: date | None = None) -> list[dict]:
     today = today or date.today()
     folder = DATA / "events" / today.isoformat()
     events = json.loads((folder / "reviewed.json").read_text())
-    free = select(events, today, "gratuit")
-    picks = free + select(events, today, "sorties", already=free)
+    # Each group is written for its own sending day (schedule.py), not the day it is prepared.
+    day = lambda channel: schedule.channel_day(today, channel)
+    free = select(events, day("gratuit"), "gratuit")
+    picks = free + select(events, day("sorties"), "sorties", already=free)
     # The theme groups are joined for their theme: an event may also be in Sorties or Gratuit.
     for channel in CHANNELS:
         if channel not in ("gratuit", "sorties"):
-            picks += select(events, today, channel)
+            picks += select(events, day(channel), channel)
     zoom(picks, events, today)
     (folder / "selection.json").write_text(json.dumps(picks, ensure_ascii=False, indent=1))
     return picks

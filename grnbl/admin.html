@@ -442,7 +442,9 @@ const opened = new Set();  // posts whose other candidates are shown
 function sendButton(c, ready) {
   const out = Object.values(c.outbox || {}), sent = out.filter((r) => r.status === "sent"), failed = out.find((r) => r.status === "failed");
   if (out.length && sent.length === out.length) return `<span class="sent">Envoyé à ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
-  if (!ready) return "";
+  const when = c.sends_at ? new Date(c.sends_at).toLocaleString("fr-FR", { weekday: "long", hour: "numeric", minute: "2-digit" }).replace(":00", " h") : "";
+  if (!ready) return when ? `<span class="sent">Part ${esc(when)} si validé</span>` : "";
+  if (when && new Date(c.sends_at) > new Date()) return `<span class="sent">Validé · part ${esc(when)} ✓</span>`;
   if (!c.linked) return `<button class="btn" disabled title="Relie le groupe : node whatsapp/send.mjs groups, puis data/whatsapp.json">Groupe pas encore relié</button>`;
   return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? "Réessayer l'envoi" : "Publier sur WhatsApp"}</button>`;
 }
@@ -476,7 +478,7 @@ async function renderPosts() {
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.label || x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
   const summary = c.id === "carburant" ? `<div class="summary"><div><b>Envoi automatique</b><br><span>Calculé chaque matin sur les prix officiels, rien à relire.</span></div>${sendButton(c, true)}</div>`
     : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alertes du jour" : "Rien à signaler"}</b><br><span>Météo-France, Atmo, TAG : un post seulement quand quelque chose compte.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
-    : `<div class="summary"><div><b>${shown.length} lignes cochées</b><br><span>Coche ou décoche ce qui doit partir, puis valide.</span></div>
+    : `<div class="summary"><div><b>${shown.length} lignes cochées</b><br><span>Coche ou décoche ce qui doit partir, puis valide : l'envoi est programmé.</span></div>
        <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button>${sendButton(c, okAll)}</div></div>`;
   const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lignes</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">Aperçu WhatsApp</button></div>`;
   $("posts").classList.toggle("pane-preview", pane === "preview");

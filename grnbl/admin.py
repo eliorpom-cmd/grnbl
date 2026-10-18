@@ -26,7 +26,7 @@ from zoneinfo import ZoneInfo
 from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
 from .editor import CHANNELS, candidates
 from . import editorial
-from . import publish
+from . import publish, schedule
 from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -123,6 +123,8 @@ def choice_list(events: list[dict], sel: list[dict], live: dict, channel: str, t
     return out
 
 
+# Posted every day for that day, outside the weekly editions.
+DAILY = ("carburant", "infos")
 _FUEL: dict = {}
 
 
@@ -154,7 +156,7 @@ class Handler(BaseHTTPRequestHandler):
 
     @property
     def day(self) -> date:
-        return self.pinned or datetime.now(PARIS).date()
+        return self.pinned or schedule.current_edition(datetime.now(PARIS).date())
 
     def _allowed(self) -> bool:
         """The key from the cookie, or from ?key= once (then kept in a cookie and dropped from the URL)."""
@@ -199,15 +201,18 @@ class Handler(BaseHTTPRequestHandler):
             selection = json.loads(sel_path.read_text()) if sel_path.exists() else None
             watch_path = day_folder(self.day) / "watch.json"
             watch = json.loads(watch_path.read_text()) if watch_path.exists() else []
-            channels, choices = [], publish.load_choices(self.day)
+            channels, choices, editions = [], publish.load_choices(self.day), schedule.editions()
             for cid, c in CHANNELS.items():
                 sel = [p for p in selection or [] if p.get("channel", "sorties") == cid] if selection is not None else None
                 mine = choices.get(cid, {})
                 used = publish.apply_choices(sel, {cid: mine}) if sel is not None else None
+                at = publish.read_at(self.day, cid, now)
                 live = {post: [e["i"] for e, _ in picked(data, used, post) or []] for post in ("to_book", "week")}
                 channels.append({
                     "id": cid, "name": c["name"], "label": c["label"],
-                    "posts": [t for t in (to_book_post(data, now, selection=used), outings_post_reviewed(data, now, selection=used)) if t],
+                    "posts": [t for t in (to_book_post(data, at, selection=used), outings_post_reviewed(data, at, selection=used)) if t],
+                    # Only an edition is sent at its slot (tick.py); older daily runs are not scheduled.
+                    "sends_at": at.isoformat(timespec="minutes") if self.day in editions else None,
                     "lists": choice_list(data, sel, live, cid, now.date()) if sel is not None else {},
                     "custom": {post: post in mine for post in ("to_book", "week")},
                 })
@@ -215,7 +220,9 @@ class Handler(BaseHTTPRequestHandler):
             channels.append({"id": "infos", "name": "grnbl · Infos pratiques", "label": "🚨 Infos",
                              "posts": [alerts_text] if alerts_text else [], "picks": []})
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": "⛽ Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
-            sent, ids = publish.status(self.day), publish.channel_ids()
+            # Fuel and alerts are daily, filed under today; the groups under their edition.
+            today = now.date()
+            sent, ids = {**publish.status(self.day), **{k: v for k, v in publish.status(today).items() if k in DAILY}}, publish.channel_ids()
             for c in channels:
                 c["outbox"], c["linked"] = sent.get(c["id"], {}), c["id"] in ids
             return self._json({"channels": channels, "watch": watch})
@@ -237,7 +244,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": True})
         if self.path == "/api/publish":
             # Sends the channel's approved posts that are not out yet; the outbox prevents doubles.
-            report = publish.run(self.day, send=True, only=[str(body.get("channel"))])
+            channel = str(body.get("channel"))
+            day = datetime.now(PARIS).date() if channel in DAILY else self.day
+            report = publish.run(day, send=True, only=[channel])
             return self._json({"ok": True, "report": report})
         i = body.get("i")
         if not isinstance(i, int):

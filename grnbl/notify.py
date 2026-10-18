@@ -14,10 +14,11 @@ from __future__ import annotations
 import json
 import sys
 import urllib.request
-from datetime import datetime
+from datetime import date, datetime
 
-from . import publish
+from . import publish, schedule
 from .admin import board_key
+from .digest import DAYS
 from .channels import CHANNELS
 
 CONFIG = publish.DATA / "notify.json"
@@ -28,30 +29,62 @@ def settings() -> dict:
     return json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
 
 
-def summary(now: datetime) -> str:
-    day = now.date()
-    items = publish.outbox(day, now, fuel_text="", alerts_text="")  # fuel is reported from the outbox, not fetched again
-    sent = publish.status(day)
-    lines = [f"☀️ *grnbl* · les posts du {day.strftime('%d/%m')} sont prêts"]
+def _when(at: datetime) -> str:
+    return f"{DAYS[at.weekday()]} {at.day}/{at.month:02d} à {at.hour}h{at.minute:02d}".replace("h00", "h")
+
+
+def summary(now: datetime, edition: date | None = None) -> str:
+    """The edition is ready: what each group will send, and when, so it is read in one sitting."""
+    edition = edition or schedule.current_edition(now.date())
+    items = publish.outbox(edition, now, fuel_text="", alerts_text="")
+    sent = publish.status(edition)
+    lines = [f"📬 *grnbl* · l'édition du {edition.strftime('%d/%m')} est prête à relire"]
+    first = None
     for cid in CHANNELS:
         mine = [i for i in items if i["channel"] == cid]
+        slot = schedule.slot_of(cid)
+        at = schedule.send_time(edition, slot) if slot else None
         out = sent.get(cid, {})
         if mine and all(out.get(i["post"], {}).get("status") == "sent" for i in mine):
             lines.append(f"{NAMES[cid]} : envoyé ✓")
         elif mine:
             todo = sum(len(i["events"]) for i in mine if not i["approved"])
-            lines.append(f"{NAMES[cid]} : {todo} lignes à relire" if todo else f"{NAMES[cid]} : validé, à publier")
+            when = f" · part {_when(at)}" if at else ""
+            lines.append((f"{NAMES[cid]} : {todo} lignes à relire" if todo else f"{NAMES[cid]} : validé") + when)
+            if todo and at and (first is None or at < first):
+                first = at
         else:
-            lines.append(f"{NAMES[cid]} : rien aujourd'hui")
-    fuel = sent.get("carburant", {}).get("fuel", {})
-    lines.append(f"{NAMES['carburant']} : " + {"sent": f"envoyé à {(fuel.get('sent_at') or '')[11:16]} ✓",
-                                                 "failed": f"échec ({fuel.get('error')})"}.get(fuel.get("status"), "pas envoyé (groupe WhatsApp pas encore relié ?)"))
+            lines.append(f"{NAMES[cid]} : rien cette fois")
+    if first:
+        lines.append(f"_À valider avant {_when(first)} : un post pas validé ne part pas._")
     return "\n".join(lines)
+
+
+def reminder(edition: date, labels: list[str], at: datetime) -> str:
+    return (f"⏰ *grnbl* · {', '.join(labels)} part {_when(at)} mais n'est pas encore validé.\n"
+            "Ouvre le tableau et appuie sur « Tout est bon », sinon le post ne part pas.")
+
+
+def not_sent(labels: list[str], at: datetime) -> str:
+    return f"⚠️ *grnbl* · {', '.join(labels)} n'est pas parti {_when(at)} : pas validé à temps."
+
+
+def alert(text: str) -> str:
+    return ("🚨 *grnbl* · alerte à valider. Rien n'est envoyé sans toi : onglet Infos du tableau, "
+            "bouton Publier.\n\n" + text)
+
+
+def ping(text: str) -> None:
+    """Sends a message to the Discord webhook; an outage is printed, never raised."""
+    try:
+        print("discord:", "sent" if post(text, settings()) else f"no webhook in {CONFIG.name}")
+    except Exception as e:  # noqa: BLE001 - Discord down never stops the schedule
+        print(f"discord: failed ({e})")
 
 
 def failure(code: str, now: datetime) -> str:
     return (f"⚠️ *grnbl* · la préparation du {now.strftime('%d/%m')} a échoué (code {code}).\n"
-            f"Journal : data/logs/{now.date().isoformat()}.log · nouvel essai à 14 h.")
+            f"Journal : data/logs/{now.date().isoformat()}.log · nouvel essai à l'heure suivante.")
 
 
 def post(text: str, cfg: dict) -> bool:
@@ -73,10 +106,7 @@ def main(argv: list[str]) -> int:
     if "--print" in argv:
         print(text)
         return 0
-    try:
-        print("discord:", "sent" if post(text, settings()) else f"no webhook in {CONFIG.name}")
-    except Exception as e:  # noqa: BLE001 - a Discord outage never fails the morning run
-        print(f"discord: failed ({e})")
+    ping(text)
     return 0
 
 

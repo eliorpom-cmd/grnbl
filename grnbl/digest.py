@@ -207,7 +207,7 @@ def alerts_post(alerts: list[dict], now: datetime) -> str | None:
         lines.append("   _Un bon jour pour le tram ou le vélo. Détails : atmo-auvergnerhonealpes.fr_")
     transit = [a for a in alerts if a["kind"] == "transit"]
     if transit:
-        lines += ["", "🚋 *Tram et bus TAG*"]
+        lines += ["", "🚋 *Tram TAG*"]
         for a in transit:
             start = datetime.fromisoformat(a["start"])
             lines.append(f"• *{', '.join(a['lines'])}* · {a['title'].split(':', 1)[-1].strip()} (dès {_short_day(start)})")
