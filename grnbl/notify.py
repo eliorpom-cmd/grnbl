@@ -45,7 +45,7 @@ def summary(now: datetime) -> str:
             lines.append(f"{NAMES[cid]} : rien aujourd'hui")
     fuel = sent.get("carburant", {}).get("fuel", {})
     lines.append(f"{NAMES['carburant']} : " + {"sent": f"envoyé à {(fuel.get('sent_at') or '')[11:16]} ✓",
-                                                 "failed": f"échec ({fuel.get('error')})"}.get(fuel.get("status"), "pas envoyé (chaîne pas encore reliée ?)"))
+                                                 "failed": f"échec ({fuel.get('error')})"}.get(fuel.get("status"), "pas envoyé (groupe WhatsApp pas encore relié ?)"))
     return "\n".join(lines)
 
 

@@ -2,6 +2,7 @@
 // No server stays up: the Python publish step calls `send` once per post.
 //
 //   node whatsapp/send.mjs link [phone]      link the account once (QR code, or pairing code if phone given, e.g. 33476000000)
+//   node whatsapp/send.mjs groups            the groups of the account, by community, with their ids
 //   node whatsapp/send.mjs channel <invite>  id of a channel from its invite link (https://whatsapp.com/channel/...)
 //   node whatsapp/send.mjs send <jid>        sends {"text": "..."} read on stdin, prints {"id": "..."}
 //
@@ -86,6 +87,18 @@ try {
     // Leave time for the first keys to be saved before closing.
     await new Promise((r) => setTimeout(r, 5000));
     sock.end(undefined);
+  } else if (command === "groups") {
+    // grnbl posts into the groups of a community (one per topic); this gives their ids for data/whatsapp.json.
+    const sock = await connect();
+    const groups = Object.values(await sock.groupFetchAllParticipating());
+    const names = Object.fromEntries(groups.map((g) => [g.id, g.subject]));
+    const rows = groups
+      .filter((g) => !g.isCommunity)
+      .map((g) => ({ id: g.id, name: g.subject, community: names[g.linkedParent] ?? null,
+                     admins_only: Boolean(g.announce), community_announce: Boolean(g.isCommunityAnnounce) }))
+      .sort((a, b) => `${a.community}${a.name}`.localeCompare(`${b.community}${b.name}`));
+    console.log(JSON.stringify(rows, null, 1));
+    sock.end(undefined);
   } else if (command === "channel") {
     if (!arg) fail("usage: channel <invite link>");
     const sock = await connect();
@@ -105,7 +118,7 @@ try {
     console.log(JSON.stringify({ id: sent?.key?.id }));
     sock.end(undefined);
   } else {
-    fail("usage: link [phone] | channel <invite link> | send <jid>");
+    fail("usage: link [phone] | groups | channel <invite link> | send <jid>");
   }
   process.exit(0);
 } catch (e) {

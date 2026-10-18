@@ -12,9 +12,10 @@ needed (from the board, from a scheduler, by hand). Sending is a dry run unless
 
 The WhatsApp side is a separate Node script (whatsapp/send.mjs) that connects,
 sends one message and disconnects: no server stays up, the same command runs on
-this Mac now and on a small Linux server later. Channel ids live in
-data/whatsapp.json, {"gratuit": "<id>@newsletter", ...}, written once by
-`node whatsapp/send.mjs channels`.
+this Mac now and on a small Linux server later. grnbl posts into the groups of
+one WhatsApp community, one group per topic (admins only can write). Their ids
+live in data/whatsapp.json, {"gratuit": "<id>@g.us", ...}, listed once by
+`node whatsapp/send.mjs groups`.
 """
 
 from __future__ import annotations
@@ -123,7 +124,7 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
         elif not send:
             report.append((name, "prêt (essai : rien envoyé)"))
         elif item["channel"] not in ids:
-            report.append((name, f"pas d'identifiant de chaîne dans {CONFIG.name}"))
+            report.append((name, f"groupe pas encore relié ({CONFIG.name})"))
         else:
             try:
                 record["id"] = deliver(ids[item["channel"]], item["text"])

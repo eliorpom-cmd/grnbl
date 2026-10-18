@@ -365,7 +365,7 @@ function sendButton(c, ready) {
   const out = Object.values(c.outbox || {}), sent = out.filter((r) => r.status === "sent"), failed = out.find((r) => r.status === "failed");
   if (out.length && sent.length === out.length) return `<span class="sent">Envoyé à ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
   if (!ready) return "";
-  if (!c.linked) return `<button class="btn" disabled title="Relie la chaîne : node whatsapp/send.mjs channel <lien>">Chaîne pas encore reliée</button>`;
+  if (!c.linked) return `<button class="btn" disabled title="Relie le groupe : node whatsapp/send.mjs groups, puis data/whatsapp.json">Groupe pas encore relié</button>`;
   return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? "Réessayer l'envoi" : "Publier sur WhatsApp"}</button>`;
 }
 
