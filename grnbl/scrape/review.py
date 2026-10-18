@@ -57,7 +57,7 @@ EVENTS:
 """
 
 
-POSTABLE = ("book_now", "opens_soon", "this_week")
+POSTABLE = editorial.POSTABLE
 TIMING_WHY = {"too_late": "Trop tard : il fallait réserver avant", "sold_out": "Complet",
               "later": "Plus tard : revu quand ce sera le moment d'en parler"}
 

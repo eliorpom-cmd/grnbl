@@ -44,7 +44,9 @@ def start_dates(today: date, days: int = 60) -> dict[str, set[str]]:
         if not today - timedelta(days=days) <= day <= today or not (folder / "all.json").exists():
             continue
         for e in json.loads((folder / "all.json").read_text()):
-            seen.setdefault(title_key(e["title"]), set()).add(str(e["start"])[:10])
+            # A collapsed series carries all its sessions (scrape/run.collapse).
+            for start in e.get("dates") or [e["start"]]:
+                seen.setdefault(title_key(e["title"]), set()).add(str(start)[:10])
     return seen
 
 

@@ -17,8 +17,9 @@ import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import clean, details, extract, jsonld, press, tourisme
+from . import clean, details, extract, jsonld, press, tourisme, tribe
 from .. import editorial
+from ..editorial import POSTABLE
 from .fetch import fetch
 from .sources import SOURCES
 
@@ -34,6 +35,63 @@ def _key(e: dict) -> str:
     return f"{t}|{str(e['start'])[:10]}"
 
 
+def _series_key(e: dict) -> str:
+    t = unicodedata.normalize("NFKD", f"{e['title']}|{e.get('venue') or ''}").encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9|]+", " ", t.lower()).strip()
+
+
+def collapse(events: list[dict]) -> list[dict]:
+    """The same session repeated through the weeks (a guided tour every Sunday) is one
+    event with its dates, not a dozen lines for the review to judge one by one."""
+    groups: dict[str, list[dict]] = {}
+    for e in events:
+        groups.setdefault(_series_key(e), []).append(e)
+    out = []
+    for group in groups.values():
+        group.sort(key=lambda e: str(e["start"]))
+        first = group[0]
+        if len(group) > 1:
+            first["dates"] = [str(e["start"]) for e in group]
+            for e in group[1:]:
+                for k, v in e.items():  # a later session may say what the first one does not
+                    if first.get(k) in (None, "") and v not in (None, ""):
+                        first[k] = v
+        out.append(first)
+    return out
+
+
+def next_postable(e: dict, today: date) -> None:
+    """A series starts on its first session that can still be announced: when
+    the next one is too close to book, the one after is posted instead."""
+    for d in e.get("dates") or []:
+        if editorial.timing({**e, "start": d, "end": None}, today) in POSTABLE:
+            if d != e["start"]:
+                e["start"], e["end"] = d, None
+            return
+
+
+def _ai_pages(source: dict, today: date, refresh: bool) -> list[dict]:
+    """An agenda read by the AI, following its next pages while they still hold
+    events within the horizon. `next` is the URL of page {n}, from `first` on."""
+    until, found, seen = today + HORIZON, [], set()
+    pages = [(source["id"], source["url"])]
+    if source.get("next"):
+        first = source.get("first", 2)
+        pages += [(f"{source['id']}-p{n}", source["next"].format(n=n))
+                  for n in range(first, first + source.get("max_pages", 8))]
+    for i, (page_id, url) in enumerate(pages):
+        text = clean.to_text(fetch(page_id, url, today, refresh), url)
+        digest = extract.text_hash(text)
+        if digest in seen:  # past the last page, the site repeats one
+            break
+        seen.add(digest)
+        got = extract.events(text, {**source, "id": page_id}, today, until)
+        found += got
+        if i and not got:
+            break
+    return found
+
+
 def run_source(source: dict, today: date, refresh: bool = False) -> tuple[str, list[dict], str | None]:
     out_path = DATA / "events" / today.isoformat() / f"{source['id']}.json"
     if out_path.exists() and not refresh:
@@ -44,13 +102,13 @@ def run_source(source: dict, today: date, refresh: bool = False) -> tuple[str, l
         elif source["kind"] == "press":
             paper = next(p for p in press.PAPERS if p["id"] == source["id"])
             found = press.events(paper, today, HORIZON)
+        elif source["kind"] == "tribe":
+            found = tribe.events(source, today, today + HORIZON, refresh)
         elif source["kind"] == "jsonld":
             html = fetch(source["id"], source["url"], today, refresh)
             found = jsonld.events(html)
         else:
-            html = fetch(source["id"], source["url"], today, refresh)
-            text = clean.to_text(html, source["url"])
-            found = extract.events(text, source, today, today + HORIZON)
+            found = _ai_pages(source, today, refresh)
     except Exception as e:  # noqa: BLE001 - reported, the run goes on
         return source["id"], [], str(e)[:200]
     for e in found:
@@ -75,8 +133,13 @@ def run_all(today: date | None = None, only: list[str] | None = None, refresh: b
                     merged[k].setdefault("also", []).append(e["source"])
                 else:
                     merged[k] = e
+    found = collapse(list(merged.values()))
+    report.append(("series", len(merged) - len(found), None))
     # Each event's own page, for how and when to book.
-    filled = details.enrich(list(merged.values()), today)
+    filled = details.enrich(found, today)
+    for e in found:
+        next_postable(e, today)
+    merged = {_key(e): e for e in found}
     report.append(("details", filled, None))
     # The yearly rendez-vous; a scraped event with the same title and day is kept instead.
     cal, watch = editorial.calendar_events(today)

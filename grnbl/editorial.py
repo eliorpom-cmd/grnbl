@@ -29,6 +29,8 @@ NOTICE_WALK_IN = 1      # a walk-in event is announced the day before at the lat
 WEEK = 8                # the weekly post covers the next eight days
 BOOK_AHEAD = 60         # "À réserver" looks this far ahead
 OPENS_SOON = 7          # booking that opens within a week is announced now
+# What can be announced today.
+POSTABLE = ("book_now", "opens_soon", "this_week")
 
 
 def _day(raw) -> date | None:
