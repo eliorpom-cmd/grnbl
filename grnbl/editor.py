@@ -19,7 +19,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from . import editorial, memory, schedule
+from . import editorial, factcheck, memory, schedule
 from .channels import CHANNELS, accepts
 from .digest import chosen
 from .scrape import clean, details
@@ -28,6 +28,8 @@ from .scrape.fetch import RAW, fetch
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 CANDIDATES = 40
+EXCEPTIONAL = 5  # review score that lets an event be posted by several groups
+ORDER = ["famille", "nature", "bonsplans", "gratuit", "sorties"]
 
 PROMPT = """You are the editor of "{channel}", a WhatsApp channel for ordinary people of the Grenoble area
 (families, students, retirees). Its promise: {promise}. The friend who always knows the good plans,
@@ -87,16 +89,21 @@ def _brief(i: int, e: dict, today: date) -> dict:
 
 def select(events: list[dict], today: date, channel: str, n_book: int = 5, n_week: int = 6,
            already: list[dict] | None = None) -> list[dict]:
-    pool = candidates(events, today, channel)
+    # One event, one group: what an earlier group posts is not offered again, unless it is
+    # exceptional (scored 5 by the review), the kind of event every group should carry.
+    used = {p["i"] for p in already or [] if not p.get("reserve")}
+    pool = [(i, e) for i, e in candidates(events, today, channel)
+            if i not in used or ((e.get("review") or {}).get("score") or 0) >= EXCEPTIONAL]
     if not pool:
         return []
     allowed = {i for i, _ in pool}
     c = CHANNELS[channel]
-    taken = [events[p["i"]]["title"] for p in already or []]
+    taken = [events[i]["title"] for i in sorted(used)]
     prompt = PROMPT.format(channel=c["name"], promise=c["promise"], taste=c["taste"], today=today.isoformat(),
                            n_book=n_book, n_week=n_week,
                            taste_calls=_taste(today),
-                           already=f"Already in the free channel: {json.dumps(taken, ensure_ascii=False)}\n" if taken else "",
+                           already=(f"Already posted by other groups (offered again only when exceptional): "
+                                    f"{json.dumps(taken, ensure_ascii=False)}\n") if taken else "",
                            candidates=json.dumps([_brief(i, e, today) for i, e in pool], ensure_ascii=False))
     picks = [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
              if p.get("i") in allowed and p.get("post") in ("to_book", "week")]
@@ -176,11 +183,29 @@ def zoom(picks: list[dict], events: list[dict], today: date) -> None:
             z = json.loads(answer[answer.find("{"): answer.rfind("}") + 1])
         except Exception:  # noqa: BLE001 - no zoom: the general line stays
             return
+        when = editorial._day(z.get("when"))
+        # The moment must fall in the window asked: a session already past is no reason to go.
+        if not when or not first <= when <= max(first, last):
+            return
         if z.get("found") and z.get("line") and not (p.get("channel") == "gratuit" and z.get("free") is not True):
             p["zoom"] = {k: z.get(k) for k in ("what", "when", "where", "free")}
             p["line"] = z["line"]
 
     with cf.ThreadPoolExecutor(4) as ex:
+        list(ex.map(one, picks))
+
+
+def check(picks: list[dict], events: list[dict], today: date) -> None:
+    """What a line says that its event's data and page do not (factcheck.py): shown on the board."""
+    def one(p):
+        e = events[p["i"]]
+        try:
+            page = _programme(e["url"], today) if e.get("url") else ""
+        except Exception:  # noqa: BLE001 - checked against the data alone
+            page = ""
+        p["check"] = factcheck.check(p.get("line") or "", e, page)
+
+    with cf.ThreadPoolExecutor(6) as ex:
         list(ex.map(one, picks))
 
 
@@ -190,13 +215,12 @@ def run(today: date | None = None) -> list[dict]:
     events = json.loads((folder / "reviewed.json").read_text())
     # Each group is written for its own sending day (schedule.py), not the day it is prepared.
     day = lambda channel: schedule.channel_day(today, channel)
-    free = select(events, day("gratuit"), "gratuit")
-    picks = free + select(events, day("sorties"), "sorties", already=free)
-    # The theme groups are joined for their theme: an event may also be in Sorties or Gratuit.
-    for channel in CHANNELS:
-        if channel not in ("gratuit", "sorties"):
-            picks += select(events, day(channel), channel)
+    # The most specific groups choose first, so an event lands where it fits best.
+    picks: list[dict] = []
+    for channel in ORDER:
+        picks += select(events, day(channel), channel, already=picks)
     zoom(picks, events, today)
+    check(picks, events, today)
     (folder / "selection.json").write_text(json.dumps(picks, ensure_ascii=False, indent=1))
     return picks
 

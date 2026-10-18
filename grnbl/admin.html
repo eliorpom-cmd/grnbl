@@ -16,6 +16,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0b0b0d; --panel: #141416; --hover: #1c1c1f; --sel: #10243f;
+      --warn: #fbbf24;
       --ink: #f5f5f7; --body: #b4b4b9; --mute: #7c7c82; --line: rgba(255, 255, 255, .08);
       --accent: #3b93ff; --keep: #3fb950; --drop: #ff6b81; --warn: #f0a04b;
       --wa-bg: #0b141a; --wa-bubble: #202c33; --wa-ink: #e9edef; --wa-meta: #8696a0;
@@ -38,6 +39,7 @@
   .day { color: var(--mute); }
   .seg { display: flex; background: var(--hover); border-radius: 8px; padding: 2px; margin-left: 8px; }
   .seg button { border: 0; background: none; padding: 4px 14px; border-radius: 6px; color: var(--body); transition: background .18s var(--ease), color .18s var(--ease); }
+  .pcheck { margin-top: 4px; font-size: 13px; color: var(--warn, #b45309); }
   .seg.chans { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
   .seg.chans button { white-space: nowrap; }
   .seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
@@ -462,7 +464,7 @@ async function renderPosts() {
       <span class="box" aria-hidden="true"></span>
       <div class="pmain"><div class="pt">${x.editor && !x.main && !x.on ? `<span class="star" title="Remplaçant proposé par l'IA">★</span>` : ""}${esc(x.title)}${x.status === "keep" && x.on ? ` <span class="b free">validé</span>` : ""}</div>
         <div class="am">${esc([short(x.start), x.place, x.free ? "gratuit" : ""].filter(Boolean).join(" · "))}</div>
-        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
+        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.check && x.check.length ? `<div class="pcheck">⚠️ À vérifier sur la page : ${esc(x.check.join(", "))}</div>` : ""}${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
       <button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div>`;
   const section = (post, title) => {
     const list = c.lists?.[post] || [];

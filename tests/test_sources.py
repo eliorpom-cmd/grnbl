@@ -5,7 +5,7 @@ from datetime import date
 
 from datetime import datetime
 
-from grnbl import channels
+from grnbl import channels, factcheck
 from grnbl.digest import alerts_post
 from grnbl.sources import alerts
 from grnbl.scrape import jsonld, tourisme, tribe
@@ -123,6 +123,18 @@ class Alerts(unittest.TestCase):
 
     def test_quiet_day_no_post(self):
         self.assertIsNone(alerts_post([], datetime(2026, 10, 18, 10, 0)))
+
+
+class FactCheck(unittest.TestCase):
+    EVENT = {"title": "BLUES TOUR/ ALEX HENLEY", "start": "2026-10-22T20:00", "venue": "Le Trankilou",
+             "description": "TEXAS SOUL BLUES TOUR WITH ALEX HENLEY"}
+
+    def test_facts_from_the_page_pass(self):
+        self.assertEqual(factcheck.check("Jeudi 22 octobre à 20h, Alex Henley au Trankilou.", self.EVENT), [])
+
+    def test_added_name_number_and_wrong_weekday_are_flagged(self):
+        got = factcheck.check("Mardi 22 octobre, Alex Henley et l'Orchestre national, 12 €.", self.EVENT)
+        self.assertEqual(got, ["mardi 22 octobre (c'est un jeudi)", "orchestre", "12"])
 
 
 if __name__ == "__main__":

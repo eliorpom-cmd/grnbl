@@ -24,5 +24,27 @@ class Week(unittest.TestCase):
         self.assertTrue(all(schedule.slot_of(c) for c in CHANNELS))
 
 
+class OneGroupPerEvent(unittest.TestCase):
+    def test_taken_event_is_not_offered_unless_exceptional(self):
+        from unittest import mock
+        from grnbl import editor
+        events = [{"title": "Forestivités", "start": "2026-10-24", "review": {"score": 4}},
+                  {"title": "Fête de la science", "start": "2026-10-24", "review": {"score": 5}},
+                  {"title": "Atelier", "start": "2026-10-24", "review": {"score": 3}}]
+        seen = {}
+
+        def ask(prompt, **_):
+            seen["prompt"] = prompt
+            return '[{"i": 2, "post": "week", "line": "x"}]'
+
+        with mock.patch.object(editor, "candidates", return_value=list(enumerate(events))), \
+                mock.patch.object(editor, "ask", ask), mock.patch.object(editor, "_taste", return_value=""):
+            editor.select(events, date(2026, 10, 21), "sorties",
+                          already=[{"i": 0, "reserve": False}, {"i": 1, "reserve": False}])
+        offered = seen["prompt"].split("CANDIDATES:")[1]
+        self.assertNotIn("Forestivités", offered)
+        self.assertIn("Fête de la science", offered)
+
+
 if __name__ == "__main__":
     unittest.main()

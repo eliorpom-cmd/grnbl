@@ -56,7 +56,7 @@ CHANNELS = {
         "promise": "the best outings of the week, paid ones included: big concerts, shows, festivals, deals",
         "taste": "- paid things are welcome: a big concert or a show people will talk about deserves its place, and so\n"
                  "  does a discount or a good deal; a famous name is fine here when it is a real event;\n"
-                 "- do not repeat what the free channel already posts (listed below), unless it is the event of the week;",
+                 "- what other groups already post is listed below: do not repeat it;",
         "accepts": lambda e: True,
     },
     "famille": {

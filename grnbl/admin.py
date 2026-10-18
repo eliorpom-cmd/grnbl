@@ -108,6 +108,7 @@ def choice_list(events: list[dict], sel: list[dict], live: dict, channel: str, t
         fits = ("this_week",) if post == "week" else ("book_now", "opens_soon")
         editor = [p for p in sel if p["post"] == post and p["i"] < len(events)]
         why = {p["i"]: p.get("why") for p in editor}
+        checks = {p["i"]: p.get("check") or [] for p in editor}
         mains = [p["i"] for p in editor if not p.get("reserve")]
         # Stable order: the editor's picks stay in place when unticked, the human's additions follow.
         order = mains + live.get(post, []) + [p["i"] for p in editor] + \
@@ -118,7 +119,7 @@ def choice_list(events: list[dict], sel: list[dict], live: dict, channel: str, t
             if i in seen or ((e.get("decision") or {}).get("status") == "drop" and i not in live.get(post, [])):
                 continue
             seen.add(i)
-            rows.append(_row(e, post, on=i in live.get(post, []), main=i in mains, editor=i in why, why=why.get(i) or ""))
+            rows.append(_row(e, post, on=i in live.get(post, []), main=i in mains, editor=i in why, why=why.get(i) or "", check=checks.get(i, [])))
         out[post] = rows[:max(n, len(live.get(post, [])))]
     return out
 
