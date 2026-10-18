@@ -22,7 +22,35 @@ from datetime import date, datetime
 from pathlib import Path
 
 CATEGORIES = ["concert", "theatre", "dance", "humour", "cinema", "exhibition", "kids", "sport",
-              "talk", "workshop", "festival", "party", "market", "outdoor", "other"]
+              "talk", "workshop", "visit", "festival", "party", "market", "outdoor", "other"]
+
+# Words in a site's own type labels ("Spectacle, Cirque", "Visite guidée"), first match wins.
+_LABELS = [
+    ("festival", ("festival",)),
+    ("humour", ("humour", "stand-up", "one man", "one woman")),
+    ("concert", ("concert", "musique", "jazz", "rock", "chanson", "rap", "électro", "opéra", "classique")),
+    ("dance", ("danse",)),
+    ("theatre", ("théâtre", "theatre", "marionnette", "cirque", "comédie musicale")),
+    ("cinema", ("ciné", "cine", "film", "projection")),
+    ("exhibition", ("expo",)),
+    ("kids", ("jeune public", "enfant", "famille", "goûter")),
+    ("talk", ("conférence", "rencontre", "débat", "lecture")),
+    ("visit", ("visite", "portes ouvertes")),
+    ("workshop", ("atelier", "stage", "initiation", "démonstration")),
+    ("market", ("marché", "brocante", "vide-grenier", "vide grenier", "braderie", "foire", "salon", "bourse")),
+    ("sport", ("sport", "compétition", "course", "match")),
+    ("outdoor", ("randonnée", "rando", "balade", "nature", "jeu de piste", "chasse au trésor")),
+    ("party", ("bal", "fête", "feux d'artifice", "soirée")),
+    ("theatre", ("spectacle", "performance")),
+]
+
+
+def category_of(label: str | None) -> str | None:
+    """A site's own type label to one of CATEGORIES; None when there is no label."""
+    label = (label or "").lower()
+    if not label.strip():
+        return None
+    return next((cat for cat, words in _LABELS if any(w in label for w in words)), "other")
 
 PROMPT = """You extract events from the text of a web page of a Grenoble (France) agenda.
 Source: {name} ({url}). Today is {today}.

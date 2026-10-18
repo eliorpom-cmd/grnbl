@@ -21,7 +21,8 @@ SOURCES = [
     {"id": "tourisme", "name": "Grenoble Alpes Tourisme", "url": "https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/", "kind": "tourisme"},
     {"id": "ville", "name": "Ville de Grenoble", "url": "https://www.grenoble.fr/79-agenda.htm", "kind": "ai",
      "next": "https://www.grenoble.fr/79-agenda.htm?indicePage={n}", "first": 1, "max_pages": 30},
-    {"id": "gremag", "name": "Gre.mag", "url": "https://www.gre-mag.fr/agenda/?quand=7-jours", "kind": "ai"},
+    {"id": "gremag", "name": "Gre.mag", "url": "https://www.gre-mag.fr/agenda/", "kind": "ai",
+     "next": "https://www.gre-mag.fr/agenda/page/{n}/", "max_pages": 8},
     {"id": "petitbulletin", "name": "Le Petit Bulletin", "url": "https://www.petit-bulletin.fr/grenoble/", "kind": "ai"},
     {"id": "icigrenoble", "name": "ici Grenoble", "url": "https://www.ici-grenoble.org/agenda", "kind": "ai",
      "next": "https://www.ici-grenoble.org/agenda?page={n}", "max_pages": 12},
@@ -33,7 +34,7 @@ SOURCES = [
     # Venues
     {"id": "mc2", "name": "MC2", "url": "https://www.mc2grenoble.fr/agenda", "kind": "tribe",
      "place": "MC2", "town": "Grenoble"},
-    {"id": "belleelectrique", "name": "La Belle Électrique", "url": "https://www.la-belle-electrique.com/", "kind": "ai"},
+    {"id": "belleelectrique", "name": "La Belle Électrique", "url": "https://www.la-belle-electrique.com/fr/programmation", "kind": "ai"},
     {"id": "summum", "name": "Le Summum", "url": "https://www.summum-grenoble.com/", "kind": "ai"},
     {"id": "leciel", "name": "Le Ciel", "url": "https://le-ciel.fr/agenda/", "kind": "tribe", "town": "Grenoble"},
     {"id": "pacifique", "name": "Le Pacifique", "url": "https://www.lepacifique-grenoble.com/evenements", "kind": "ai"},

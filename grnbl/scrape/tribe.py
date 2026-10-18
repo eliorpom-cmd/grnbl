@@ -13,27 +13,12 @@ import re
 import urllib.parse
 from datetime import date
 
+from .extract import category_of
 from .fetch import fetch
 
 _TAG = re.compile(r"<[^>]+>")
 # Page-builder shortcodes left in the text ([et_pb_section …]).
 _SHORTCODE = re.compile(r"\[/?[a-z_]+[^\]]*\]")
-
-# Words in the site's own category names, to the shared categories (extract.CATEGORIES).
-_CATS = [
-    ("concert", ("concert", "musique", "jazz", "rock", "chanson", "rap", "électro", "opéra", "classique")),
-    ("theatre", ("théâtre", "theatre", "marionnette", "cirque")),
-    ("dance", ("danse",)),
-    ("humour", ("humour", "stand-up", "one man")),
-    ("cinema", ("ciné", "cine", "film", "projection")),
-    ("exhibition", ("expo",)),
-    ("kids", ("jeune public", "enfant", "famille")),
-    ("talk", ("conférence", "rencontre", "débat", "lecture")),
-    ("workshop", ("atelier", "stage")),
-    ("festival", ("festival",)),
-    ("market", ("marché", "brocante", "vide-grenier")),
-    ("sport", ("sport",)),
-]
 
 
 def _text(s: str | None) -> str:
@@ -45,10 +30,7 @@ def _category(e: dict) -> str | None:
     names = " ".join(c.get("name", "") for c in e.get("categories") or [])
     names += " " + " ".join(str(f.get("value", "")) for f in (e.get("custom_fields") or {}).values()
                             if isinstance(f, dict))
-    names = names.lower()
-    if not names.strip():
-        return None
-    return next((cat for cat, words in _CATS if any(w in names for w in words)), "other")
+    return category_of(names)
 
 
 def _when(e: dict, key: str) -> str | None:

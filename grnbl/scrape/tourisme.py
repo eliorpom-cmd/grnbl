@@ -24,6 +24,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import clean, extract
+from ..sources.museums import parse_occurrences
+from .extract import category_of
 from .fetch import RAW, fetch
 
 BASE = "https://www.grenoble-tourisme.com"
@@ -119,6 +121,29 @@ def section(text: str, title: str, stops: tuple[str, ...]) -> str | None:
     return text[i + len(title):j].strip() or None
 
 
+def _kind(text: str) -> str | None:
+    """The office's own type line under the title: "Activité événement\n: Concert"."""
+    m = re.search(r"\n: ([^\n]+)", text[:800])
+    return m.group(1) if m else None
+
+
+def sessions(e: dict, today: date, until: date) -> dict | None:
+    """Dated sessions in the opening periods ("Dimanche 1er novembre 2026 de 14h30
+    à 15h30.") replace the overall range: the event starts at its next session,
+    with its time, and keeps the following ones in `dates`. None when all are past."""
+    found = parse_occurrences(e.get("periods") or "")
+    if not found:
+        return e
+    upcoming = [s for s, _ in found if today <= s.date() <= until]
+    if not upcoming:
+        return None if all(s.date() < today for s, _ in found) else e
+    fmt = lambda s: s.strftime("%Y-%m-%dT%H:%M") if (s.hour, s.minute) != (0, 0) else s.date().isoformat()
+    e["start"], e["end"] = fmt(upcoming[0]), None
+    if len(upcoming) > 1:
+        e["dates"] = [fmt(s) for s in upcoming]
+    return e
+
+
 def event_from(card: dict, text: str) -> dict | None:
     dates = parse_dates(text[:600])
     if not dates:
@@ -133,7 +158,7 @@ def event_from(card: dict, text: str) -> dict | None:
         "venue": None, "town": card["town"], "price": prices,
         "free": True if prices and FREE_RE.search(prices) and not re.search(r"\d+\s*€", prices)
         else False if prices and re.search(r"\d", prices) else None,
-        "url": card["url"], "category": None, "description": description,
+        "url": card["url"], "category": category_of(_kind(text)), "description": description,
         "periods": periods, "family": card["family"], "lat": card["lat"], "lon": card["lon"],
         "apidae": card["id"],
     }
@@ -229,6 +254,7 @@ def events(today: date, horizon: timedelta, refresh: bool = False) -> list[dict]
             if not text:
                 continue
             e = event_from(card, text)
+            e = e and sessions(e, today, today + horizon)
             if not e or e["start"] > (today + horizon).isoformat() or (e["end"] or e["start"]) < today.isoformat():
                 continue
             texts[card["id"]] = text

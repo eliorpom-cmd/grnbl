@@ -3,7 +3,8 @@
 import unittest
 from datetime import date
 
-from grnbl.scrape import tribe
+from grnbl.scrape import tourisme, tribe
+from grnbl.scrape.extract import category_of
 from grnbl.scrape.run import collapse, next_postable
 
 
@@ -25,6 +26,30 @@ class Tribe(unittest.TestCase):
             "cost": "Gratuit", "venue": [], "description": '[et_pb_section fb_built="1"]Histoires[/et_pb_section]',
         })
         self.assertEqual((e["start"], e["free"], e["description"]), ("2026-10-22", True, "Histoires"))
+
+
+class Labels(unittest.TestCase):
+    def test_site_type_labels(self):
+        self.assertEqual(category_of("Spectacle, Cirque"), "theatre")
+        self.assertEqual(category_of("Visite guidée et/ou commentée"), "visit")
+        self.assertEqual(category_of("Vide greniers"), "market")
+        self.assertEqual(category_of("Spectacle, One man Show / One woman show"), "humour")
+        self.assertIsNone(category_of(""))
+
+
+class TouristOfficeSessions(unittest.TestCase):
+    PERIODS = ("Dimanche 4 octobre 2026 de 14h30 à 15h30.\nDimanche 1er novembre 2026 de 14h30 à 15h30.\n"
+               "Dimanche 6 décembre 2026 de 14h30 à 15h30.")
+
+    def test_year_long_range_becomes_its_next_sessions(self):
+        e = tourisme.sessions({"start": "2026-01-04", "end": "2026-12-06", "periods": self.PERIODS},
+                              date(2026, 10, 18), date(2026, 12, 17))
+        self.assertEqual((e["start"], e["end"]), ("2026-11-01T14:30", None))
+        self.assertEqual(e["dates"], ["2026-11-01T14:30", "2026-12-06T14:30"])
+
+    def test_all_sessions_past_drops_the_event(self):
+        self.assertIsNone(tourisme.sessions({"start": "2026-01-04", "periods": self.PERIODS},
+                                            date(2026, 12, 20), date(2027, 2, 1)))
 
 
 class Series(unittest.TestCase):
