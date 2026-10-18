@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, identité (2e tour)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+:root { --bg: #f7f7f5; --ink: #161618; --muted: #6c6d72; --line: #e2e2de; --card: #ffffff; --soft: #efefeb; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; --soft: #232327; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; --soft: #232327; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 52px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+h2 { font: 800 30px/1.1 "Commissioner"; letter-spacing: -0.02em; margin: 80px 0 8px; }
+.lead, .sub { color: var(--muted); max-width: 760px; margin: 0 0 24px; }
+.lead { font-size: 18px; }
+
+/* Sticky controls */
+.bar { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+.bar-in { max-width: 1160px; margin: 0 auto; padding: 10px 24px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 14px; }
+.bar label { display: flex; gap: 8px; align-items: center; font-weight: 700; }
+.bar select { font: inherit; font-weight: 500; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); max-width: 230px; }
+
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.box.on { outline: 2px solid var(--ink); outline-offset: -1px; }
+.stage { height: 150px; display: grid; place-items: center; background: var(--soft); border-radius: 12px; padding: 18px; }
+.stage svg { width: 100%; height: 100%; overflow: visible; }
+.box h3 { margin: 4px 0 0; font-size: 16px; font-weight: 800; }
+.box p { margin: 0; font-size: 14px; color: var(--muted); }
+.kind { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.sample { font-size: 22px; line-height: 1.15; color: var(--ink); }
+.box button { align-self: flex-start; font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.box button:hover { background: var(--soft); }
+.textfonts .box p.para { color: var(--ink); font-size: 16px; line-height: 1.6; }
+
+/* Palettes */
+.pal { margin-top: 22px; border-radius: 24px; overflow: hidden; }
+.pal-top { display: grid; grid-template-columns: 1.15fr 1fr; }
+.pal-hero { padding: 32px; display: flex; flex-direction: column; justify-content: space-between; gap: 22px; min-height: 300px; }
+.pal-hero .logo { height: 130px; max-width: 420px; display: flex; align-items: center; }
+.pal-hero .logo svg { height: 100%; width: 100%; overflow: visible; }
+.pal-name { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .6; }
+.pal-desc { font-size: 15px; opacity: .8; max-width: 420px; }
+.pal-side { padding: 26px 30px; display: flex; flex-direction: column; gap: 20px; }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .55; margin-bottom: 8px; }
+.sws { display: flex; gap: 8px; flex-wrap: wrap; }
+.sw { width: 70px; } .sw i { display: block; height: 40px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(127,127,127,.18); }
+.sw span { display: block; font: 600 10.5px/1.3 ui-monospace, Menlo, monospace; margin-top: 4px; opacity: .75; }
+.sw em { display: block; font-style: normal; font-size: 11px; opacity: .6; }
+.avs { display: flex; gap: 10px; flex-wrap: wrap; }
+.av { width: 56px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; text-align: center; opacity: .9; }
+.av b { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; line-height: 1; font-weight: 400; }
+.av b.sq { border-radius: 13px; font-size: 12px; }
+.pal-posts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 0 30px 30px; }
+.post { border-radius: 18px; padding: 20px; aspect-ratio: 4 / 5; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; position: relative; }
+.post .chip { align-self: flex-start; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 99px; }
+.post .t { font-size: 27px; line-height: 1.08; }
+.post .m { font-size: 13px; opacity: .8; }
+
+@media (max-width: 880px) { .pal-top { grid-template-columns: 1fr; } .pal-posts { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) {
+  main { padding: 32px 16px 80px; } .bar-in { padding: 10px 16px; } .bar select { max-width: 150px; }
+  h2 { font-size: 25px; margin-top: 60px; }
+  .pal-hero { padding: 22px; min-height: 0; } .pal-hero .logo { height: 86px; }
+  .pal-side { padding: 20px 22px; } .pal-posts { grid-template-columns: 1fr; padding: 0 20px 22px; }
+  .sw { width: calc(25% - 6px); }
+}
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-in">
+  <label>Forme <select id="selForm"></select></label>
+  <label>Police <select id="selFont"></select></label>
+  <span style="color:var(--muted)">Changer ici met à jour toute la page.</span>
+</div></div>
+<main>
+  <h1>grnbl : identité, 2e tour</h1>
+  <p class="lead">Le nom porte le logo. Les bulles ne sont plus qu'une signature en dessous, et 4 formes sans bulles servent de comparaison. Les palettes sont choisies pour les couleurs seules : vives, mais réglées pour garder la même intensité d'un groupe à l'autre.</p>
+
+  <h2>1. Formes du logo</h2>
+  <p class="sub">3 variantes du H, 4 formes sans bulles. Clique pour l'appliquer partout.</p>
+  <div class="grid" id="forms"></div>
+
+  <h2>2. Polices du logo et des titres</h2>
+  <p class="sub">12 serif, 12 sans serif, aucune des polices vues partout. Chaque carte montre le logo dans la forme choisie et un titre de post.</p>
+  <div class="grid" id="fonts"></div>
+
+  <h2>3. Polices du texte courant</h2>
+  <p class="sub">Pour le site et les longues lignes. Elles accompagnent la police du logo, elles ne la remplacent pas.</p>
+  <div class="grid textfonts" id="textfonts"></div>
+
+  <h2>4. Palettes</h2>
+  <p class="sub">12 palettes. Dans les palettes réglées, les groupes ont la même force de couleur (le jaune un peu plus clair pour rester jaune), ce qui évite l'effet « boîte de feutres ». Le rouge reste réservé aux alertes. Les photos de groupe portent l'initiale du groupe dans la police choisie.</p>
+  <div id="pals"></div>
+
+  <h2>5. Pour choisir</h2>
+  <p class="sub">Donne-moi 3 choses : une forme (section 1), une police (section 2) et 1 ou 2 palettes (section 4). Dis aussi si les bulles restent ou partent.</p>
+</main>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+
+// ---------- Fonts ----------
+const FONTS = [
+  { f: "Gloock", q: "Gloock", w: 400, k: "serif", n: "Didone noire, très contrastée, dense" },
+  { f: "Imbue", q: "Imbue:opsz,wght@10..100,100..900", w: 600, v: "'opsz' 100", k: "serif", n: "Didone étroite et élancée" },
+  { f: "Besley", q: "Besley:wght@400..900", w: 800, k: "serif", n: "Serif ronde et grasse, chaleureuse" },
+  { f: "Brygada 1918", q: "Brygada+1918:wght@400..700", w: 700, k: "serif", n: "Serif classique, sérieuse sans être raide" },
+  { f: "Ultra", q: "Ultra", w: 400, k: "serif", n: "Empattements carrés, ultra-grasse" },
+  { f: "Rozha One", q: "Rozha+One", w: 400, k: "serif", n: "Très grasse, contraste fort" },
+  { f: "Bodoni Moda", q: "Bodoni+Moda:opsz,wght@6..96,400..900", w: 800, v: "'opsz' 96", k: "serif", n: "Bodoni nette, luxe" },
+  { f: "Libre Caslon Display", q: "Libre+Caslon+Display", w: 400, k: "serif", n: "Fine et éditoriale" },
+  { f: "Young Serif", q: "Young+Serif", w: 400, k: "serif", n: "Douce et ronde" },
+  { f: "Limelight", q: "Limelight", w: 400, k: "serif", n: "Géométrique, contrastée, décorative" },
+  { f: "Sedan", q: "Sedan", w: 400, k: "serif", n: "Légère, presque calligraphique" },
+  { f: "Chonburi", q: "Chonburi", w: 400, k: "serif", n: "Contraste fort, terminaisons en boule" },
+  { f: "Funnel Display", q: "Funnel+Display:wght@300..800", w: 800, k: "sans", n: "Formes coupées net, récente" },
+  { f: "Parkinsans", q: "Parkinsans:wght@300..800", w: 700, k: "sans", n: "Détails inattendus, amicale" },
+  { f: "Tilt Warp", q: "Tilt+Warp", w: 400, k: "sans", n: "Ronde et gonflée, sans faire enfantin" },
+  { f: "Krona One", q: "Krona+One", w: 400, k: "sans", n: "Très large, posée" },
+  { f: "Anybody", q: "Anybody:wdth,wght@50..150,100..900", w: 900, v: "'wdth' 150", k: "sans", n: "Ultra-large et ultra-grasse" },
+  { f: "Commissioner", q: "Commissioner:FLAR,wght@0..100,100..900", w: 800, v: "'FLAR' 100", k: "sans", n: "Terminaisons évasées, presque serif" },
+  { f: "Geologica", q: "Geologica:CRSV,wght@0..1,100..900", w: 800, v: "'CRSV' 1", k: "sans", n: "Géométrique avec des touches manuscrites" },
+  { f: "Afacad", q: "Afacad:wght@400..700", w: 700, k: "sans", n: "Étroite et douce" },
+  { f: "Jost", q: "Jost:wght@100..900", w: 600, k: "sans", n: "Géométrique, cercles parfaits" },
+  { f: "Josefin Sans", q: "Josefin+Sans:wght@100..700", w: 700, k: "sans", n: "Géométrique élégante, petites minuscules" },
+  { f: "Michroma", q: "Michroma", w: 400, k: "sans", n: "Large et technique" },
+  { f: "Bagel Fat One", q: "Bagel+Fat+One", w: 400, k: "sans", n: "Très grasse et ronde, pop" },
+];
+const TEXTFONTS = [
+  { f: "Literata", q: "Literata:opsz,wght@7..72,200..900", k: "serif" },
+  { f: "Piazzolla", q: "Piazzolla:opsz,wght@8..30,100..900", k: "serif" },
+  { f: "Newsreader", q: "Newsreader:opsz,wght@6..72,200..800", k: "serif" },
+  { f: "Alegreya Sans", q: "Alegreya+Sans:wght@400;800", k: "sans" },
+  { f: "Sofia Sans", q: "Sofia+Sans:wght@1..1000", k: "sans" },
+  { f: "Commissioner", q: "Commissioner:FLAR,wght@0..100,100..900", k: "sans" },
+];
+const sheets = [...new Set([...FONTS, ...TEXTFONTS].map(x => x.q))].map(q => new Promise(ok => {
+  const l = document.createElement("link"); l.rel = "stylesheet"; l.onload = l.onerror = ok;
+  l.href = `https://fonts.googleapis.com/css2?family=${q}&display=swap`; document.head.appendChild(l);
+}));
+const css = F => `font-family:'${F.f}';font-weight:${F.w}${F.v ? `;font-variation-settings:${F.v}` : ""}`;
+
+// ---------- Colors (OKLCH, mapped into sRGB by lowering chroma) ----------
+function oklchToRgb(L, C, h) {
+  const a = C * Math.cos(h * Math.PI / 180), b = C * Math.sin(h * Math.PI / 180);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+}
+function oklch(L, C, h) {
+  let rgb = oklchToRgb(L, C, h);
+  while (rgb.some(v => v < -0.0005 || v > 1.0005) && C > 0) { C -= 0.004; rgb = oklchToRgb(L, C, h); }
+  return "#" + rgb.map(v => { v = Math.min(1, Math.max(0, v)); v = v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055; return Math.round(v * 255).toString(16).padStart(2, "0"); }).join("");
+}
+function lum(hex) {
+  return hex.slice(1).match(/../g).map(x => parseInt(x, 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+    .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+}
+const onColor = hex => (1.05 / (lum(hex) + 0.05)) >= ((lum(hex) + 0.05) / 0.05) * 0.85 ? "#ffffff" : "#141414";
+
+const CH = [
+  { k: "gratuit", n: "Gratuit", i: "g", h: 92 }, { k: "sorties", n: "Sorties", i: "s", h: 298 },
+  { k: "famille", n: "Famille", i: "f", h: 55 }, { k: "bonsplans", n: "Bons plans", i: "b", h: 350 },
+  { k: "nature", n: "Nature", i: "n", h: 152 }, { k: "carburant", n: "Carburant", i: "c", h: 245 },
+  { k: "alertes", n: "Alertes", i: "!", h: 27 },
+];
+// Even palettes: every group shares lightness L and chroma C; alerts get a fixed red
+// Yellow turns khaki at mid lightness, so it is lifted to stay yellow
+const even = (L, C, alertL = 0.6) => Object.fromEntries(CH.map(c => [c.k, c.k === "alertes" ? oklch(alertL, 0.22, 27) : oklch(c.k === "gratuit" ? Math.min(0.9, Math.max(L, 0.84)) : L, C, c.h)]));
+
+const PALS = [
+  { n: "Vif sur clair", d: "Couleurs franches à intensité égale, fond blanc cassé.", bg: "#F6F5F1", ink: "#121212", ch: even(0.68, 0.18) },
+  { n: "Vif sur nuit", d: "Les mêmes couleurs plus lumineuses, sur un noir légèrement bleuté.", bg: "#0F0F13", ink: "#F2F1EC", ch: even(0.79, 0.16, 0.66) },
+  { n: "Profond", d: "Couleurs sombres et saturées, comme des pierres. Texte blanc sur chaque groupe.", bg: "#FAF9F6", ink: "#15151A", ch: even(0.52, 0.17, 0.55) },
+  { n: "Pastel dense", d: "Couleurs claires mais pas délavées. Texte foncé partout.", bg: "#FFFFFF", ink: "#18181B", ch: even(0.87, 0.10, 0.62) },
+  { n: "Acidulé", d: "Très lumineux et très saturé, sur gris clair. Le plus énergique.", bg: "#EDEDE8", ink: "#101010", ch: even(0.84, 0.2, 0.62) },
+  { n: "Teintes", d: "Photos de groupe en couleur pâle avec l'initiale en couleur vive. Le plus calme.", bg: "#FFFFFF", ink: "#141416", ch: even(0.6, 0.19), tint: true },
+  { n: "Encre et bleu", d: "Logo noir avec une seule couleur forte, un bleu électrique. Les groupes restent en couleurs.", bg: "#F4F4F2", ink: "#0E0E10", ch: even(0.66, 0.14), mono: "#3550FF" },
+  { n: "Aléatoire A", d: "Couleurs choisies une par une, sans règle commune, sur blanc.", bg: "#FFFFFF", ink: "#0B0B0B",
+    ch: { gratuit: "#FFB800", sorties: "#7B61FF", famille: "#FF7A45", bonsplans: "#FF4FA3", nature: "#14B87A", carburant: "#2D9CFF", alertes: "#E8262E" } },
+  { n: "Aléatoire B", d: "Couleurs choisies une par une, très lumineuses, sur noir.", bg: "#111111", ink: "#F5F5F5",
+    ch: { gratuit: "#E4FF54", sorties: "#B48CFF", famille: "#FF9B71", bonsplans: "#FF6FB5", nature: "#4DE3B0", carburant: "#6FB6FF", alertes: "#FF4D4D" } },
+  { n: "Aléatoire C", d: "Un jaune, un bleu outremer et un vert d'eau forts, un gris pour le carburant.", bg: "#F3F1EC", ink: "#17171A",
+    ch: { gratuit: "#F7B32B", sorties: "#3A4CF0", famille: "#FF8C5A", bonsplans: "#E84393", nature: "#00A79D", carburant: "#4A5568", alertes: "#D7263D" } },
+  { n: "Fond bleu", d: "Le fond est lui-même une couleur forte. Les groupes sont clairs pour ressortir dessus.", bg: "#2430E8", ink: "#FFFFFF", ch: even(0.86, 0.14, 0.7) },
+  { n: "Fond lilas", d: "Fond lilas très pâle, texte violet nuit, groupes saturés.", bg: "#EDECFF", ink: "#17153B", ch: even(0.63, 0.19) },
+];
+
+// ---------- Logo forms ----------
+const FORMS = [
+  { id: "b-down", n: "H1. Câble qui monte", d: "Le H du 1er tour : le câble monte sous le nom, une bulle sous chaque lettre.", bubbles: true },
+  { id: "b-flat", n: "H2. Câble droit", d: "Même idée, câble horizontal. Plus calme, plus « marque ».", bubbles: true },
+  { id: "b-trail", n: "H3. Train à la suite", d: "Le nom, puis un petit train de 5 bulles qui monte à droite.", bubbles: true },
+  { id: "n-word", n: "Sans bulles 1. Le nom seul", d: "Uniquement la police. Tout repose sur son caractère.", bubbles: false },
+  { id: "n-dot", n: "Sans bulles 2. Point non lu", d: "Une pastille de couleur sur le l, comme un message non lu.", bubbles: false },
+  { id: "n-vowels", n: "Sans bulles 3. Voyelles en points", d: "Trois points de couleur à la place des voyelles : gr·n·bl·.", bubbles: false },
+  { id: "n-msg", n: "Sans bulles 4. Bulle de message", d: "Le nom dans une bulle de discussion pleine.", bubbles: false },
+];
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// Draw the logo into an attached <svg>: o = { form, font, ink, colors[5], accent }
+function drawLogo(svg, o) {
+  svg.innerHTML = "";
+  const g = el("g", {}, svg), F = o.font, ink = o.ink;
+  const col = i => (o.colors ? o.colors[i % o.colors.length] : ink);
+  const word = el("text", { x: 0, y: 0, style: `${css(F)};font-size:100px;fill:${ink}` }, g);
+  word.textContent = "grnbl";
+  const ex = [0, 1, 2, 3, 4].map(i => word.getExtentOfChar(i));
+  const cx = ex.map(e => e.x + e.width / 2), W = word.getComputedTextLength();
+  const hang = (x, y, r, i, stem = 5) => {
+    el("line", { x1: x, y1: y, x2: x, y2: y + stem + 1, stroke: ink, "stroke-width": 2.2 }, g);
+    el("circle", { cx: x, cy: y, r: 2.6, fill: ink }, g);
+    el("circle", { cx: x, cy: y + stem + r, r, fill: col(i) }, g);
+  };
+  if (o.form === "b-down" || o.form === "b-flat") {
+    const y = x => o.form === "b-flat" ? 36 : 40 - 12 * (x / W);
+    el("line", { x1: -6, y1: y(-6), x2: W + 6, y2: y(W + 6), stroke: ink, "stroke-width": 2.8, "stroke-linecap": "round" }, g);
+    cx.forEach((x, i) => hang(x, y(x), 8.5, i));
+  } else if (o.form === "b-hang") {
+    word.remove();
+    const top = [0.5, 0.5, 0.5, 0.72, 0.72], step = 8;
+    const y = x => -96 - (x - cx[0]) / (cx[4] - cx[0]) * step * 4;
+    el("line", { x1: cx[0] - 22, y1: y(cx[0] - 22), x2: cx[4] + 22, y2: y(cx[4] + 22), stroke: ink, "stroke-width": 2.8, "stroke-linecap": "round" }, g);
+    "grnbl".split("").forEach((ch, i) => {
+      const t = el("text", { x: ex[i].x, y: -i * step, style: `${css(F)};font-size:100px;fill:${ink}` }, g); t.textContent = ch;
+      const ty = -i * step - top[i] * 100 - 4;
+      el("line", { x1: cx[i], y1: y(cx[i]), x2: cx[i], y2: ty, stroke: ink, "stroke-width": 2.2 }, g);
+      el("circle", { cx: cx[i], cy: y(cx[i]), r: 2.6, fill: ink }, g);
+      if (o.colors) el("circle", { cx: cx[i], cy: ty, r: 4, fill: col(i) }, g);
+    });
+  } else if (o.form === "b-trail") {
+    const x0 = W + 14, y = x => 10 - 0.5 * (x - x0);
+    el("line", { x1: x0, y1: y(x0), x2: x0 + 140, y2: y(x0 + 140), stroke: ink, "stroke-width": 2.8, "stroke-linecap": "round" }, g);
+    [0, 1, 2, 3, 4].forEach(i => { const x = x0 + 18 + i * 25; hang(x, y(x), 9.5, i, 5); });
+  } else if (o.form === "n-dot") {
+    const e = ex[4]; el("circle", { cx: e.x + e.width + 4, cy: -70, r: 11, fill: o.accent }, g);
+  } else if (o.form === "n-vowels") {
+    word.remove();
+    const seq = ["g", "r", 0, "n", 1, "b", "l", 2]; let x = 0;
+    seq.forEach(s => {
+      if (typeof s === "number") { el("circle", { cx: x + 13, cy: -24, r: 9, fill: o.colors ? o.colors[s * 2] : o.accent }, g); x += 26; return; }
+      const t = el("text", { x, y: 0, style: `${css(F)};font-size:100px;fill:${ink}` }, g); t.textContent = s;
+      x += t.getComputedTextLength();
+    });
+  } else if (o.form === "n-msg") {
+    const b = word.getBBox(), pad = 26, x1 = b.x - pad, y1 = b.y - 6, w = b.width + pad * 2, h = b.height + 12;
+    const r = Math.min(46, h / 2);
+    const bubble = el("path", { d: `M${x1 + r} ${y1} H${x1 + w - r} A${r} ${r} 0 0 1 ${x1 + w} ${y1 + r} V${y1 + h - r} A${r} ${r} 0 0 1 ${x1 + w - r} ${y1 + h} H${x1 + 34} L${x1 + 4} ${y1 + h + 22} L${x1 + 14} ${y1 + h - 8} A${r} ${r} 0 0 1 ${x1} ${y1 + h - r} V${y1 + r} A${r} ${r} 0 0 1 ${x1 + r} ${y1} Z`, fill: o.accent }, g);
+    g.insertBefore(bubble, word); word.style.fill = onColor(o.accent);
+  }
+  const bb = g.getBBox(), p = 8;
+  svg.setAttribute("viewBox", `${bb.x - p} ${bb.y - p} ${bb.width + p * 2} ${bb.height + p * 2}`);
+}
+
+// ---------- State and rendering ----------
+const state = { form: "b-flat", font: "Gloock" };
+try { Object.assign(state, JSON.parse(localStorage.getItem("grnbl-brand-2") || "{}")); } catch (e) {}
+const fontOf = name => FONTS.find(f => f.f === name) || FONTS[0];
+const selForm = document.getElementById("selForm"), selFont = document.getElementById("selFont");
+selForm.innerHTML = FORMS.map(f => `<option value="${f.id}">${f.n}</option>`).join("");
+selFont.innerHTML = `<optgroup label="Serif">${FONTS.filter(f => f.k === "serif").map(f => `<option>${f.f}</option>`).join("")}</optgroup><optgroup label="Sans serif">${FONTS.filter(f => f.k === "sans").map(f => `<option>${f.f}</option>`).join("")}</optgroup>`;
+function set(k, v) { state[k] = v; try { localStorage.setItem("grnbl-brand-2", JSON.stringify(state)); } catch (e) {} render(); }
+selForm.onchange = () => set("form", selForm.value);
+selFont.onchange = () => set("font", selFont.value);
+
+const POSTS = [
+  { c: "gratuit", t: "Tour Perret ouverte dimanche", m: "Gratuit · créneaux à réserver avant samedi", style: "neutral" },
+  { c: "sorties", t: "Concert à la MC2 jeudi 20 h", m: "Places à partir de 12 €", style: "full" },
+  { c: "alertes", t: "Air très mauvais demain", m: "Tram gratuit, vitesse réduite", style: "full" },
+];
+
+function render() {
+  selForm.value = state.form; selFont.value = state.font;
+  const F = fontOf(state.font), ink = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim();
+  const neutralColors = null;
+
+  document.getElementById("forms").innerHTML = FORMS.map(f => `<div class="box${f.id === state.form ? " on" : ""}" data-form="${f.id}">
+    <div class="stage"><svg data-logo="${f.id}"></svg></div><h3>${f.n}</h3><p>${f.d}</p><button>Utiliser cette forme</button></div>`).join("");
+  document.querySelectorAll("#forms svg").forEach(s => drawLogo(s, { form: s.dataset.logo, font: F, ink, colors: neutralColors, accent: "#3550FF" }));
+  document.querySelectorAll("#forms .box").forEach(b => b.querySelector("button").onclick = () => set("form", b.dataset.form));
+
+  document.getElementById("fonts").innerHTML = FONTS.map(x => `<div class="box${x.f === state.font ? " on" : ""}" data-font="${x.f}">
+    <span class="kind">${x.k === "serif" ? "Serif" : "Sans serif"}</span>
+    <div class="stage"><svg></svg></div><h3>${x.f}</h3><p>${x.n}</p>
+    <div class="sample" style="${css(x)}">Tour Perret ouverte dimanche, 14 h</div><button>Utiliser cette police</button></div>`).join("");
+  document.querySelectorAll("#fonts .box").forEach(b => {
+    drawLogo(b.querySelector("svg"), { form: state.form, font: fontOf(b.dataset.font), ink, accent: "#3550FF" });
+    b.querySelector("button").onclick = () => set("font", b.dataset.font);
+  });
+
+  document.getElementById("textfonts").innerHTML = TEXTFONTS.map(x => `<div class="box"><span class="kind">${x.k === "serif" ? "Serif" : "Sans serif"}</span><h3>${x.f}</h3>
+    <p class="para" style="font-family:'${x.f}'">La tour Perret rouvre exceptionnellement dimanche pour les Journées de l'architecture. Visite gratuite par groupes de 10, toutes les 30 minutes. Il faut réserver son créneau avant samedi midi.</p></div>`).join("");
+
+  document.getElementById("pals").innerHTML = PALS.map((p, n) => {
+    const chs = CH.map(c => p.ch[c.k]);
+    const panel = lum(p.bg) > 0.5 ? "rgba(0,0,0,.035)" : "rgba(255,255,255,.06)";
+    const sw = (hex, role) => `<div class="sw"><i style="background:${hex}"></i><span>${hex.toUpperCase()}</span><em>${role}</em></div>`;
+    const avatar = c => {
+      const hex = p.ch[c.k];
+      const bg = p.tint ? hex + "26" : hex, fg = p.tint ? hex : onColor(hex);
+      return `<div class="av"><b style="background:${bg};color:${fg};${css(F)}">${c.i}</b>${c.n}</div>`;
+    };
+    const posts = POSTS.map(x => {
+      const hex = p.ch[x.c], label = CH.find(c => c.k === x.c).n;
+      if (x.style === "neutral") {
+        const cardBg = lum(p.bg) > 0.5 ? "#ffffff" : "rgba(255,255,255,.07)";
+        return `<div class="post" style="background:${cardBg};color:${p.ink};box-shadow:inset 0 0 0 1px rgba(127,127,127,.2)">
+          <span class="chip" style="background:${hex};color:${onColor(hex)}">${label}</span>
+          <span class="t" style="${css(F)}">${x.t}</span><span class="m">${x.m}</span></div>`;
+      }
+      const fg = onColor(hex);
+      return `<div class="post" style="background:${hex};color:${fg}">
+        <span class="chip" style="background:${fg};color:${hex}">${label}</span>
+        <span class="t" style="${css(F)}">${x.t}</span><span class="m">${x.m}</span></div>`;
+    }).join("");
+    return `<section class="pal" style="background:${p.bg};color:${p.ink}">
+      <div class="pal-top">
+        <div class="pal-hero"><div class="pal-name">Palette ${n + 1} · ${p.n}</div>
+          <div class="logo"><svg data-pal="${n}"></svg></div><div class="pal-desc">${p.d}</div></div>
+        <div class="pal-side" style="background:${panel}">
+          <div><div class="label">Fond et texte</div><div class="sws">${sw(p.bg, "fond")}${sw(p.ink, "texte")}${p.mono ? sw(p.mono, "logo") : ""}</div></div>
+          <div><div class="label">Groupes</div><div class="sws">${CH.map(c => sw(p.ch[c.k], c.n)).join("")}</div></div>
+          <div><div class="label">Photos WhatsApp</div><div class="avs">
+            <div class="av"><b class="sq" style="background:${p.ink};color:${p.bg};${css(F)}">grnbl</b>Communauté</div>${CH.map(avatar).join("")}</div></div>
+        </div>
+      </div>
+      <div class="pal-posts">${posts}</div>
+    </section>`;
+  }).join("");
+  document.querySelectorAll("#pals svg").forEach(s => {
+    const p = PALS[+s.dataset.pal];
+    const five = p.mono ? [p.mono] : CH.slice(0, 5).map(c => p.ch[c.k]);
+    drawLogo(s, { form: state.form, font: F, ink: p.ink, colors: five, accent: p.mono || p.ch.sorties });
+    s.setAttribute("preserveAspectRatio", "xMinYMid meet");
+  });
+}
+
+// Wait for every logo font before measuring letters
+Promise.all(sheets).then(() => Promise.allSettled(FONTS.map(f => document.fonts.load(`${f.w} 100px "${f.f}"`, "grnbl!gsfbnc")))).then(render);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+</script>
+</body>
+</html>
