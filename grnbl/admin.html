@@ -465,8 +465,24 @@ document.addEventListener("keydown", (ev) => {
 fetch("/api/events").then((r) => r.json()).then((d) => {
   events = d.events;
   $("day").textContent = new Date(d.day + "T12:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  if (d.state !== "ready") return waitForRun(d);
   render();
 });
+
+// No posts yet today: say why, and reload by itself once the morning run is done.
+function waitForRun(d) {
+  const say = {
+    preparing: `La préparation du jour tourne depuis ${d.since}. Elle prend 10 à 15 minutes ; cette page se recharge toute seule quand c'est prêt.`,
+    failed: `La préparation du jour a échoué. Journal : ${d.log}. Nouvel essai automatique à 14 h.`,
+    none: "Pas encore de préparation aujourd'hui : elle part à 10 h, et le message Discord arrive quand c'est prêt.",
+  }[d.state];
+  const box = `<p class="empty">${esc(say)}</p>`;
+  for (const id of ["list", "insp", "notes", "phone"]) if ($(id)) $(id).innerHTML = box;
+  setTimeout(async () => {
+    const again = await (await fetch("/api/events")).json();
+    if (again.state === "ready") location.reload(); else waitForRun(again);
+  }, 60_000);
+}
 </script>
 </body>
 </html>

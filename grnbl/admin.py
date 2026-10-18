@@ -62,7 +62,22 @@ def load(day: date) -> dict:
         e["i"] = i
         e["decision"] = decisions.get(str(i))
         e["pick"] = by_i.get(i)
-    return {"day": day.isoformat(), "events": events}
+    return {"day": day.isoformat(), "events": events, **run_state(day)}
+
+
+def run_state(day: date) -> dict:
+    """Where the day's run is, so the board says "preparing" instead of looking empty."""
+    if (day_folder(day) / "selection.json").exists():
+        return {"state": "ready"}
+    log = DATA / "logs" / f"{day.isoformat()}.log"
+    lines = log.read_text().splitlines() if log.exists() else []
+    started = next((l[14:19] for l in lines if l.startswith("== ") and "morning run" in l), None)
+    ended = [l for l in lines if l.startswith("== ") and "done, exit" in l]
+    if ended and not ended[-1].endswith("exit 0"):
+        return {"state": "failed", "log": f"data/logs/{day.isoformat()}.log"}
+    if started and not ended:
+        return {"state": "preparing", "since": started}
+    return {"state": "none"}
 
 
 def save_decision(day: date, i: int, decision: dict | None) -> None:
