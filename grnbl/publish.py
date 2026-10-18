@@ -29,7 +29,7 @@ from zoneinfo import ZoneInfo
 
 from . import memory
 from .digest import fuel_post, outings_post_reviewed, picked, to_book_post
-from .editor import CHANNELS
+from .channels import CHANNELS
 from .sources import fuel
 
 ROOT = Path(__file__).resolve().parents[1]

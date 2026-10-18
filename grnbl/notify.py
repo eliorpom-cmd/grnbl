@@ -18,10 +18,10 @@ from datetime import datetime
 
 from . import publish
 from .admin import board_key
-from .editor import CHANNELS
+from .channels import CHANNELS
 
 CONFIG = publish.DATA / "notify.json"
-NAMES = {"gratuit": "🆓 Gratuit", "sorties": "🎭 Sorties", "carburant": "⛽ Carburant"}
+NAMES = {**{cid: c["label"] for cid, c in CHANNELS.items()}, "carburant": "⛽ Carburant"}
 
 
 def settings() -> dict:

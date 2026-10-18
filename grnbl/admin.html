@@ -38,6 +38,8 @@
   .day { color: var(--mute); }
   .seg { display: flex; background: var(--hover); border-radius: 8px; padding: 2px; margin-left: 8px; }
   .seg button { border: 0; background: none; padding: 4px 14px; border-radius: 6px; color: var(--body); transition: background .18s var(--ease), color .18s var(--ease); }
+  .seg.chans { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  .seg.chans button { white-space: nowrap; }
   .seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
   .search { margin-left: auto; width: 240px; height: 30px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 0 10px; outline: none; transition: border-color .18s var(--ease); }
   .search:focus { border-color: var(--accent); }
@@ -269,6 +271,7 @@ const QUEUES = [
 const TIMING = { book_now: "à réserver", opens_soon: "résa bientôt", this_week: "cette semaine", too_late: "trop tard", sold_out: "complet", later: "plus tard" };
 let pane = "lines", from = null;
 const phone = () => matchMedia("(max-width: 820px)").matches;
+const AVATARS = { gratuit: "🆓", sorties: "🎭", famille: "👨‍👩‍👧", bonsplans: "🛍️", nature: "🏔️", carburant: "⛽" };
 let events = [], view = "posts", queue = "picks", selected = null, query = "", channel = "gratuit", postsData = null;
 
 const $ = (id) => document.getElementById(id);
@@ -470,7 +473,7 @@ async function renderPosts() {
       ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Masquer" : `Voir ${off.length} autres possibles`}</button>${open ? off.map(row).join("") : ""}` : ""}</section>`;
   };
   const watch = postsData.watch || [];
-  const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
+  const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.label || x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
   const summary = c.id === "carburant" ? `<div class="summary"><div><b>Envoi automatique</b><br><span>Calculé chaque matin sur les prix officiels, rien à relire.</span></div>${sendButton(c, true)}</div>`
     : `<div class="summary"><div><b>${shown.length} lignes cochées</b><br><span>Coche ou décoche ce qui doit partir, puis valide.</span></div>
        <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button>${sendButton(c, okAll)}</div></div>`;
@@ -480,7 +483,7 @@ async function renderPosts() {
     (watch.length && c.id !== "carburant" ? `<section><h2>À surveiller</h2>${watch.map((w) =>
       `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">vérifier ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
   const now = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  $("phone").innerHTML = `<div class="chan"><div class="avatar">${c.id === "gratuit" ? "🆓" : c.id === "carburant" ? "⛽" : "🎭"}</div><div><b>${esc(c.name)}</b><small>Chaîne · aperçu avant publication</small></div></div>` +
+  $("phone").innerHTML = `<div class="chan"><div class="avatar">${AVATARS[c.id] || "🎭"}</div><div><b>${esc(c.name)}</b><small>Chaîne · aperçu avant publication</small></div></div>` +
     (c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">Copier</button>${wa(t)}<span class="time">${now}</span></div>`).join("") || `<p class="empty">Rien à poster sur cette chaîne aujourd'hui.</p>`);
   $("phone").querySelectorAll(".copy").forEach((b) => b.addEventListener("click", () => { navigator.clipboard.writeText(c.posts[b.dataset.k]); toast("Post copié"); }));
 }

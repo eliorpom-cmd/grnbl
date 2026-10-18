@@ -54,6 +54,13 @@ SOURCES = [
     {"id": "seyssinet", "name": "Ville de Seyssinet-Pariset", "url": "https://seyssinet-pariset.fr/agenda/", "kind": "tribe",
      "town": "Seyssinet-Pariset"},
     {"id": "smh", "name": "Ville de Saint-Martin-d'Hères", "url": "https://www.saintmartindheres.fr/cadre-de-vie/evenementiel/", "kind": "ai"},
+    # Flea markets, car-boot sales, swaps (the Bons plans group): the whole Isère, the review keeps what is near
+    {"id": "brocabrac", "name": "Brocabrac Isère", "url": "https://brocabrac.fr/38/", "kind": "jsonld", "title_town": True},
+    {"id": "videgreniers", "name": "Vide-Greniers.org Isère", "url": "https://www.vide-greniers.org/evenements/Isere", "kind": "jsonld",
+     "title_town": True},
+    # Nature and mountain (the Montagne & nature group)
+    {"id": "lpoisere", "name": "LPO Isère", "url": "https://auvergne-rhone-alpes.lpo.fr/lpo-locales/isere/agenda/", "kind": "ai"},
+    {"id": "bastille", "name": "Bastille de Grenoble", "url": "https://www.bastille-grenoble.fr/agenda/", "kind": "ai"},
     # Official pages of the yearly rendez-vous (grnbl/calendar.json), read for dates and booking
     {"id": "tourperret", "name": "Tour Perret (Ville de Grenoble)", "url": "https://www.grenoble.fr/tourperret", "kind": "ai"},
     {"id": "alleeschantent", "name": "Les Allées Chantent", "url": "https://www.les-allees-chantent.fr/programmation-allees-chantent/", "kind": "ai"},

@@ -3,7 +3,8 @@
 import unittest
 from datetime import date
 
-from grnbl.scrape import tourisme, tribe
+from grnbl import channels
+from grnbl.scrape import jsonld, tourisme, tribe
 from grnbl.scrape.extract import category_of
 from grnbl.scrape.run import collapse, next_postable
 
@@ -69,6 +70,26 @@ class Series(unittest.TestCase):
              "dates": ["2026-10-19T10:00", "2026-10-26T10:00"]}
         next_postable(e, date(2026, 10, 18))
         self.assertEqual(e["start"], "2026-10-26T10:00")
+
+
+class Channels(unittest.TestCase):
+    def test_each_group_takes_only_its_theme(self):
+        broc = {"title": "Vide-grenier à Eybens", "category": "market", "free": True}
+        walk = {"title": "Oiseaux des milieux forestiers", "description": "Sortie nature avec la LPO"}
+        kids = {"title": "Atelier", "review": {"family": True, "free": False}}
+        show = {"title": "Concert", "category": "concert", "review": {"free": False}}
+        self.assertEqual([c for c in channels.CHANNELS if channels.accepts(c, broc)], ["gratuit", "sorties", "bonsplans"])
+        self.assertTrue(channels.accepts("nature", walk))
+        self.assertTrue(channels.accepts("famille", kids))
+        self.assertFalse(any(channels.accepts(c, show) for c in ("gratuit", "famille", "bonsplans", "nature")))
+
+
+class JsonLdDates(unittest.TestCase):
+    def test_french_and_timezone_dates(self):
+        self.assertEqual(jsonld._iso("18/10/2026"), "2026-10-18")
+        self.assertEqual(jsonld._iso("2026-10-18T09:00:00+02:00"), "2026-10-18T09:00")
+        self.assertEqual(jsonld._iso("2026-10-18T00:00:00"), "2026-10-18")
+        self.assertEqual(jsonld._town("Grenoble-38"), "Grenoble")
 
 
 if __name__ == "__main__":

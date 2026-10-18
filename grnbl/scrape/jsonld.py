@@ -33,6 +33,26 @@ def _place(loc) -> tuple[str | None, str | None]:
     return loc.get("name"), town
 
 
+def _iso(raw) -> str | None:
+    """'18/10/2026' or '2026-10-18T09:00:00+02:00' to the shared shape: '2026-10-18', '2026-10-18T09:00'."""
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    raw = raw.strip()
+    m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})(?:\D+(\d{1,2})[:h](\d{2}))?", raw)
+    if m:
+        d, mo, y, h, mi = m.groups()
+        return f"{y}-{int(mo):02d}-{int(d):02d}" + (f"T{int(h):02d}:{mi}" if h else "")
+    m = re.match(r"(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}))?", raw)
+    if not m:
+        return None
+    return m.group(1) + (f"T{m.group(2)}" if m.group(2) and m.group(2) != "00:00" else "")
+
+
+def _town(raw: str | None) -> str | None:
+    """'Grenoble-38' (department appended by some sites) to 'Grenoble'."""
+    return re.sub(r"-\d{2,3}$", "", raw.strip()) if isinstance(raw, str) and raw.strip() else None
+
+
 def events(html: str) -> list[dict]:
     """Raw events in the common extraction shape (see extract.py)."""
     out = []
@@ -48,10 +68,10 @@ def events(html: str) -> list[dict]:
             price = offer.get("price") if isinstance(offer, dict) else None
             out.append({
                 "title": (e.get("name") or "").strip(),
-                "start": e.get("startDate"),
-                "end": e.get("endDate"),
+                "start": _iso(e.get("startDate")),
+                "end": _iso(e.get("endDate")),
                 "venue": venue,
-                "town": town,
+                "town": _town(town),
                 "price": None if price in (None, "") else str(price),
                 "free": True if str(price) in ("0", "0.0", "0.00") or e.get("isAccessibleForFree") is True else None,
                 "url": e.get("url"),

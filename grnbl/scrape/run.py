@@ -114,6 +114,11 @@ def run_source(source: dict, today: date, refresh: bool = False) -> tuple[str, l
     for e in found:
         e["source"] = source["id"]
         e["source_name"] = source["name"]
+        # "Vide-grenier" alone says nothing, and two of them on one day are not the same event.
+        if source.get("title_town") and e.get("town") and e["town"].lower() not in e["title"].lower():
+            e["title"] = f"{e['title']} à {e['town']}"
+        if e.get("end") == e.get("start"):
+            e["end"] = None
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(found, ensure_ascii=False, indent=1))
     return source["id"], found, None

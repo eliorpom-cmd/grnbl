@@ -45,6 +45,9 @@ that is not an outing. Keep council meetings only if open and of general interes
 Also drop what everybody already knows or sees everywhere: ordinary league matches (keep a sports event
 only if it is free and festive, or exceptional), commercial events (sales, shop openings, paid trade fairs
 unless huge), weekly markets, cinema screenings of ordinary releases, recurring classes and club meetings.
+But KEEP flea markets, car-boot sales (vide-greniers, brocantes, braderies), swaps (bourse aux skis, aux jouets)
+and charity sales: a group is dedicated to them; score the big ones higher. KEEP guided nature outings
+(bird watching, naturalist walks) and mountain events: another group is dedicated to them.
 Score high what people would hate to miss and rarely hear about: free and rare things, special openings
 (a monument, a backstage visit), free concerts, festivals, things that need booking soon.
 Signals given with each event: "sources" = how many agendas list it, "press" = a journalist wrote about it

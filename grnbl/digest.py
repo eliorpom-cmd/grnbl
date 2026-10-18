@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from . import editorial
+from .channels import CHANNELS, accepts
 from .items import Item
 
 PARIS = ZoneInfo("Europe/Paris")
@@ -162,7 +163,10 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
     if picks is not None:
         if not picks:
             return None
-        lines = [f"🎭 *Cette semaine à Grenoble* · notre sélection parmi {len(rows)} sorties repérées", ""]
+        channel = next((p.get("channel") for p in selection or [] if p.get("channel")), "sorties")
+        title = CHANNELS.get(channel, CHANNELS["sorties"])["week_title"]
+        found = sum(1 for x in rows if accepts(channel, x[3])) if channel in CHANNELS else len(rows)
+        lines = [f"{title} · notre sélection parmi {found} {'idées' if channel in ('bonsplans', 'nature') else 'sorties'} repérées", ""]
         for e, line in picks:
             start = _parse_start(e.get("start"))
             if start:

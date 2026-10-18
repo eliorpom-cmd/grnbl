@@ -195,12 +195,12 @@ class Handler(BaseHTTPRequestHandler):
                 used = publish.apply_choices(sel, {cid: mine}) if sel is not None else None
                 live = {post: [e["i"] for e, _ in picked(data, used, post) or []] for post in ("to_book", "week")}
                 channels.append({
-                    "id": cid, "name": c["name"],
+                    "id": cid, "name": c["name"], "label": c["label"],
                     "posts": [t for t in (to_book_post(data, now, selection=used), outings_post_reviewed(data, now, selection=used)) if t],
                     "lists": choice_list(data, sel, live, cid, now.date()) if sel is not None else {},
                     "custom": {post: post in mine for post in ("to_book", "week")},
                 })
-            channels.append({"id": "carburant", "name": "grnbl · Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
+            channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": "⛽ Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
             sent, ids = publish.status(self.day), publish.channel_ids()
             for c in channels:
                 c["outbox"], c["linked"] = sent.get(c["id"], {}), c["id"] in ids

@@ -20,6 +20,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import editorial, memory
+from .channels import CHANNELS, accepts
 from .digest import chosen
 from .scrape import clean, details
 from .scrape.extract import ask, parse_array_raw
@@ -27,24 +28,6 @@ from .scrape.fetch import RAW, fetch
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 CANDIDATES = 40
-
-# Two channels, people join one or both. Which channel an event may go to is decided by code
-# (is it free?), never by the AI: a paid event can never reach the free channel.
-CHANNELS = {
-    "gratuit": {
-        "name": "grnbl · Gratuit",
-        "promise": "only free outings: what costs nothing and is worth leaving the house for",
-        "taste": "- only free things are offered to you here;\n"
-                 "- the rare before the routine: a once-a-year opening beats an exhibition on a long run;",
-    },
-    "sorties": {
-        "name": "grnbl · Sorties",
-        "promise": "the best outings of the week, paid ones included: big concerts, shows, festivals, deals",
-        "taste": "- paid things are welcome: a big concert or a show people will talk about deserves its place, and so\n"
-                 "  does a discount or a good deal; a famous name is fine here when it is a real event;\n"
-                 "- do not repeat what the free channel already posts (listed below), unless it is the event of the week;",
-    },
-}
 
 PROMPT = """You are the editor of "{channel}", a WhatsApp channel for ordinary people of the Grenoble area
 (families, students, retirees). Its promise: {promise}. The friend who always knows the good plans,
@@ -83,15 +66,10 @@ def _taste(today: date) -> str:
             + json.dumps([{k: c[k] for k in ("title", "category", "price", "editor")} for c in calls], ensure_ascii=False) + "\n")
 
 
-def _free(e: dict) -> bool | None:
-    r = e.get("review") or {}
-    return r.get("free") if r.get("free") is not None else e.get("free")
-
-
 def candidates(events: list[dict], today: date, channel: str, n: int = CANDIDATES) -> list[tuple[int, dict]]:
     index = {id(e): i for i, e in enumerate(events)}
     pool = [e for e in chosen(events) if editorial.timing(e, today) in ("book_now", "opens_soon", "this_week")
-            and (channel != "gratuit" or _free(e) is True)]
+            and accepts(channel, e)]
     pool.sort(key=lambda e: (-((e.get("review") or {}).get("score") or 0), str(e["start"])))
     return [(index[id(e)], e) for e in pool[:n]]
 
@@ -209,6 +187,10 @@ def run(today: date | None = None) -> list[dict]:
     events = json.loads((folder / "reviewed.json").read_text())
     free = select(events, today, "gratuit")
     picks = free + select(events, today, "sorties", already=free)
+    # The theme groups are joined for their theme: an event may also be in Sorties or Gratuit.
+    for channel in CHANNELS:
+        if channel not in ("gratuit", "sorties"):
+            picks += select(events, today, channel)
     zoom(picks, events, today)
     (folder / "selection.json").write_text(json.dumps(picks, ensure_ascii=False, indent=1))
     return picks
