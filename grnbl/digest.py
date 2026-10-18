@@ -72,7 +72,6 @@ def outings_post(items: list[Item], now: datetime, days: int = 7, limit: int = 8
         lines += ["", "🖼️ *Expos gratuites en ce moment*"]
         for i in shows[:3]:
             lines.append(f"• {i.title.strip()} · {i.place} · jusqu'au {i.end.day}/{i.end.month:02d}")
-    lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
     return "\n".join(lines)
 
 
@@ -171,7 +170,6 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
             start = _parse_start(e.get("start"))
             if start:
                 lines += ([""] if len(lines) > 2 else []) + entry((None, None, start, e, line))
-        lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
         return "\n".join(lines)
 
     lines = [f"🎭 *Cette semaine à Grenoble* · {len(rows)} sorties repérées, dont {free_total} gratuites", "", "⭐ *Les immanquables*"]
@@ -181,7 +179,6 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
         lines += ["", "🆓 *Gratuit*"]
         for x in free:
             lines += entry(x)
-    lines += ["", "_Réagis avec 👍 si tu y vas, ça nous aide à choisir les prochaines._"]
     return "\n".join(lines)
 
 
@@ -272,5 +269,4 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
             lines.append(f"   ⏰ Réservations dès {_short_day(opens)}{' : ' + link if link else ''}")
         else:
             lines.append(f"   👉 Réserver{' avant ' + _short_day(deadline) if deadline else ''}{' : ' + link if link else ''}")
-    lines += ["", "_Réagis avec 👍 si tu as réservé._"]
     return "\n".join(lines)
