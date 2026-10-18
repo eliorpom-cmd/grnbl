@@ -23,11 +23,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
-from .digest import fuel_post, outings_post_reviewed, picked, to_book_post
+from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
 from .editor import CHANNELS, candidates
 from . import editorial
 from . import publish
-from .sources import fuel
+from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -137,6 +137,17 @@ def fuel_cached(now: datetime) -> str | None:
     return _FUEL["text"]
 
 
+_ALERTS: dict = {}
+
+
+def alerts_cached(now: datetime) -> str | None:
+    """The practical alerts post, fetched at most every ten minutes, like the fuel one."""
+    if not _ALERTS or (now - _ALERTS["at"]).total_seconds() > 600:
+        # A source that cannot be read is left out: this text is what gets published.
+        _ALERTS.update(at=now, text=alerts_post(alerts.collect(now)[0], now))
+    return _ALERTS["text"]
+
+
 class Handler(BaseHTTPRequestHandler):
     # None = follow the calendar: the board runs for days and must show today's run.
     pinned: date | None = None
@@ -200,6 +211,9 @@ class Handler(BaseHTTPRequestHandler):
                     "lists": choice_list(data, sel, live, cid, now.date()) if sel is not None else {},
                     "custom": {post: post in mine for post in ("to_book", "week")},
                 })
+            alerts_text = alerts_cached(now)
+            channels.append({"id": "infos", "name": "grnbl · Infos pratiques", "label": "🚨 Infos",
+                             "posts": [alerts_text] if alerts_text else [], "picks": []})
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": "⛽ Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
             sent, ids = publish.status(self.day), publish.channel_ids()
             for c in channels:

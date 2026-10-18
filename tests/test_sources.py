@@ -3,7 +3,11 @@
 import unittest
 from datetime import date
 
+from datetime import datetime
+
 from grnbl import channels
+from grnbl.digest import alerts_post
+from grnbl.sources import alerts
 from grnbl.scrape import jsonld, tourisme, tribe
 from grnbl.scrape.extract import category_of
 from grnbl.scrape.run import collapse, next_postable
@@ -90,6 +94,30 @@ class JsonLdDates(unittest.TestCase):
         self.assertEqual(jsonld._iso("2026-10-18T09:00:00+02:00"), "2026-10-18T09:00")
         self.assertEqual(jsonld._iso("2026-10-18T00:00:00"), "2026-10-18")
         self.assertEqual(jsonld._town("Grenoble-38"), "Grenoble")
+
+
+class Alerts(unittest.TestCase):
+    def test_air_index_and_comment_from_the_page(self):
+        page = ('{"2026-10-19":{"indice_atmo":3.2,"indice_stat":"x"}} '
+                '{"2026-10-19":"Lundi 19 octobre, \\u00e9pisode de pollution aux particules fines attendu."}')
+        got = alerts.parse_air(page)["2026-10-19"]
+        self.assertEqual(round(got["index"]), 3)
+        self.assertTrue(got["comment"].startswith("Lundi 19 octobre, épisode"))
+
+    def test_only_new_disruptions_of_main_lines(self):
+        now = datetime(2026, 10, 18, 10, 0)
+        records = {
+            "a": {"listeLigne": "SEM_A", "dateDebut": "19/10/2026 22:00", "dateFin": "23/10/2026 02:00",
+                  "texte": "A : travaux de nuit|Pas de tram entre Gares et Chavant. Plan ici"},
+            "b": {"listeLigne": "SEM_C5", "dateDebut": "15/07/2026 04:00", "dateFin": "19/12/2026 03:00",
+                  "texte": "C5 : travaux|depuis l'été"},
+            "c": {"listeLigne": "TPV_569", "dateDebut": "18/10/2026 14:00", "dateFin": "31/12/2050 23:59", "texte": "x|y"},
+        }
+        got = alerts.transit_from(records, now)
+        self.assertEqual([(a["lines"], a["detail"]) for a in got], [(["A"], "Pas de tram entre Gares et Chavant.")])
+
+    def test_quiet_day_no_post(self):
+        self.assertIsNone(alerts_post([], datetime(2026, 10, 18, 10, 0)))
 
 
 if __name__ == "__main__":

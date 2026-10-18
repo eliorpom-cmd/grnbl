@@ -185,6 +185,38 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
     return "\n".join(lines)
 
 
+def alerts_post(alerts: list[dict], now: datetime) -> str | None:
+    """Infos pratiques: weather warnings, air quality, tram and bus disruptions. Nothing to say, no post."""
+    if not alerts:
+        return None
+    from .sources.alerts import COLORS
+    lines = [f"🚨 *Infos pratiques* · {DAYS[now.weekday()]} {now.day}/{now.month:02d}"]
+    weather = [a for a in alerts if a["kind"] == "weather"]
+    if weather:
+        lines += ["", "*Météo en Isère*"]
+        for a in weather:
+            dot, color = COLORS[a["level"]]
+            lines.append(f"{dot} Vigilance {color} {a['what']} aujourd'hui")
+        if any(a["level"] >= 3 for a in weather):
+            lines.append("_Conseils et carte : vigilance.meteofrance.fr_")
+    for a in (a for a in alerts if a["kind"] == "air"):
+        day = "Aujourd'hui" if a["day"] == now.date().isoformat() else "Demain"
+        lines += ["", f"😷 *Qualité de l'air {a['what']}* · {day} à Grenoble"]
+        if a.get("comment"):
+            lines.append(f"   {a['comment']}")
+        lines.append("   _Un bon jour pour le tram ou le vélo. Détails : atmo-auvergnerhonealpes.fr_")
+    transit = [a for a in alerts if a["kind"] == "transit"]
+    if transit:
+        lines += ["", "🚋 *Tram et bus TAG*"]
+        for a in transit:
+            start = datetime.fromisoformat(a["start"])
+            lines.append(f"• *{', '.join(a['lines'])}* · {a['title'].split(':', 1)[-1].strip()} (dès {_short_day(start)})")
+            if a.get("detail"):
+                lines.append(f"   {a['detail']}")
+    lines += ["", "_Sources : Météo-France, Atmo AuRA, Mobilités M._"]
+    return "\n".join(lines)
+
+
 def _place(e: dict) -> str:
     """Venue or town, without the shouting some agendas use."""
     where = (e.get("venue") or e.get("town") or "").strip()

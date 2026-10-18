@@ -30,7 +30,7 @@ def settings() -> dict:
 
 def summary(now: datetime) -> str:
     day = now.date()
-    items = publish.outbox(day, now, fuel_text="")  # fuel is reported from the outbox, not fetched again
+    items = publish.outbox(day, now, fuel_text="", alerts_text="")  # fuel is reported from the outbox, not fetched again
     sent = publish.status(day)
     lines = [f"☀️ *grnbl* · les posts du {day.strftime('%d/%m')} sont prêts"]
     for cid in CHANNELS:

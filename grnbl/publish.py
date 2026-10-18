@@ -28,9 +28,9 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from . import memory
-from .digest import fuel_post, outings_post_reviewed, picked, to_book_post
+from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
 from .channels import CHANNELS
-from .sources import fuel
+from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -89,7 +89,7 @@ def day_events(day: date) -> tuple[list[dict], list[dict] | None]:
     return events, apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
 
 
-def outbox(day: date, now: datetime, fuel_text: str | None = None) -> list[dict]:
+def outbox(day: date, now: datetime, fuel_text: str | None = None, alerts_text: str | None = None) -> list[dict]:
     """Every post of the day, with whether the human approved it."""
     events, selection = day_events(day)
     out = []
@@ -107,6 +107,10 @@ def outbox(day: date, now: datetime, fuel_text: str | None = None) -> list[dict]
         fuel_text = fuel_post(fuel.collect(), now)
     if fuel_text:
         out.append({"channel": "carburant", "post": "fuel", "text": fuel_text, "approved": True, "events": []})
+    if alerts_text is None:
+        alerts_text = alerts_post(alerts.collect(now)[0], now)
+    if alerts_text:
+        out.append({"channel": "infos", "post": "alerts", "text": alerts_text, "approved": True, "events": []})
     return out
 
 
