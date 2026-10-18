@@ -7,8 +7,11 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 echo "1/2  Connexion à Deployxa (une page s'ouvre dans le navigateur)"
-npx -y @deployxa/cli@1.0.4 login || { echo "Échec de la connexion Deployxa : relance ce script."; exit 1; }
-npx -y @deployxa/cli@1.0.4 whoami
+if npx -y @deployxa/cli@1.0.4 whoami >/dev/null 2>&1; then
+  echo "déjà connecté"
+else
+  npx -y @deployxa/cli@1.0.4 login || { echo "Échec de la connexion Deployxa : relance ce script."; exit 1; }
+fi
 
 echo
 echo "2/2  Jeton Claude pour le serveur (une page s'ouvre, valide avec ton compte Claude)"

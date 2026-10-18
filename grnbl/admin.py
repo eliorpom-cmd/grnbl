@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import os
 import secrets
 import sys
 from datetime import date, datetime
@@ -199,8 +200,11 @@ class Handler(BaseHTTPRequestHandler):
 def main(argv: list[str]) -> int:
     if argv:
         Handler.pinned = date.fromisoformat(argv[0])
-    server = ThreadingHTTPServer(("127.0.0.1", 8730), Handler)
-    print(f"grnbl admin: http://127.0.0.1:8730/?key={board_key()}  ({Handler.pinned or 'today'})", flush=True)
+    # Local by default; a host such as Deployxa sets GRNBL_HOST=0.0.0.0 and its own PORT.
+    host, port = os.environ.get("GRNBL_HOST", "127.0.0.1"), int(os.environ.get("PORT", "8730"))
+    server = ThreadingHTTPServer((host, port), Handler)
+    key = board_key() if host == "127.0.0.1" else "…"  # keep the key out of a host's logs
+    print(f"grnbl admin: http://{host}:{port}/?key={key}  ({Handler.pinned or 'today'})", flush=True)
     server.serve_forever()
     return 0
 
