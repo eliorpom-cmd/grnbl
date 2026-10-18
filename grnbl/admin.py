@@ -100,31 +100,26 @@ def _row(e: dict, post: str, **extra) -> dict:
             "free": (r.get("free") if r.get("free") is not None else e.get("free")) is True, **extra}
 
 
-def swapped_in(events: list[dict], picks: list[dict], live: dict) -> list[dict]:
-    """The events the human put in place of a pick: shown in that pick's slot."""
-    out = []
-    for p in picks:
-        j = (events[p["i"]].get("decision") or {}).get("replaced_by")
-        if not p.get("reserve") and isinstance(j, int) and j in live.get(p["post"], []):
-            out.append(_row(events[j], p["post"], swap_for=p["i"], swap_title=p["title"], why="Ton choix"))
-    return out
-
-
-def alternatives(events: list[dict], picks: list[dict], live: dict, channel: str, today: date, n: int = 6) -> dict:
-    """What could go in place of a line, per post: the editor's reserves first, then the best other candidates."""
-    taken = {i for ids in live.values() for i in ids}
+def choice_list(events: list[dict], sel: list[dict], live: dict, channel: str, today: date, n: int = 12) -> dict:
+    """Per post, what the human can tick: the current lines first, then the editor's other picks and
+    reserves, then the best other candidates of the channel. The current lines come ticked."""
     out = {}
     for post in ("to_book", "week"):
         fits = ("this_week",) if post == "week" else ("book_now", "opens_soon")
-        reserves = [events[p["i"]] for p in picks if p.get("reserve") and p["post"] == post]
-        others = [e for _, e in candidates(events, today, channel) if editorial.timing(e, today) in fits]
+        editor = [p for p in sel if p["post"] == post and p["i"] < len(events)]
+        why = {p["i"]: p.get("why") for p in editor}
+        mains = [p["i"] for p in editor if not p.get("reserve")]
+        # Stable order: the editor's picks stay in place when unticked, the human's additions follow.
+        order = mains + live.get(post, []) + [p["i"] for p in editor] + \
+            [e["i"] for _, e in candidates(events, today, channel) if editorial.timing(e, today) in fits]
         seen, rows = set(), []
-        for e in reserves + others:
-            if e["i"] in taken or e["i"] in seen or (e.get("decision") or {}).get("status") == "drop":
+        for i in order:
+            e = events[i]
+            if i in seen or ((e.get("decision") or {}).get("status") == "drop" and i not in live.get(post, [])):
                 continue
-            seen.add(e["i"])
-            rows.append(_row(e, post, reserve=e in reserves))
-        out[post] = rows[:n]
+            seen.add(i)
+            rows.append(_row(e, post, on=i in live.get(post, []), main=i in mains, editor=i in why, why=why.get(i) or ""))
+        out[post] = rows[:max(n, len(live.get(post, [])))]
     return out
 
 
@@ -193,19 +188,17 @@ class Handler(BaseHTTPRequestHandler):
             selection = json.loads(sel_path.read_text()) if sel_path.exists() else None
             watch_path = day_folder(self.day) / "watch.json"
             watch = json.loads(watch_path.read_text()) if watch_path.exists() else []
-            channels = []
+            channels, choices = [], publish.load_choices(self.day)
             for cid, c in CHANNELS.items():
                 sel = [p for p in selection or [] if p.get("channel", "sorties") == cid] if selection is not None else None
-                picks = [{**p, "title": data[p["i"]]["title"], "status": (data[p["i"]].get("decision") or {}).get("status"),
-                          "line": (data[p["i"]].get("decision") or {}).get("line") or p.get("line")}
-                         for p in sel or [] if p["i"] < len(data)]
-                live = {post: [e["i"] for e, _ in picked(data, sel, post) or []] for post in ("to_book", "week")}
-                picks += swapped_in(data, picks, live)
+                mine = choices.get(cid, {})
+                used = publish.apply_choices(sel, {cid: mine}) if sel is not None else None
+                live = {post: [e["i"] for e, _ in picked(data, used, post) or []] for post in ("to_book", "week")}
                 channels.append({
                     "id": cid, "name": c["name"],
-                    "posts": [t for t in (to_book_post(data, now, selection=sel), outings_post_reviewed(data, now, selection=sel)) if t],
-                    "picks": picks, "live": live,
-                    "alts": alternatives(data, picks, live, cid, now.date()) if sel is not None else {},
+                    "posts": [t for t in (to_book_post(data, now, selection=used), outings_post_reviewed(data, now, selection=used)) if t],
+                    "lists": choice_list(data, sel, live, cid, now.date()) if sel is not None else {},
+                    "custom": {post: post in mine for post in ("to_book", "week")},
                 })
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
             sent, ids = publish.status(self.day), publish.channel_ids()
@@ -217,9 +210,17 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._allowed():
             return
-        if self.path not in ("/api/decide", "/api/publish"):
+        if self.path not in ("/api/decide", "/api/publish", "/api/choose"):
             return self._send(404, b"not found", "text/plain")
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        if self.path == "/api/choose":
+            # The ticked lines of one post, in order; null goes back to the editor's picks.
+            ids = body.get("ids")
+            ok = ids is None or (isinstance(ids, list) and all(isinstance(i, int) for i in ids))
+            if not ok or body.get("channel") not in CHANNELS or body.get("post") not in ("to_book", "week"):
+                return self._json({"ok": False}, 400)
+            publish.save_choice(self.day, body["channel"], body["post"], ids)
+            return self._json({"ok": True})
         if self.path == "/api/publish":
             # Sends the channel's approved posts that are not out yet; the outbox prevents doubles.
             report = publish.run(self.day, send=True, only=[str(body.get("channel"))])
@@ -229,8 +230,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": False}, 400)
         decision = body.get("decision")
         if decision is not None:
-            decision = {"status": decision.get("status"), "line": decision.get("line"),
-                        **({"replaced_by": decision["replaced_by"]} if isinstance(decision.get("replaced_by"), int) else {})}
+            decision = {"status": decision.get("status"), "line": decision.get("line")}
         save_decision(self.day, i, decision)
         self._json({"ok": True})
 

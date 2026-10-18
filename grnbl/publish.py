@@ -40,6 +40,42 @@ PARIS = ZoneInfo("Europe/Paris")
 POSTS = (("to_book", to_book_post), ("week", outings_post_reviewed))
 
 
+def choices_path(day: date) -> Path:
+    return DATA / "decisions" / f"{day.isoformat()}-posts.json"
+
+
+def load_choices(day: date) -> dict:
+    """What the human ticked in the board's lists: {channel: {post: [event index, ...]}}."""
+    path = choices_path(day)
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def save_choice(day: date, channel: str, post: str, ids: list[int] | None) -> None:
+    """Store the ticked lines of one post, in order; None goes back to the editor's picks."""
+    choices = load_choices(day)
+    if ids is None:
+        choices.get(channel, {}).pop(post, None)
+    else:
+        choices.setdefault(channel, {})[post] = ids
+    path = choices_path(day)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(choices, ensure_ascii=False, indent=1))
+
+
+def apply_choices(selection: list[dict] | None, choices: dict) -> list[dict] | None:
+    """The editor's selection where the human's ticked lists replace the picks of their post.
+
+    The editor's written line is kept for a line it had chosen (pick or reserve)."""
+    if selection is None:
+        return None
+    out = [p for p in selection if p.get("post") not in choices.get(p.get("channel", "sorties"), {})]
+    for channel, posts in choices.items():
+        for post, ids in posts.items():
+            lines = {p["i"]: p.get("line") for p in selection if p.get("channel", "sorties") == channel and p.get("post") == post}
+            out += [{"i": i, "post": post, "channel": channel, "line": lines.get(i)} for i in ids]
+    return out
+
+
 def day_events(day: date) -> tuple[list[dict], list[dict] | None]:
     """The reviewed events with the human's decisions, and the editor's selection."""
     folder = DATA / "events" / day.isoformat()
@@ -50,7 +86,7 @@ def day_events(day: date) -> tuple[list[dict], list[dict] | None]:
     for i, e in enumerate(events):
         e["i"] = i
         e["decision"] = decisions.get(str(i))
-    return events, json.loads(sel.read_text()) if sel.exists() else None
+    return events, apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
 
 
 def outbox(day: date, now: datetime, fuel_text: str | None = None) -> list[dict]:

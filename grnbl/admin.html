@@ -124,16 +124,22 @@
   .pact { display: flex; gap: 6px; align-items: start; }
   .mini { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); font-size: 12.5px; transition: background .15s var(--ease), color .15s var(--ease); }
   @media (hover: hover) { .mini:hover { background: var(--ink); color: var(--bg); } }
-  .swap { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 12px; padding: 8px; background: var(--panel); box-shadow: var(--shadow); }
-  .swap-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 8px; }
-  .alt { display: grid; gap: 2px; width: 100%; text-align: left; border: 0; border-radius: 8px; background: none; padding: 10px; transition: background .15s var(--ease); }
-  .alt:hover { background: var(--hover); }
-  .alt + .alt { border-top: 1px solid var(--line); }
-  .alt .at { font-weight: 600; color: var(--ink); }
-  .alt .star { color: var(--warn); margin-right: 6px; }
-  .alt .am { color: var(--mute); font-size: 12.5px; }
-  .alt .al { color: var(--body); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .swap > .pw { padding: 6px 10px 2px; }
+  .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0 0 4px; }
+  .sec-head h2 { margin: 0; white-space: nowrap; }
+  .sec-head span { color: var(--mute); white-space: nowrap; }
+  .link { margin-left: auto; white-space: nowrap; border: 0; background: none; color: var(--accent); padding: 4px 0; font-size: 13px; }
+  .cand { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: start; padding: 12px 8px; margin: 0 -8px; border-top: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: background .15s var(--ease), opacity .15s var(--ease); }
+  .cand:not(.on) { opacity: .8; }
+  .cand.on { background: color-mix(in srgb, var(--keep) 6%, transparent); }
+  @media (hover: hover) { .cand:hover { background: var(--hover); } }
+  .cand:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .box { width: 22px; height: 22px; margin-top: 1px; border-radius: 6px; border: 1.5px solid var(--mute); display: grid; place-items: center; transition: background .15s var(--ease), border-color .15s var(--ease); }
+  .cand.on .box { background: var(--keep); border-color: var(--keep); }
+  .cand.on .box::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+  .am { color: var(--mute); font-size: 12.5px; }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--body); }
+  .star { color: var(--warn); margin-right: 6px; }
+  .more { width: 100%; margin: 4px 0 0; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; background: none; color: var(--accent); font-weight: 600; }
   .bench { color: var(--mute); font-size: 12px; font-weight: 600; padding: 14px 0 4px; }
   .phone { overflow: auto; background: var(--wa-bg); padding: 20px 18px 40px; }
   .chan { display: flex; align-items: center; gap: 10px; margin: -20px -18px 16px; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: -20px; z-index: 1; }
@@ -182,10 +188,9 @@
     .summary .btn, .summary .sent { height: 48px; justify-content: center; font-size: 16px; }
     .summary .sent { display: flex; align-items: center; }
     .notes section:last-child { padding-bottom: 150px; }
-    .prow { grid-template-columns: 1fr; gap: 10px; padding: 14px 0; }
-    .pact .mini[data-act="drop"]::after { content: " Retirer"; }
-    .pact { flex-wrap: wrap; }
-    .alt { padding: 12px 10px; }
+    .cand { padding: 14px 8px; }
+    .box { width: 26px; height: 26px; }
+    .cand { grid-template-columns: 26px 1fr auto; }
     .mini { height: 40px; min-width: 40px; font-size: 14px; padding: 0 14px; }
 
     /* Fouiller: the list, then the event on its own screen */
@@ -426,15 +431,9 @@ function wa(text) {
     .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>");
 }
 
-// What goes out, slot by slot, as the server computed it (digest.picked). Slot k belongs to the
-// k-th main pick: swapping a line records the choice on that pick ("replaced_by").
-const mains = (c, post) => c.picks.filter((x) => x.post === post && !x.reserve && x.swap_for == null);
-function liveRows(c, post) {
-  const mine = c.picks.filter((x) => x.post === post);
-  return (c.live?.[post] || []).map((i, k) => ({ ...(mine.find((x) => x.i === i && x.swap_for === mains(c, post)[k]?.i) || mine.find((x) => x.i === i && x.swap_for == null) || mine.find((x) => x.i === i)), slot: k }));
-}
-const inPost = (c) => new Set(["to_book", "week"].flatMap((post) => (c.live?.[post] || []).map((i) => i + post)));
-let swapOpen = null;
+// One ticked list per post: the editor's lines come ticked, the human ticks or unticks freely.
+const ticked = (c) => ["to_book", "week"].flatMap((post) => (c.lists?.[post] || []).filter((x) => x.on));
+const opened = new Set();  // posts whose other candidates are shown
 
 // The WhatsApp step: offered once the post is approved, then shows what the outbox says.
 function sendButton(c, ready) {
@@ -451,45 +450,29 @@ async function renderPosts() {
     postsData = await (await fetch("/api/posts")).json();
   }
   const chans = postsData.channels, c = chans.find((x) => x.id === channel) || chans[0];
-  const live = inPost(c);
-  const shown = ["to_book", "week"].flatMap((post) => liveRows(c, post));
-  const removed = c.picks.filter((x) => x.status === "drop").length;
+  const shown = ticked(c);
   const okAll = shown.length && shown.every((x) => x.status === "keep");
   const short = (raw) => raw ? new Date(String(raw).length > 10 ? raw : raw + "T00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "";
-  const sheet = (x) => {
-    const alts = c.alts?.[x.post] || [];
-    return `<div class="swap"><div class="swap-head"><b>Mettre à la place</b><button class="mini" data-act="close">Fermer</button></div>
-      ${alts.map((a) => `<button class="alt" data-act="pick" data-j="${a.i}">
-        <span class="at">${a.reserve ? `<span class="star" title="Remplaçant choisi par l'IA">★</span>` : ""}${esc(a.title)}</span>
-        <span class="am">${esc([short(a.start), a.place, a.free ? "gratuit" : ""].filter(Boolean).join(" · "))}</span>
-        <span class="al">${esc(a.line)}</span></button>`).join("") || `<p class="pw">Pas d'autre candidat pour cette section aujourd'hui.</p>`}
-      ${alts.some((a) => a.reserve) ? `<div class="pw">★ remplaçant choisi par l'IA</div>` : ""}</div>`;
-  };
-  const row = (x) => {
-    const on = x.slot != null, dropped = !on && x.status === "drop", key = x.post + x.slot;
-    const tag = x.swap_for != null ? ` <span class="b pick">ton choix</span>` : x.reserve ? ` <span class="b">remplaçant entré</span>` : "";
-    const acts = x.swap_for != null
-      ? `<button class="mini" data-act="unswap">Annuler l'échange</button><button class="mini" data-act="swap">⇄ Échanger</button>`
-      : dropped ? `<button class="mini" data-act="restore" title="Remettre">Remettre</button>`
-      : `<button class="mini" data-act="drop" title="Retirer du post">✕</button><button class="mini" data-act="swap" title="Voir ce qui pourrait aller à la place">⇄ Échanger</button>`;
-    return `<div class="prow ${on ? "" : "off"} ${dropped ? "dropped" : ""}" data-i="${x.i}" data-post="${x.post}" data-slot="${x.slot ?? ""}">
-      <div class="pmain"><div class="pt">${esc(x.title)}${tag}${x.status === "keep" ? ` <span class="b free">validé</span>` : ""}</div>
-        <div class="pline">${esc(x.line || "")}</div><div class="pw">${x.swap_for != null ? `À la place de « ${esc(x.swap_title)} »` : esc(x.why || "")}</div></div>
-      <div class="pact">${acts}<button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div>
-      ${on && swapOpen === key ? sheet(x) : ""}</div>`;
-  };
+  const row = (x) => `<div class="cand ${x.on ? "on" : ""}" data-i="${x.i}" data-post="${x.post}" role="checkbox" aria-checked="${x.on}" tabindex="0">
+      <span class="box" aria-hidden="true"></span>
+      <div class="pmain"><div class="pt">${x.editor && !x.main && !x.on ? `<span class="star" title="Remplaçant proposé par l'IA">★</span>` : ""}${esc(x.title)}${x.status === "keep" && x.on ? ` <span class="b free">validé</span>` : ""}</div>
+        <div class="am">${esc([short(x.start), x.place, x.free ? "gratuit" : ""].filter(Boolean).join(" · "))}</div>
+        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
+      <button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div>`;
   const section = (post, title) => {
-    const mine = c.picks.filter((x) => x.post === post);
-    if (!mine.length) return "";
-    const rowsLive = liveRows(c, post), ids = new Set(rowsLive.map((x) => x.i));
-    const swappedOut = new Set(c.picks.filter((x) => x.post === post && x.swap_for != null).map((x) => x.swap_for));
-    const dropped = mains(c, post).filter((x) => !ids.has(x.i) && !swappedOut.has(x.i));
-    return `<section><h2>${title}</h2>${rowsLive.map(row).join("")}${dropped.map(row).join("")}</section>`;
+    const list = c.lists?.[post] || [];
+    if (!list.length) return "";
+    const top = list.filter((x) => x.main || x.on), off = list.filter((x) => !x.main && !x.on), open = opened.has(c.id + post);
+    const on = list.filter((x) => x.on);
+    return `<section><div class="sec-head"><h2>${title}</h2><span>${on.length} cochée${on.length > 1 ? "s" : ""}</span>
+        ${c.custom?.[post] ? `<button class="link" data-act="reset" data-post="${post}">Revenir au choix de l'IA</button>` : ""}</div>
+      ${top.map(row).join("")}
+      ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Masquer" : `Voir ${off.length} autres possibles`}</button>${open ? off.map(row).join("") : ""}` : ""}</section>`;
   };
   const watch = postsData.watch || [];
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
   const summary = c.id === "carburant" ? `<div class="summary"><div><b>Envoi automatique</b><br><span>Calculé chaque matin sur les prix officiels, rien à relire.</span></div>${sendButton(c, true)}</div>`
-    : `<div class="summary"><div><b>${shown.length} lignes à relire</b>${removed ? ` · ${removed} retirée${removed > 1 ? "s" : ""}, remplacée${removed > 1 ? "s" : ""}` : ""}<br><span>Lis l'aperçu, retire ce qui ne va pas. Le reste part tel quel.</span></div>
+    : `<div class="summary"><div><b>${shown.length} lignes cochées</b><br><span>Coche ou décoche ce qui doit partir, puis valide.</span></div>
        <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button>${sendButton(c, okAll)}</div></div>`;
   const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lignes</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">Aperçu WhatsApp</button></div>`;
   $("posts").classList.toggle("pane-preview", pane === "preview");
@@ -531,31 +514,28 @@ $("notes").addEventListener("click", async (ev) => {
     postsData = null; return renderPosts();
   }
   if (act.dataset.act === "all") {
-    for (const x of ["to_book", "week"].flatMap((post) => liveRows(c, post)).filter((p) => p.status !== "keep")) {
-      const e = events.find((y) => y.i === x.i); await save(e, { status: "keep", line: x.line });
-    }
+    for (const x of ticked(c).filter((p) => p.status !== "keep")) await save(events.find((y) => y.i === x.i), { status: "keep", line: x.line });
     toast("Post validé"); return renderPosts();
   }
-  const pr = act.closest(".prow"), i = Number(pr.dataset.i), e = events.find((y) => y.i === i), x = c.picks.find((p) => p.i === i);
-  if (act.dataset.act === "open") { queue = "picks"; selected = i; from = "posts"; setView("triage"); return openDetail(true); }
-  const post = pr.dataset.post, slot = pr.dataset.slot === "" ? null : Number(pr.dataset.slot);
-  if (act.dataset.act === "swap") { swapOpen = swapOpen === post + slot ? null : post + slot; return renderPosts(); }
-  if (act.dataset.act === "close") { swapOpen = null; return renderPosts(); }
-  // A swap is written on the main pick that owns the slot; undoing it gives the slot back to that pick.
-  const owner = mains(c, post)[slot], ownerEvent = owner && events.find((y) => y.i === owner.i);
-  if (act.dataset.act === "pick" && ownerEvent) {
-    const j = Number(act.dataset.j), alt = c.alts[post].find((a) => a.i === j);
-    await save(ownerEvent, { status: "drop", line: owner.line, replaced_by: j });
-    await save(events.find((y) => y.i === j), { status: "keep", line: alt.line });
-    swapOpen = null; toast("Échangé"); return renderPosts();
-  }
-  if (act.dataset.act === "unswap" && ownerEvent) {
-    await save(ownerEvent, null); toast("Ligne d'origine remise"); return renderPosts();
-  }
-  await save(e, act.dataset.act === "drop" ? { status: "drop", line: x.line } : null);
-  toast(act.dataset.act === "drop" ? "Retiré, un remplaçant prend la place" : "Remis dans le post");
-  renderPosts();
+  if (act.dataset.act === "more") { const k = c.id + act.dataset.post; opened.has(k) ? opened.delete(k) : opened.add(k); return renderPosts(); }
+  if (act.dataset.act === "reset") { await choose(c.id, act.dataset.post, null); toast("Choix de l'IA remis"); return renderPosts(); }
+  if (act.dataset.act === "open") { queue = "picks"; selected = Number(act.closest(".cand").dataset.i); from = "posts"; setView("triage"); return openDetail(true); }
 });
+
+async function choose(channel, post, ids) {
+  await fetch("/api/choose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel, post, ids }) });
+  postsData = null;
+}
+// Tick or untick a line: the post becomes the ticked lines, in the list's order.
+async function toggle(el) {
+  const c = postsData.channels.find((x) => x.id === channel), post = el.dataset.post, i = Number(el.dataset.i);
+  const list = c.lists[post], x = list.find((y) => y.i === i);
+  x.on = !x.on; el.classList.toggle("on", x.on); el.setAttribute("aria-checked", x.on);
+  await choose(channel, post, list.filter((y) => y.on).map((y) => y.i));
+  renderPosts();
+}
+$("notes").addEventListener("click", (ev) => { const el = ev.target.closest(".cand"); if (el && !ev.target.closest("button")) toggle(el); });
+$("notes").addEventListener("keydown", (ev) => { const el = ev.target.closest(".cand"); if (el && (ev.key === " " || ev.key === "Enter")) { ev.preventDefault(); toggle(el); } });
 $("search").addEventListener("input", (ev) => { query = ev.target.value.trim().toLowerCase(); render(); });
 
 document.addEventListener("keydown", (ev) => {

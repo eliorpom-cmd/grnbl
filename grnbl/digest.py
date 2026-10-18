@@ -97,35 +97,25 @@ def chosen(events: list[dict]) -> list[dict]:
 
 
 def picked(events: list[dict], selection: list[dict] | None, post: str) -> list[tuple[dict, str]] | None:
-    """The editor's picks for one post, in its order, minus what the human dropped.
+    """The picks for one post, in their order, minus what the human dropped.
 
-    A pick the human swapped (decision "replaced_by": i) gives its slot to that event; any other
-    removed pick is replaced by the next reserve, in the same slot, so the post keeps its length
-    without another run. None without a selection.
+    A removed pick is replaced by the next reserve, in the same slot, so the post keeps its length
+    without another run. When the human picked the lines from the board's list, the selection holds
+    exactly those (publish.apply_choices). None without a selection.
     """
     if selection is None:
         return None
     mine = [p for p in selection if p.get("post") == post and 0 <= p.get("i", -1) < len(events)]
 
-    def decision(i):
-        return events[i].get("decision") or {}
+    def usable(p):
+        return ((events[p["i"]].get("decision") or {}).get("status")) != "drop"
 
     def line(p):
         e = events[p["i"]]
         return (e.get("decision") or {}).get("line") or p.get("line") or (e.get("review") or {}).get("line") or ""
 
-    slots, used = [], set()
-    for p in (p for p in mine if not p.get("reserve")):
-        if decision(p["i"]).get("status") != "drop":
-            slots.append(p)
-        else:
-            j = decision(p["i"]).get("replaced_by")
-            ok = isinstance(j, int) and 0 <= j < len(events) and decision(j).get("status") != "drop"
-            slots.append({"i": j, "post": post} if ok else None)
-        if slots[-1]:
-            used.add(slots[-1]["i"])
-    bench = iter([p for p in mine if p.get("reserve") and decision(p["i"]).get("status") != "drop" and p["i"] not in used])
-    slots = [s or next(bench, None) for s in slots]
+    bench = iter([p for p in mine if p.get("reserve") and usable(p)])
+    slots = [p if usable(p) else next(bench, None) for p in mine if not p.get("reserve")]
     return [(events[p["i"]], line(p)) for p in slots if p]
 
 
