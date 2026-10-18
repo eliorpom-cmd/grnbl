@@ -44,20 +44,34 @@ def fuel(now: datetime) -> None:
 
 
 def check_alerts(now: datetime) -> None:
+    """A serious alert is pinged only once it is seen on two hourly checks in a row:
+    a source's glitch or a figure corrected within the hour never reaches anyone."""
     if now.hour not in schedule.ALERT_HOURS:
         return
     found, failed = alerts.collect(now)
     if failed:
         print(f"alerts: could not read {', '.join(failed)}")
-    seen = schedule.state().get("alerts-seen", {})
-    new = [a for a in found if _signature(a, now.date()) not in seen]
-    print(f"alerts: {len(found)} serious, {len(new)} new")
-    if not new:
+    s = schedule.state()
+    seen, candidates = s.get("alerts-seen", {}), s.get("alerts-candidates", {})
+    stamp = now.isoformat(timespec="minutes")
+    confirmed, waiting = [], {}
+    for a in found:
+        sig = _signature(a, now.date())
+        if sig in seen:
+            continue
+        first = candidates.get(sig)
+        if first and now - datetime.fromisoformat(first) >= timedelta(minutes=45):
+            confirmed.append(a)
+        else:
+            waiting[sig] = first or stamp
+    print(f"alerts: {len(found)} serious, {len(confirmed)} confirmed, {len(waiting)} to check again")
+    schedule.remember("alerts-candidates", waiting)
+    if not confirmed:
         return
-    notify.ping(notify.alert(alerts_post(found, now)))
+    notify.ping(notify.alert(alerts_post(confirmed, now)))
     keep_from = (now.date() - timedelta(days=14)).isoformat()
     seen = {k: v for k, v in seen.items() if v >= keep_from}
-    seen.update({_signature(a, now.date()): now.date().isoformat() for a in new})
+    seen.update({_signature(a, now.date()): now.date().isoformat() for a in confirmed})
     schedule.remember("alerts-seen", seen)
 
 

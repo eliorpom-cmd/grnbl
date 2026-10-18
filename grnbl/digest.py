@@ -186,11 +186,11 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
 
 
 def alerts_post(alerts: list[dict], now: datetime) -> str | None:
-    """Infos pratiques: weather warnings, air quality, tram and bus disruptions. Nothing to say, no post."""
+    """A grave alert for the whole community: red weather warning, very bad air, a tram strike. Rare by design."""
     if not alerts:
         return None
     from .sources.alerts import COLORS
-    lines = [f"🚨 *Infos pratiques* · {DAYS[now.weekday()]} {now.day}/{now.month:02d}"]
+    lines = [f"🚨 *Alerte Grenoble* · {DAYS[now.weekday()]} {now.day}/{now.month:02d}"]
     weather = [a for a in alerts if a["kind"] == "weather"]
     if weather:
         lines += ["", "*Météo en Isère*"]

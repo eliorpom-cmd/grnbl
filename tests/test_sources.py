@@ -104,17 +104,20 @@ class Alerts(unittest.TestCase):
         self.assertEqual(round(got["index"]), 3)
         self.assertTrue(got["comment"].startswith("Lundi 19 octobre, épisode"))
 
-    def test_only_new_disruptions_of_main_lines(self):
+    def test_only_strikes_and_network_stops(self):
         now = datetime(2026, 10, 18, 10, 0)
         records = {
-            "a": {"listeLigne": "SEM_A", "dateDebut": "19/10/2026 22:00", "dateFin": "23/10/2026 02:00",
-                  "texte": "A : travaux de nuit|Pas de tram entre Gares et Chavant. Plan ici"},
+            "a": {"listeLigne": "SEM_A,SEM_B", "dateDebut": "19/10/2026 05:00", "dateFin": "19/10/2026 23:00",
+                  "texte": "Grève : trafic très perturbé|Mouvement social : aucun tram sur les lignes A et B. Bus de secours."},
+            "n": {"listeLigne": "SEM_A", "dateDebut": "19/10/2026 22:00", "dateFin": "23/10/2026 02:00",
+                  "texte": "A : travaux de nuit|Pas de tram entre Gares et Chavant après 22 h."},
             "b": {"listeLigne": "SEM_C5", "dateDebut": "15/07/2026 04:00", "dateFin": "19/12/2026 03:00",
                   "texte": "C5 : travaux|depuis l'été"},
             "c": {"listeLigne": "TPV_569", "dateDebut": "18/10/2026 14:00", "dateFin": "31/12/2050 23:59", "texte": "x|y"},
         }
         got = alerts.transit_from(records, now)
-        self.assertEqual([(a["lines"], a["detail"]) for a in got], [(["A"], "Pas de tram entre Gares et Chavant.")])
+        self.assertEqual([(a["lines"], a["detail"]) for a in got],
+                         [(["A", "B"], "Mouvement social : aucun tram sur les lignes A et B.")])
 
     def test_quiet_day_no_post(self):
         self.assertIsNone(alerts_post([], datetime(2026, 10, 18, 10, 0)))

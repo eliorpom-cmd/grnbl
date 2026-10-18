@@ -217,7 +217,7 @@ class Handler(BaseHTTPRequestHandler):
                     "custom": {post: post in mine for post in ("to_book", "week")},
                 })
             alerts_text = alerts_cached(now)
-            channels.append({"id": "infos", "name": "grnbl · Infos pratiques", "label": "🚨 Infos",
+            channels.append({"id": "infos", "name": "GRNBL · Annonces", "label": "🚨 Alertes",
                              "posts": [alerts_text] if alerts_text else [], "picks": []})
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": "⛽ Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
             # Fuel and alerts are daily, filed under today; the groups under their edition.

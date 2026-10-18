@@ -31,13 +31,13 @@ PHENOMENA = {"1": "vent violent", "2": "pluie-inondation", "3": "orages", "4": "
              "6": "canicule", "7": "grand froid", "8": "avalanches"}
 COLORS = {2: ("🟡", "jaune"), 3: ("🟠", "orange"), 4: ("🔴", "rouge")}
 AIR_LEVELS = {1: "bonne", 2: "moyenne", 3: "dégradée", 4: "mauvaise", 5: "très mauvaise", 6: "extrêmement mauvaise"}
-# Only what is serious enough to interrupt someone's day (the human approves every send):
-WEATHER_MIN = 3   # orange or red
-AIR_MIN = 4       # "mauvaise" or worse
-# a tram line cut or on strike, not a stop moved or a bus diverted.
+# Only what is grave and rare: it goes to the community's announcements, which every member gets.
+WEATHER_MIN = 4   # red warning only (orange comes several times a year)
+AIR_MIN = 5       # "très mauvaise" or worse
+# A strike or the whole tram network stopped, not one line's night works or a moved stop.
 MAIN_LINES = re.compile(r"^SEM_[A-E]$")
-SERIOUS = re.compile(r"grève|interrompu|interruption|ne circule pas|ne circulera pas|aucun tram|pas de tram|"
-                     r"coupé|suspendu|remplacé par des bus|bus de substitution|perturbation majeure", re.I)
+SERIOUS = re.compile(r"grève|mouvement social|aucun tram|ensemble du réseau|tout le réseau|réseau (?:tram )?interrompu|"
+                     r"trafic (?:totalement )?interrompu sur (?:toutes|l'ensemble)", re.I)
 
 
 def weather(domain: str = "38") -> list[dict]:

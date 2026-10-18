@@ -477,7 +477,7 @@ async function renderPosts() {
   const watch = postsData.watch || [];
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.label || x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
   const summary = c.id === "carburant" ? `<div class="summary"><div><b>Envoi automatique</b><br><span>Calculé chaque matin sur les prix officiels, rien à relire.</span></div>${sendButton(c, true)}</div>`
-    : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alertes du jour" : "Rien à signaler"}</b><br><span>Météo-France, Atmo, TAG : un post seulement quand quelque chose compte.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
+    : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alerte à valider" : "Rien de grave"}</b><br><span>Vigilance rouge, air très mauvais, grève du tram : rare, part dans les annonces de la communauté.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
     : `<div class="summary"><div><b>${shown.length} lignes cochées</b><br><span>Coche ou décoche ce qui doit partir, puis valide : l'envoi est programmé.</span></div>
        <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button>${sendButton(c, okAll)}</div></div>`;
   const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lignes</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">Aperçu WhatsApp</button></div>`;

@@ -70,8 +70,8 @@ def not_sent(labels: list[str], at: datetime) -> str:
 
 
 def alert(text: str) -> str:
-    return ("🚨 *grnbl* · alerte à valider. Rien n'est envoyé sans toi : onglet Infos du tableau, "
-            "bouton Publier.\n\n" + text)
+    return ("🚨 *grnbl* · alerte grave à valider, vérifiée sur deux passages. Rien n'est envoyé sans toi : "
+            "onglet Alertes du tableau, bouton Publier (annonces de la communauté).\n\n" + text)
 
 
 def ping(text: str) -> None:
