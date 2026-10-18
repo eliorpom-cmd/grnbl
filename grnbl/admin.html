@@ -123,7 +123,17 @@
   .pw { color: var(--mute); font-size: 12.5px; margin-top: 2px; }
   .pact { display: flex; gap: 6px; align-items: start; }
   .mini { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); font-size: 12.5px; transition: background .15s var(--ease), color .15s var(--ease); }
-  .mini:hover { background: var(--ink); color: var(--bg); }
+  @media (hover: hover) { .mini:hover { background: var(--ink); color: var(--bg); } }
+  .swap { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 12px; padding: 8px; background: var(--panel); box-shadow: var(--shadow); }
+  .swap-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 8px; }
+  .alt { display: grid; gap: 2px; width: 100%; text-align: left; border: 0; border-radius: 8px; background: none; padding: 10px; transition: background .15s var(--ease); }
+  .alt:hover { background: var(--hover); }
+  .alt + .alt { border-top: 1px solid var(--line); }
+  .alt .at { font-weight: 600; color: var(--ink); }
+  .alt .star { color: var(--warn); margin-right: 6px; }
+  .alt .am { color: var(--mute); font-size: 12.5px; }
+  .alt .al { color: var(--body); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .swap > .pw { padding: 6px 10px 2px; }
   .bench { color: var(--mute); font-size: 12px; font-weight: 600; padding: 14px 0 4px; }
   .phone { overflow: auto; background: var(--wa-bg); padding: 20px 18px 40px; }
   .chan { display: flex; align-items: center; gap: 10px; margin: -20px -18px 16px; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: -20px; z-index: 1; }
@@ -174,6 +184,8 @@
     .notes section:last-child { padding-bottom: 150px; }
     .prow { grid-template-columns: 1fr; gap: 10px; padding: 14px 0; }
     .pact .mini[data-act="drop"]::after { content: " Retirer"; }
+    .pact { flex-wrap: wrap; }
+    .alt { padding: 12px 10px; }
     .mini { height: 40px; min-width: 40px; font-size: 14px; padding: 0 14px; }
 
     /* Fouiller: the list, then the event on its own screen */
@@ -414,17 +426,15 @@ function wa(text) {
     .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>");
 }
 
-// Which picks go out: the main picks still standing, topped up with reserves (same rule as digest.picked).
-function inPost(picks) {
-  const out = new Set();
-  for (const post of ["to_book", "week"]) {
-    const mine = picks.filter((x) => x.post === post), main = mine.filter((x) => !x.reserve);
-    const kept = main.filter((x) => x.status !== "drop");
-    const bench = mine.filter((x) => x.reserve && x.status !== "drop");
-    [...kept, ...bench.slice(0, main.length - kept.length)].forEach((x) => out.add(x.i + post));
-  }
-  return out;
+// What goes out, slot by slot, as the server computed it (digest.picked). Slot k belongs to the
+// k-th main pick: swapping a line records the choice on that pick ("replaced_by").
+const mains = (c, post) => c.picks.filter((x) => x.post === post && !x.reserve && x.swap_for == null);
+function liveRows(c, post) {
+  const mine = c.picks.filter((x) => x.post === post);
+  return (c.live?.[post] || []).map((i, k) => ({ ...(mine.find((x) => x.i === i && x.swap_for === mains(c, post)[k]?.i) || mine.find((x) => x.i === i && x.swap_for == null) || mine.find((x) => x.i === i)), slot: k }));
 }
+const inPost = (c) => new Set(["to_book", "week"].flatMap((post) => (c.live?.[post] || []).map((i) => i + post)));
+let swapOpen = null;
 
 // The WhatsApp step: offered once the post is approved, then shows what the outbox says.
 function sendButton(c, ready) {
@@ -441,24 +451,40 @@ async function renderPosts() {
     postsData = await (await fetch("/api/posts")).json();
   }
   const chans = postsData.channels, c = chans.find((x) => x.id === channel) || chans[0];
-  const live = inPost(c.picks);
-  const shown = c.picks.filter((x) => live.has(x.i + x.post));
+  const live = inPost(c);
+  const shown = ["to_book", "week"].flatMap((post) => liveRows(c, post));
   const removed = c.picks.filter((x) => x.status === "drop").length;
   const okAll = shown.length && shown.every((x) => x.status === "keep");
+  const short = (raw) => raw ? new Date(String(raw).length > 10 ? raw : raw + "T00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "";
+  const sheet = (x) => {
+    const alts = c.alts?.[x.post] || [];
+    return `<div class="swap"><div class="swap-head"><b>Mettre à la place</b><button class="mini" data-act="close">Fermer</button></div>
+      ${alts.map((a) => `<button class="alt" data-act="pick" data-j="${a.i}">
+        <span class="at">${a.reserve ? `<span class="star" title="Remplaçant choisi par l'IA">★</span>` : ""}${esc(a.title)}</span>
+        <span class="am">${esc([short(a.start), a.place, a.free ? "gratuit" : ""].filter(Boolean).join(" · "))}</span>
+        <span class="al">${esc(a.line)}</span></button>`).join("") || `<p class="pw">Pas d'autre candidat pour cette section aujourd'hui.</p>`}
+      ${alts.some((a) => a.reserve) ? `<div class="pw">★ remplaçant choisi par l'IA</div>` : ""}</div>`;
+  };
   const row = (x) => {
-    const on = live.has(x.i + x.post), dropped = x.status === "drop";
-    return `<div class="prow ${on ? "" : "off"} ${dropped ? "dropped" : ""}" data-i="${x.i}">
-      <div class="pmain"><div class="pt">${esc(x.title)}${x.reserve ? ` <span class="b">${on ? "remplaçant entré" : "remplaçant"}</span>` : ""}${x.status === "keep" ? ` <span class="b free">validé</span>` : ""}</div>
-        <div class="pline">${esc(x.line || "")}</div><div class="pw">${esc(x.why || "")}</div></div>
-      <div class="pact">${dropped ? `<button class="mini" data-act="restore" title="Remettre">Remettre</button>`
-        : `<button class="mini" data-act="drop" title="Retirer du post">✕</button>`}
-        <button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div></div>`;
+    const on = x.slot != null, dropped = !on && x.status === "drop", key = x.post + x.slot;
+    const tag = x.swap_for != null ? ` <span class="b pick">ton choix</span>` : x.reserve ? ` <span class="b">remplaçant entré</span>` : "";
+    const acts = x.swap_for != null
+      ? `<button class="mini" data-act="unswap">Annuler l'échange</button><button class="mini" data-act="swap">⇄ Échanger</button>`
+      : dropped ? `<button class="mini" data-act="restore" title="Remettre">Remettre</button>`
+      : `<button class="mini" data-act="drop" title="Retirer du post">✕</button><button class="mini" data-act="swap" title="Voir ce qui pourrait aller à la place">⇄ Échanger</button>`;
+    return `<div class="prow ${on ? "" : "off"} ${dropped ? "dropped" : ""}" data-i="${x.i}" data-post="${x.post}" data-slot="${x.slot ?? ""}">
+      <div class="pmain"><div class="pt">${esc(x.title)}${tag}${x.status === "keep" ? ` <span class="b free">validé</span>` : ""}</div>
+        <div class="pline">${esc(x.line || "")}</div><div class="pw">${x.swap_for != null ? `À la place de « ${esc(x.swap_title)} »` : esc(x.why || "")}</div></div>
+      <div class="pact">${acts}<button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div>
+      ${on && swapOpen === key ? sheet(x) : ""}</div>`;
   };
   const section = (post, title) => {
     const mine = c.picks.filter((x) => x.post === post);
     if (!mine.length) return "";
-    const main = mine.filter((x) => !x.reserve || live.has(x.i + post)), bench = mine.filter((x) => x.reserve && !live.has(x.i + post));
-    return `<section><h2>${title}</h2>${main.map(row).join("")}${bench.length ? `<div class="bench">Remplaçants, entrent si tu retires une ligne</div>${bench.map(row).join("")}` : ""}</section>`;
+    const rowsLive = liveRows(c, post), ids = new Set(rowsLive.map((x) => x.i));
+    const swappedOut = new Set(c.picks.filter((x) => x.post === post && x.swap_for != null).map((x) => x.swap_for));
+    const dropped = mains(c, post).filter((x) => !ids.has(x.i) && !swappedOut.has(x.i));
+    return `<section><h2>${title}</h2>${rowsLive.map(row).join("")}${dropped.map(row).join("")}</section>`;
   };
   const watch = postsData.watch || [];
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
@@ -505,14 +531,27 @@ $("notes").addEventListener("click", async (ev) => {
     postsData = null; return renderPosts();
   }
   if (act.dataset.act === "all") {
-    const live = inPost(c.picks);
-    for (const x of c.picks.filter((p) => live.has(p.i + p.post) && p.status !== "keep")) {
+    for (const x of ["to_book", "week"].flatMap((post) => liveRows(c, post)).filter((p) => p.status !== "keep")) {
       const e = events.find((y) => y.i === x.i); await save(e, { status: "keep", line: x.line });
     }
     toast("Post validé"); return renderPosts();
   }
-  const i = Number(act.closest(".prow").dataset.i), e = events.find((y) => y.i === i), x = c.picks.find((p) => p.i === i);
+  const pr = act.closest(".prow"), i = Number(pr.dataset.i), e = events.find((y) => y.i === i), x = c.picks.find((p) => p.i === i);
   if (act.dataset.act === "open") { queue = "picks"; selected = i; from = "posts"; setView("triage"); return openDetail(true); }
+  const post = pr.dataset.post, slot = pr.dataset.slot === "" ? null : Number(pr.dataset.slot);
+  if (act.dataset.act === "swap") { swapOpen = swapOpen === post + slot ? null : post + slot; return renderPosts(); }
+  if (act.dataset.act === "close") { swapOpen = null; return renderPosts(); }
+  // A swap is written on the main pick that owns the slot; undoing it gives the slot back to that pick.
+  const owner = mains(c, post)[slot], ownerEvent = owner && events.find((y) => y.i === owner.i);
+  if (act.dataset.act === "pick" && ownerEvent) {
+    const j = Number(act.dataset.j), alt = c.alts[post].find((a) => a.i === j);
+    await save(ownerEvent, { status: "drop", line: owner.line, replaced_by: j });
+    await save(events.find((y) => y.i === j), { status: "keep", line: alt.line });
+    swapOpen = null; toast("Échangé"); return renderPosts();
+  }
+  if (act.dataset.act === "unswap" && ownerEvent) {
+    await save(ownerEvent, null); toast("Ligne d'origine remise"); return renderPosts();
+  }
   await save(e, act.dataset.act === "drop" ? { status: "drop", line: x.line } : null);
   toast(act.dataset.act === "drop" ? "Retiré, un remplaçant prend la place" : "Remis dans le post");
   renderPosts();

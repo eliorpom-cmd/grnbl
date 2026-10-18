@@ -23,8 +23,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
-from .digest import fuel_post, outings_post_reviewed, to_book_post
-from .editor import CHANNELS
+from .digest import fuel_post, outings_post_reviewed, picked, to_book_post
+from .editor import CHANNELS, candidates
+from . import editorial
 from . import publish
 from .sources import fuel
 
@@ -90,6 +91,41 @@ def save_decision(day: date, i: int, decision: dict | None) -> None:
     else:
         decisions[str(i)] = decision
     path.write_text(json.dumps(decisions, ensure_ascii=False, indent=1))
+
+
+def _row(e: dict, post: str, **extra) -> dict:
+    d, r = e.get("decision") or {}, e.get("review") or {}
+    return {"i": e["i"], "post": post, "title": e["title"], "start": e.get("start"), "place": e.get("venue") or e.get("town") or "",
+            "status": d.get("status"), "line": d.get("line") or r.get("line") or "", "score": r.get("score"),
+            "free": (r.get("free") if r.get("free") is not None else e.get("free")) is True, **extra}
+
+
+def swapped_in(events: list[dict], picks: list[dict], live: dict) -> list[dict]:
+    """The events the human put in place of a pick: shown in that pick's slot."""
+    out = []
+    for p in picks:
+        j = (events[p["i"]].get("decision") or {}).get("replaced_by")
+        if not p.get("reserve") and isinstance(j, int) and j in live.get(p["post"], []):
+            out.append(_row(events[j], p["post"], swap_for=p["i"], swap_title=p["title"], why="Ton choix"))
+    return out
+
+
+def alternatives(events: list[dict], picks: list[dict], live: dict, channel: str, today: date, n: int = 6) -> dict:
+    """What could go in place of a line, per post: the editor's reserves first, then the best other candidates."""
+    taken = {i for ids in live.values() for i in ids}
+    out = {}
+    for post in ("to_book", "week"):
+        fits = ("this_week",) if post == "week" else ("book_now", "opens_soon")
+        reserves = [events[p["i"]] for p in picks if p.get("reserve") and p["post"] == post]
+        others = [e for _, e in candidates(events, today, channel) if editorial.timing(e, today) in fits]
+        seen, rows = set(), []
+        for e in reserves + others:
+            if e["i"] in taken or e["i"] in seen or (e.get("decision") or {}).get("status") == "drop":
+                continue
+            seen.add(e["i"])
+            rows.append(_row(e, post, reserve=e in reserves))
+        out[post] = rows[:n]
+    return out
 
 
 _FUEL: dict = {}
@@ -160,12 +196,16 @@ class Handler(BaseHTTPRequestHandler):
             channels = []
             for cid, c in CHANNELS.items():
                 sel = [p for p in selection or [] if p.get("channel", "sorties") == cid] if selection is not None else None
+                picks = [{**p, "title": data[p["i"]]["title"], "status": (data[p["i"]].get("decision") or {}).get("status"),
+                          "line": (data[p["i"]].get("decision") or {}).get("line") or p.get("line")}
+                         for p in sel or [] if p["i"] < len(data)]
+                live = {post: [e["i"] for e, _ in picked(data, sel, post) or []] for post in ("to_book", "week")}
+                picks += swapped_in(data, picks, live)
                 channels.append({
                     "id": cid, "name": c["name"],
                     "posts": [t for t in (to_book_post(data, now, selection=sel), outings_post_reviewed(data, now, selection=sel)) if t],
-                    "picks": [{**p, "title": data[p["i"]]["title"], "status": (data[p["i"]].get("decision") or {}).get("status"),
-                               "line": (data[p["i"]].get("decision") or {}).get("line") or p.get("line")}
-                              for p in sel or [] if p["i"] < len(data)],
+                    "picks": picks, "live": live,
+                    "alts": alternatives(data, picks, live, cid, now.date()) if sel is not None else {},
                 })
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
             sent, ids = publish.status(self.day), publish.channel_ids()
@@ -189,7 +229,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": False}, 400)
         decision = body.get("decision")
         if decision is not None:
-            decision = {"status": decision.get("status"), "line": decision.get("line")}
+            decision = {"status": decision.get("status"), "line": decision.get("line"),
+                        **({"replaced_by": decision["replaced_by"]} if isinstance(decision.get("replaced_by"), int) else {})}
         save_decision(self.day, i, decision)
         self._json({"ok": True})
 
