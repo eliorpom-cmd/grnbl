@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, logo et icône (7e tour)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Commissioner:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f4f4f6; --ink: #151517; --muted: #6b6c71; --line: #e0e0e4; --card: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 50px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+h2 { font: 800 28px/1.1 "Commissioner"; letter-spacing: -0.02em; margin: 72px 0 6px; }
+.lead, .sub { color: var(--muted); max-width: 780px; margin: 0 0 26px; }
+.lead { font-size: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.card { border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; }
+.hero { position: relative; height: 170px; }
+.hero svg { position: absolute; left: 22px; top: 26px; width: calc(100% - 44px); height: calc(100% - 52px); overflow: visible; }
+.foot { padding: 14px 18px 16px; }
+.foot h3 { margin: 0 0 2px; font-size: 16px; font-weight: 800; } .foot h3 span { color: var(--muted); margin-right: 6px; }
+.foot p { margin: 0; color: var(--muted); font-size: 14px; }
+.icons { display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #ececef; }
+.irow { display: flex; gap: 14px; align-items: center; }
+.ic { position: relative; overflow: hidden; flex: none; }
+.ic svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sep { width: 1px; height: 56px; background: #d4d4d8; margin: 0 4px; }
+.end { color: var(--muted); max-width: 760px; margin-top: 48px; }
+@media (max-width: 640px) { main { padding: 32px 16px 80px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : le logo et son icône</h1>
+  <p class="lead">Couleurs retenues : bulles citron vert, fond bleu électrique ou violet. Le logo complet garde le nom ; l'icône sert de photo de profil (carré arrondi pour la communauté, rond pour les groupes) et doit rester lisible en tout petit.</p>
+
+  <h2>Logo complet : 6 modifications</h2>
+  <p class="sub">Même autocollant, on change le nombre de bulles, leur taille et leur place.</p>
+  <div class="grid" id="words"></div>
+
+  <h2>Icône : 7 pistes</h2>
+  <p class="sub">Chaque piste en carré arrondi 72 px (communauté), puis en rond 40 px et 24 px (groupes), en bleu et en violet. La G est l'icône actuelle, pour comparer.</p>
+  <div class="grid" id="icons"></div>
+
+  <p class="end">Donne-moi le numéro du logo et celui de l'icône. Si aucun ne va, dis ce qui gêne.</p>
+</main>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const BLUE = "#2F4BFF", VIOLET = "#6A35FF", LIME = "#C6FF3D", INK = "#121212";
+let uid = 0;
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== undefined) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function text(g, s, attrs = {}, x = 0, y = 0, size = 100) {
+  const t = el("text", { x, y, style: `font-family:'Bagel Fat One';font-size:${size}px;font-feature-settings:'liga' 0`, ...attrs }, g);
+  t.textContent = s; return t;
+}
+function stickerText(g, s, x = 0, y = 0, size = 100, w = 12, anchor) {
+  const a = anchor ? { "text-anchor": anchor } : {};
+  text(g, s, { fill: INK, stroke: INK, "stroke-width": w + 4, "stroke-linejoin": "round", ...a }, x + 6 * size / 100, y + 8 * size / 100, size);
+  return text(g, s, { fill: "#fff", stroke: INK, "stroke-width": w, "stroke-linejoin": "round", "paint-order": "stroke", ...a }, x, y, size);
+}
+// Put a text group's visual center on (cx, cy)
+function centerOn(g, cx, cy) { const b = g.getBBox(); g.setAttribute("transform", `translate(${cx - (b.x + b.width / 2)} ${cy - (b.y + b.height / 2)})`); }
+function bubble(g, x, y, r, sw = 5) {
+  el("circle", { cx: x + r * .27, cy: y + r * .33, r: r + sw / 2, fill: INK }, g);
+  el("circle", { cx: x, cy: y, r, fill: LIME, stroke: INK, "stroke-width": sw }, g);
+}
+function line(g, x1, y1, x2, y2, w) { el("line", { x1, y1, x2, y2, stroke: INK, "stroke-width": w, "stroke-linecap": "round" }, g); }
+// Hang bubbles at xs from a cable y = cy(x)
+function hang(g, xs, cy, r, stem, sw = 5, cw = 7) {
+  xs.forEach(x => { line(g, x, cy(x), x, cy(x) + stem + 2, sw); bubble(g, x, cy(x) + stem + r, r, sw); });
+}
+const spread = (a, b, n) => n === 1 ? [(a + b) / 2] : [...Array(n)].map((_, i) => a + i * (b - a) / (n - 1));
+function wordWidth(g) { const t = text(g, "grnbl", { fill: "none" }); const W = t.getComputedTextLength(); t.remove(); return W; }
+
+// ---------- Full logo variants (drawn on the background color) ----------
+const WORDS = [
+  { n: "Actuel", d: "5 bulles sous le nom, câble qui monte. Référence.",
+    draw(g) { const W = wordWidth(g), cy = x => 50 - 16 * x / W; line(g, -12, cy(-12), W + 12, cy(W + 12), 7); hang(g, spread(W * .1, W * .9, 5), cy, 15, 7); stickerText(g, "grnbl"); } },
+  { n: "Câble droit", d: "Même chose, câble horizontal : plus posé, se cale mieux sous un texte.",
+    draw(g) { const W = wordWidth(g), cy = () => 46; line(g, -12, 46, W + 12, 46, 7); hang(g, spread(W * .1, W * .9, 5), cy, 15, 7); stickerText(g, "grnbl"); } },
+  { n: "Bulles plus grosses", d: "5 bulles plus grandes et plus serrées : le train compte autant que le nom.",
+    draw(g) { const W = wordWidth(g), cy = x => 50 - 18 * x / W; line(g, -12, cy(-12), W + 12, cy(W + 12), 8); hang(g, spread(W * .09, W * .91, 5), cy, 21, 8, 6); stickerText(g, "grnbl"); } },
+  { n: "3 bulles", d: "Trois bulles seulement, mieux espacées : plus aéré, et la même forme que l'icône 2.",
+    draw(g) { const W = wordWidth(g), cy = x => 50 - 16 * x / W; line(g, -12, cy(-12), W + 12, cy(W + 12), 7); hang(g, spread(W * .18, W * .82, 3), cy, 18, 8); stickerText(g, "grnbl"); } },
+  { n: "Train au-dessus", d: "Le câble passe au-dessus du nom en montant, les bulles pendent juste au-dessus des lettres.",
+    draw(g) { const W = wordWidth(g), cy = x => -122 - 44 * x / W; line(g, -12, cy(-12), W + 12, cy(W + 12), 7); hang(g, spread(W * .1, W * .9, 5), cy, 15, 7); stickerText(g, "grnbl"); } },
+  { n: "Une bulle au bout", d: "Le nom seul, et une bulle qui arrive au bout d'un câble après le l : le logo le plus simple.",
+    draw(g) { const W = wordWidth(g); line(g, W + 4, -40, W + 120, -98, 7); hang(g, [W + 70], x => -40 - (x - W - 4) * 58 / 116, 24, 9, 6); stickerText(g, "grnbl"); } },
+];
+
+// ---------- Icons, drawn in a 200 x 200 box centered on 0,0 ----------
+const ICONS = [
+  { n: "5 bulles espacées", d: "Les 5 bulles, plus petites et bien séparées, câble d'un bord à l'autre.",
+    draw(g) { const cy = x => -18 - .27 * x; line(g, -120, cy(-120), 120, cy(120), 7); hang(g, spread(-64, 64, 5), cy, 11.5, 8, 4.5); } },
+  { n: "3 bulles", d: "Trois bulles assez grosses pour rester rondes à 24 px.",
+    draw(g) { const cy = x => -24 - .27 * x; line(g, -120, cy(-120), 120, cy(120), 8); hang(g, spread(-54, 54, 3), cy, 20, 10, 5.5); } },
+  { n: "Une grande bulle", d: "Une seule cabine, grande, avec son bras et son câble. Simple et très lisible.",
+    draw(g) { const cy = x => -52 - .25 * x; line(g, -120, cy(-120), 120, cy(120), 9); hang(g, [0], cy, 46, 14, 7); } },
+  { n: "Bulle avec g", d: "Une grande bulle avec le g du logo dedans : relie l'icône au nom.",
+    draw(g) { const cy = x => -64 - .22 * x; line(g, -120, cy(-120), 120, cy(120), 9); hang(g, [0], cy, 56, 10, 7);
+      const tg = el("g", {}, g); stickerText(tg, "g", 0, 0, 74, 9); centerOn(tg, 0, -64 - 10 + 8 + 56 + 4); } },
+  { n: "Bulle qui entre", d: "Une très grosse bulle coupée par le bord, comme si la cabine entrait dans le cadre. Plus dynamique.",
+    draw(g) { const cy = x => -40 - .3 * x; line(g, -120, cy(-120), 120, cy(120), 9); hang(g, [30], cy, 72, 14, 7); } },
+  { n: "Le g seul", d: "Le g autocollant, sans bulle : pour comparer, la lettre seule tient-elle ?",
+    draw(g) { const tg = el("g", {}, g); stickerText(tg, "g", 0, 0, 150, 13); centerOn(tg, 0, 4); } },
+  { n: "Actuelle", d: "L'icône du tour d'avant : les 5 bulles se touchent presque en petit.",
+    draw(g) { const cy = x => -12 - .4 * x; line(g, -120, cy(-120), 120, cy(120), 9); hang(g, spread(-98, 98, 5), cy, 24, 10, 6); } },
+];
+
+function fit(svg, pad = 10) {
+  const bb = svg.querySelector("g").getBBox();
+  svg.setAttribute("viewBox", `${bb.x - pad} ${bb.y - pad} ${bb.width + pad * 2} ${bb.height + pad * 2}`);
+}
+function icon(host, def, bg, size, radius) {
+  const d = document.createElement("div"); d.className = "ic";
+  d.style.cssText = `width:${size}px;height:${size}px;border-radius:${radius};background:${bg}`;
+  host.appendChild(d);
+  const svg = el("svg", { viewBox: "-100 -100 200 200" }, d), g = el("g", {}, svg);
+  def.draw(g);
+}
+function render() {
+  const W = document.getElementById("words");
+  WORDS.forEach((w, i) => {
+    const c = document.createElement("div"); c.className = "card";
+    c.innerHTML = `<div class="pair"><div class="hero" style="background:${BLUE}"><svg></svg></div><div class="hero" style="background:${VIOLET}"><svg></svg></div></div>
+      <div class="foot"><h3><span>${i + 1}.</span>${w.n}</h3><p>${w.d}</p></div>`;
+    W.appendChild(c);
+    c.querySelectorAll(".hero svg").forEach(s => { const g = el("g", {}, s); w.draw(g); fit(s); });
+  });
+  const I = document.getElementById("icons");
+  ICONS.forEach((ic, i) => {
+    const c = document.createElement("div"); c.className = "card";
+    c.innerHTML = `<div class="icons"></div><div class="foot"><h3><span>${String.fromCharCode(65 + i)}.</span>${ic.n}</h3><p>${ic.d}</p></div>`;
+    I.appendChild(c);
+    const box = c.querySelector(".icons");
+    for (const bg of [BLUE, VIOLET]) {
+      const row = document.createElement("div"); row.className = "irow"; box.appendChild(row);
+      icon(row, ic, bg, 72, "17px"); icon(row, ic, bg, 40, "50%"); icon(row, ic, bg, 24, "50%");
+    }
+  });
+}
+document.fonts.load("400 100px 'Bagel Fat One'", "grnbl").then(render, render);
+</script>
+</body>
+</html>
