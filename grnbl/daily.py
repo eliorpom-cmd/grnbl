@@ -1,7 +1,8 @@
 """Prepares an edition: `python3 -m grnbl.daily [YYYY-MM-DD]` (default today; tick.py runs it on Tuesdays).
 
 Scrape every source, open event pages for booking, add the yearly calendar,
-let the AI review what can go out today, then let the editor compose the posts.
+let the AI review what can go out today, then let the editor compose the posts,
+and translate them into English for the board only (never published).
 The admin board (python3 -m grnbl.admin) shows the result for the human's last word.
 """
 
@@ -11,7 +12,7 @@ import sys
 import time
 from datetime import date
 
-from . import editor
+from . import editor, translate
 from .scrape import review
 from .scrape.run import run_all
 
@@ -26,6 +27,9 @@ def prepare(edition: date | None = None) -> None:
     kept = sum(1 for e in reviewed if (e.get("review") or {}).get("keep"))
     print(f"review: {kept} kept")
     picks = editor.run(edition)
+    # English for the board only; a failure is logged and the edition goes on.
+    done = translate.safe_run(edition or date.today())
+    print(f"translate: {sum(1 for w in done.values() if w == 'translated')} posts")
     print(f"editor: {len(picks)} picks, {round(time.time() - t)} s in all")
 
 

@@ -26,13 +26,17 @@ from zoneinfo import ZoneInfo
 from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
 from .editor import CHANNELS, candidates
 from . import editorial
-from . import publish, schedule
+from . import publish, schedule, translate
 from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 PAGE = Path(__file__).with_name("admin.html")
 PARIS = ZoneInfo("Europe/Paris")
+
+# The board speaks English (the posts stay French); WhatsApp group names stay as they are.
+LABELS = {"gratuit": "🆓 Free", "sorties": "🎭 Outings", "famille": "👨‍👩‍👧 Family", "bonsplans": "🛍️ Deals",
+          "nature": "🏔️ Outdoors", "infos": "🚨 Alerts", "carburant": "⛽ Fuel"}
 
 
 KEY_FILE = DATA / "board-key"
@@ -135,7 +139,7 @@ def fuel_cached(now: datetime) -> str | None:
         try:
             text = fuel_post(fuel.collect(), now)
         except Exception as e:  # noqa: BLE001 - the board still shows the outings
-            text = f"(carburant indisponible : {e})"
+            text = f"(fuel prices unavailable: {e})"
         _FUEL.update(at=now, text=text)
     return _FUEL["text"]
 
@@ -173,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Set-Cookie", f"{COOKIE}={key}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000{secure}")
             self.end_headers()
             return False
-        self._send(403, "Lien du tableau requis : ouvre le lien du message Discord.".encode(), "text/plain; charset=utf-8")
+        self._send(403, "Board link required: open the link from the Discord message.".encode(), "text/plain; charset=utf-8")
         return False
 
     def _send(self, code: int, body: bytes, kind: str) -> None:
@@ -203,30 +207,38 @@ class Handler(BaseHTTPRequestHandler):
             watch_path = day_folder(self.day) / "watch.json"
             watch = json.loads(watch_path.read_text()) if watch_path.exists() else []
             channels, choices, editions = [], publish.load_choices(self.day), schedule.editions()
+            english, stale = translate.load(self.day), False
             for cid, c in CHANNELS.items():
                 sel = [p for p in selection or [] if p.get("channel", "sorties") == cid] if selection is not None else None
                 mine = choices.get(cid, {})
                 used = publish.apply_choices(sel, {cid: mine}) if sel is not None else None
                 at = publish.read_at(self.day, cid, now)
                 live = {post: [e["i"] for e, _ in picked(data, used, post) or []] for post in ("to_book", "week")}
+                texts = [(post, write(data, at, selection=used)) for post, write in publish.POSTS]
+                texts = [(post, t) for post, t in texts if t]
+                stale |= any(translate.needs(english.get(translate.key(cid, post)), t) for post, t in texts)
                 channels.append({
-                    "id": cid, "name": c["name"], "label": c["label"],
-                    "posts": [t for t in (to_book_post(data, at, selection=used), outings_post_reviewed(data, at, selection=used)) if t],
+                    "id": cid, "name": c["name"], "label": LABELS.get(cid, c["label"]),
+                    "posts": [t for _, t in texts],
+                    # English translation under each post, for the board only (translate.py).
+                    "en": [translate.shown(english.get(translate.key(cid, post)), t) for post, t in texts],
                     # Only an edition is sent at its slot (tick.py); older daily runs are not scheduled.
                     "sends_at": at.isoformat(timespec="minutes") if self.day in editions else None,
                     "lists": choice_list(data, sel, live, cid, now.date()) if sel is not None else {},
                     "custom": {post: post in mine for post in ("to_book", "week")},
                 })
+            if stale:
+                translate.refresh_later(self.day)  # in the background; the next refresh shows it
             alerts_text = alerts_cached(now)
-            channels.append({"id": "infos", "name": "GRNBL · Annonces", "label": "🚨 Alertes",
+            channels.append({"id": "infos", "name": "GRNBL · Annonces", "label": LABELS["infos"],
                              "posts": [alerts_text] if alerts_text else [], "picks": []})
-            channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": "⛽ Carburant", "posts": [fuel_text] if fuel_text else [], "picks": []})
+            channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": LABELS["carburant"], "posts": [fuel_text] if fuel_text else [], "picks": []})
             # Fuel and alerts are daily, filed under today; the groups under their edition.
             today = now.date()
             sent, ids = {**publish.status(self.day), **{k: v for k, v in publish.status(today).items() if k in DAILY}}, publish.channel_ids()
             for c in channels:
                 c["outbox"], c["linked"] = sent.get(c["id"], {}), c["id"] in ids
-            return self._json({"channels": channels, "watch": watch})
+            return self._json({"channels": channels, "watch": watch, "translating": translate.busy()})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):
@@ -248,7 +260,9 @@ class Handler(BaseHTTPRequestHandler):
             channel = str(body.get("channel"))
             day = datetime.now(PARIS).date() if channel in DAILY else self.day
             report = publish.run(day, send=True, only=[channel])
-            return self._json({"ok": True, "report": report})
+            # publish.py reports in French for the command line; the board only needs the failures.
+            failed = [what.split(":", 1)[-1].strip() for _, what in report if what.startswith("échec")]
+            return self._json({"ok": True, "report": report, "failed": failed})
         i = body.get("i")
         if not isinstance(i, int):
             return self._json({"ok": False}, 400)

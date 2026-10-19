@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>grnbl · rédaction</title>
+<title>grnbl · editor</title>
 <style>
   :root {
     --bg: #fbfbfd; --panel: #ffffff; --hover: #f2f2f5; --sel: #e8f0fe;
@@ -154,6 +154,11 @@
   .bubble .copy { position: absolute; right: 6px; top: 6px; border: 0; border-radius: 6px; background: var(--hover); color: var(--body); font-size: 12px; padding: 2px 8px; opacity: 0; transition: opacity .15s var(--ease); }
   .bubble:hover .copy { opacity: 1; }
   .bubble a { color: #027eb5; }
+  /* English translation under a post: for readers of the board, never posted, so quieter than the bubble. */
+  .en { margin: -4px 4px 22px; padding: 2px 0 2px 12px; border-left: 2px solid color-mix(in srgb, var(--wa-meta) 50%, transparent); color: var(--wa-meta);
+    white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.45 -apple-system, "Helvetica Neue", sans-serif; }
+  .en .en-h { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: normal; }
+  .en a { color: inherit; }
 
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); opacity: 0; background: var(--ink); color: var(--bg); border-radius: 99px; padding: 8px 16px; font-weight: 500; transition: opacity .2s var(--ease), transform .2s var(--ease); pointer-events: none; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
@@ -174,7 +179,7 @@
     .search { display: none; order: 3; width: 100%; height: 40px; margin: 0; font-size: 16px; }
     body.v-triage .search { display: block; }
 
-    /* Publier */
+    /* Publish */
     .posts { display: block; }
     .notes { overflow: visible; border: 0; padding: 16px 16px 0; }
     .chans { display: flex; width: 100%; margin: 0 0 12px; }
@@ -197,7 +202,7 @@
     .cand { grid-template-columns: 26px 1fr auto; }
     .mini { height: 40px; min-width: 40px; font-size: 14px; padding: 0 14px; }
 
-    /* Fouiller: the list, then the event on its own screen */
+    /* Browse: the list, then the event on its own screen */
     .triage { display: block; }
     .queues { position: sticky; top: var(--top, 104px); z-index: 4; display: flex; overflow-x: auto; gap: 6px; border: 0; border-bottom: 1px solid var(--line);
       padding: 8px 16px; background: var(--bg); scrollbar-width: none; }
@@ -231,10 +236,10 @@
   <span class="brand">grnbl</span>
   <span class="day" id="day"></span>
   <div class="seg" id="views">
-    <button data-v="posts" class="on">Publier <kbd>1</kbd></button>
-    <button data-v="triage">Fouiller <kbd>2</kbd></button>
+    <button data-v="posts" class="on">Publish <kbd>1</kbd></button>
+    <button data-v="triage">Browse <kbd>2</kbd></button>
   </div>
-  <input class="search" id="search" placeholder="Rechercher  /" autocomplete="off">
+  <input class="search" id="search" placeholder="Search  /" autocomplete="off">
 </header>
 
 <div class="triage" id="triage" hidden>
@@ -252,25 +257,25 @@
 
 <script>
 const QUEUES = [
-  ["Rédaction", [
-    ["picks", "Sélection du jour", "accent"],
-    ["todo", "Tout ce que l'IA garde", "dot"],
-    ["kept", "Gardés", "keep"],
-    ["dropped", "Écartés", "drop"],
-    ["dupes", "Doublons", "dot"],
+  ["Editorial", [
+    ["picks", "Today's picks", "accent"],
+    ["todo", "Everything the AI keeps", "dot"],
+    ["kept", "Kept", "keep"],
+    ["dropped", "Dropped", "drop"],
+    ["dupes", "Duplicates", "dot"],
   ]],
-  ["Moment", [
-    ["book", "À réserver", "warn"],
-    ["week", "Cette semaine", "accent"],
-    ["late", "Hors délai", "dot"],
+  ["Timing", [
+    ["book", "To book", "warn"],
+    ["week", "This week", "accent"],
+    ["late", "Out of window", "dot"],
   ]],
-  ["Filtres", [
-    ["free", "Gratuit", "keep"],
-    ["family", "Famille", "dot"],
+  ["Filters", [
+    ["free", "Free", "keep"],
+    ["family", "Family", "dot"],
     ["rare", "Rare", "dot"],
   ]],
 ];
-const TIMING = { book_now: "à réserver", opens_soon: "résa bientôt", this_week: "cette semaine", too_late: "trop tard", sold_out: "complet", later: "plus tard" };
+const TIMING = { book_now: "book now", opens_soon: "booking soon", this_week: "this week", too_late: "too late", sold_out: "sold out", later: "later" };
 let pane = "lines", from = null;
 const phone = () => matchMedia("(max-width: 820px)").matches;
 const AVATARS = { gratuit: "🆓", sorties: "🎭", famille: "👨‍👩‍👧", bonsplans: "🛍️", nature: "🏔️", infos: "🚨", carburant: "⛽" };
@@ -315,8 +320,8 @@ function rows() {
 function when(raw, short) {
   if (!raw) return "";
   const s = String(raw), d = new Date(s.length > 10 ? s : s + "T00:00");
-  const day = d.toLocaleDateString("fr-FR", short ? { weekday: "short", day: "numeric", month: "short" } : { weekday: "long", day: "numeric", month: "long" });
-  return s.length > 10 ? `${day} · ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : day;
+  const day = d.toLocaleDateString("en-GB", short ? { weekday: "short", day: "numeric", month: "short" } : { weekday: "long", day: "numeric", month: "long" });
+  return s.length > 10 ? `${day} · ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : day;
 }
 function span(e, short) {
   return e.end && String(e.end).slice(0, 10) !== String(e.start).slice(0, 10) ? `${when(e.start, true)} → ${when(e.end, true)}` : when(e.start, short);
@@ -339,52 +344,52 @@ function renderList() {
     const s = status(e), r = e.review || {};
     const dot = s === "keep" ? "keep" : s === "drop" ? "drop" : "";
     const badges = [
-      e.pick ? `<span class="b pick">Sélection</span>` : "",
+      e.pick ? `<span class="b pick">Picked</span>` : "",
       e.timing === "book_now" || e.timing === "opens_soon" ? `<span class="b book">${TIMING[e.timing]}</span>` : "",
-      free(e) ? `<span class="b free">gratuit</span>` : "",
+      free(e) ? `<span class="b free">free</span>` : "",
       r.rare ? `<span class="b">rare</span>` : "",
-      (r.family ?? e.family) ? `<span class="b">famille</span>` : "",
+      (r.family ?? e.family) ? `<span class="b">family</span>` : "",
     ].join("");
     return `<div class="row ${e.i === selected ? "sel" : ""}" data-i="${e.i}">
       <span class="st ${dot}"></span>
       <div style="min-width:0"><div class="t">${esc(e.title)}</div><div class="m">${esc(span(e, true))}${place(e) ? " · " + esc(place(e)) : ""}</div>${badges ? `<div class="badges">${badges}</div>` : ""}</div>
       <div class="side"><div class="score">${"●".repeat(r.score || 0)}${"○".repeat(r.score ? 5 - r.score : 0)}</div>${esc(e.source_name || "")}${e.also ? ` +${e.also.length}` : ""}</div>
     </div>`;
-  }).join("") || `<p class="empty">Rien ici. Change de file ou efface la recherche.</p>`);
+  }).join("") || `<p class="empty">Nothing here. Pick another queue or clear the search.</p>`);
 }
 
 function renderInspector() {
   const e = events.find((x) => x.i === selected);
-  if (!e) { $("insp").innerHTML = `<button class="back" data-back>‹ Liste</button><p class="empty">Sélectionne un événement.</p>`; return; }
+  if (!e) { $("insp").innerHTML = `<button class="back" data-back>‹ List</button><p class="empty">Select an event.</p>`; return; }
   const r = e.review || {}, s = status(e), d = e.decision;
-  const booking = e.booking === "required" ? "Obligatoire" : e.booking === "recommended" ? "Conseillée" : e.booking === "none" ? "Non" : "Inconnue";
+  const booking = e.booking === "required" ? "Required" : e.booking === "recommended" ? "Recommended" : e.booking === "none" ? "No" : "Unknown";
   const facts = [
-    ["Quand", span(e)],
-    ["Où", [e.venue, e.town].filter(Boolean).join(", ")],
-    ["Prix", e.price || (free(e) ? "Gratuit" : "")],
-    ["Réservation", booking + (e.booking_opens ? ` · ouvre ${when(e.booking_opens)}` : "") + (e.booking_deadline ? ` · avant ${when(e.booking_deadline)}` : "")],
-    ["Moment", TIMING[e.timing] || ""],
-    ["Source", `${esc(e.source_name || "")}${e.also ? ` et ${e.also.length} autre${e.also.length > 1 ? "s" : ""}` : ""}`],
+    ["When", span(e)],
+    ["Where", [e.venue, e.town].filter(Boolean).join(", ")],
+    ["Price", e.price || (free(e) ? "Free" : "")],
+    ["Booking", booking + (e.booking_opens ? ` · opens ${when(e.booking_opens)}` : "") + (e.booking_deadline ? ` · by ${when(e.booking_deadline)}` : "")],
+    ["Timing", TIMING[e.timing] || ""],
+    ["Source", `${esc(e.source_name || "")}${e.also ? ` and ${e.also.length} other${e.also.length > 1 ? "s" : ""}` : ""}`],
   ].filter(([, v]) => v);
   const link = e.booking_url || e.url;
   const line = d?.line || e.pick?.line || r.line || "";
   $("insp").innerHTML = `
-    <button class="back" data-back>‹ ${from === "posts" ? "Publier" : "Liste"}</button>
+    <button class="back" data-back>‹ ${from === "posts" ? "Publish" : "List"}</button>
     <h1>${esc(e.title)}</h1>
     <div class="sub">${esc(e.description || "")}</div>
     <dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${k === "Source" ? v : esc(v)}</dd>`).join("")}
-      ${link ? `<dt>Lien</dt><dd><a href="${esc(link)}" target="_blank" rel="noopener">${esc(new URL(link).hostname.replace("www.", ""))} ↗</a></dd>` : ""}</dl>
-    ${e.pick ? `<div class="note pick"><b>Rédacteur en chef :</b> ${esc(e.pick.why)}${e.pick.zoom ? `<br><b>Temps fort :</b> ${esc(e.pick.zoom.what)}, ${esc(when(e.pick.zoom.when))}` : ""}</div>` : ""}
-    ${r.keep === false && r.why ? `<div class="note dropped"><b>${r.auto ? "Règle" : "IA"} :</b> ${esc(r.why)}</div>` : ""}
-    ${s === "dupe" ? `<div class="note">Doublon de « ${esc(events.find((x) => x.i === r.duplicate_of)?.title || "#" + r.duplicate_of)} »</div>` : ""}
-    <div class="label"><span>Ligne du post</span><span><kbd>E</kbd> modifier</span></div>
+      ${link ? `<dt>Link</dt><dd><a href="${esc(link)}" target="_blank" rel="noopener">${esc(new URL(link).hostname.replace("www.", ""))} ↗</a></dd>` : ""}</dl>
+    ${e.pick ? `<div class="note pick"><b>Editor-in-chief:</b> ${esc(e.pick.why)}${e.pick.zoom ? `<br><b>Highlight:</b> ${esc(e.pick.zoom.what)}, ${esc(when(e.pick.zoom.when))}` : ""}</div>` : ""}
+    ${r.keep === false && r.why ? `<div class="note dropped"><b>${r.auto ? "Rule" : "AI"}:</b> ${esc(r.why)}</div>` : ""}
+    ${s === "dupe" ? `<div class="note">Duplicate of “${esc(events.find((x) => x.i === r.duplicate_of)?.title || "#" + r.duplicate_of)}”</div>` : ""}
+    <div class="label"><span>Post line</span><span><kbd>E</kbd> edit</span></div>
     <textarea id="line">${esc(line)}</textarea>
     <div class="actions">
-      <button class="btn keep ${s === "keep" ? "on" : ""}" data-a="keep">Garder <kbd>G</kbd></button>
-      <button class="btn drop ${s === "drop" ? "on" : ""}" data-a="drop">Écarter <kbd>X</kbd></button>
-      ${d ? `<button class="undo" data-a="undo">Annuler ma décision <kbd>U</kbd></button>` : ""}
+      <button class="btn keep ${s === "keep" ? "on" : ""}" data-a="keep">Keep <kbd>G</kbd></button>
+      <button class="btn drop ${s === "drop" ? "on" : ""}" data-a="drop">Drop <kbd>X</kbd></button>
+      ${d ? `<button class="undo" data-a="undo">Undo my decision <kbd>U</kbd></button>` : ""}
     </div>
-    <div class="hint"><span><kbd>J</kbd> <kbd>K</kbd> naviguer</span><span><kbd>G</kbd> garder</span><span><kbd>X</kbd> écarter</span><span><kbd>/</kbd> chercher</span><span><kbd>1</kbd> publier</span></div>`;
+    <div class="hint"><span><kbd>J</kbd> <kbd>K</kbd> navigate</span><span><kbd>G</kbd> keep</span><span><kbd>X</kbd> drop</span><span><kbd>/</kbd> search</span><span><kbd>1</kbd> publish</span></div>`;
 }
 
 function render() {
@@ -419,7 +424,7 @@ async function decide(status) {
   const rs = rows(), k = rs.findIndex((x) => x.i === e.i);
   const decision = status ? { status, line: ($("line")?.value || "").trim() } : null;
   await save(e, decision);
-  toast(status === "keep" ? "Gardé" : status === "drop" ? "Écarté" : "Décision annulée");
+  toast(status === "keep" ? "Kept" : status === "drop" ? "Dropped" : "Decision undone");
   // Move on to the next one still in the queue, like an inbox.
   const after = rows();
   if (status && !after.some((x) => x.i === e.i)) selected = (after[k] || after[k - 1] || {}).i ?? null;
@@ -436,6 +441,19 @@ function wa(text) {
     .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>");
 }
 
+// The English translation shown under a post (translate.py): read-only, never sent.
+function english(x) {
+  const head = (note) => `<span class="en-h">English translation (not posted)${note ? " · " + note : ""}</span>`;
+  if (!x) return postsData.translating ? `<div class="en">${head()}Translating…</div>` : "";
+  if (!x.text) return `<div class="en">${head()}Translation unavailable.</div>`;
+  return `<div class="en">${head(x.stale ? (postsData.translating ? "earlier version, updating…" : "earlier version") : "")}${wa(x.text)}</div>`;
+}
+// While translations are being made, check again a little later.
+function pollTranslations() {
+  clearTimeout(pollTranslations.h);
+  if (postsData?.translating) pollTranslations.h = setTimeout(() => { if (view === "posts") { postsData = null; renderPosts(); } }, 8000);
+}
+
 // One ticked list per post: the editor's lines come ticked, the human ticks or unticks freely.
 const ticked = (c) => ["to_book", "week"].flatMap((post) => (c.lists?.[post] || []).filter((x) => x.on));
 const opened = new Set();  // posts whose other candidates are shown
@@ -443,54 +461,56 @@ const opened = new Set();  // posts whose other candidates are shown
 // The WhatsApp step: offered once the post is approved, then shows what the outbox says.
 function sendButton(c, ready) {
   const out = Object.values(c.outbox || {}), sent = out.filter((r) => r.status === "sent"), failed = out.find((r) => r.status === "failed");
-  if (out.length && sent.length === out.length) return `<span class="sent">Envoyé à ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
-  const when = c.sends_at ? new Date(c.sends_at).toLocaleString("fr-FR", { weekday: "long", hour: "numeric", minute: "2-digit" }).replace(":00", " h") : "";
-  if (!ready) return when ? `<span class="sent">Part ${esc(when)} si validé</span>` : "";
-  if (when && new Date(c.sends_at) > new Date()) return `<span class="sent">Validé · part ${esc(when)} ✓</span>`;
-  if (!c.linked) return `<button class="btn" disabled title="Relie le groupe : node whatsapp/send.mjs groups, puis data/whatsapp.json">Groupe pas encore relié</button>`;
-  return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? "Réessayer l'envoi" : "Publier sur WhatsApp"}</button>`;
+  if (out.length && sent.length === out.length) return `<span class="sent">Sent at ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
+  const at = c.sends_at ? new Date(c.sends_at) : null;
+  const when = at ? `${at.toLocaleDateString("en-GB", { weekday: "long" })} at ${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : "";
+  if (!ready) return when ? `<span class="sent">Goes out ${esc(when)} if approved</span>` : "";
+  if (when && new Date(c.sends_at) > new Date()) return `<span class="sent">Approved · goes out ${esc(when)} ✓</span>`;
+  if (!c.linked) return `<button class="btn" disabled title="Link the group: node whatsapp/send.mjs groups, then data/whatsapp.json">Group not linked yet</button>`;
+  return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? "Retry sending" : "Post to WhatsApp"}</button>`;
 }
 
 async function renderPosts() {
   if (!postsData) {
-    if (!$("phone").innerHTML) $("phone").innerHTML = `<p class="empty">Préparation des posts…</p>`;
+    if (!$("phone").innerHTML) $("phone").innerHTML = `<p class="empty">Preparing the posts…</p>`;
     postsData = await (await fetch("/api/posts")).json();
   }
   const chans = postsData.channels, c = chans.find((x) => x.id === channel) || chans[0];
   const shown = ticked(c);
   const okAll = shown.length && shown.every((x) => x.status === "keep");
-  const short = (raw) => raw ? new Date(String(raw).length > 10 ? raw : raw + "T00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "";
+  const short = (raw) => raw ? new Date(String(raw).length > 10 ? raw : raw + "T00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
   const row = (x) => `<div class="cand ${x.on ? "on" : ""}" data-i="${x.i}" data-post="${x.post}" role="checkbox" aria-checked="${x.on}" tabindex="0">
       <span class="box" aria-hidden="true"></span>
-      <div class="pmain"><div class="pt">${x.editor && !x.main && !x.on ? `<span class="star" title="Remplaçant proposé par l'IA">★</span>` : ""}${esc(x.title)}${x.status === "keep" && x.on ? ` <span class="b free">validé</span>` : ""}</div>
-        <div class="am">${esc([short(x.start), x.place, x.free ? "gratuit" : ""].filter(Boolean).join(" · "))}</div>
-        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.check && x.check.length ? `<div class="pcheck">⚠️ À vérifier sur la page : ${esc(x.check.join(", "))}</div>` : ""}${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
-      <button class="mini" data-act="open" title="Ouvrir la fiche">Fiche</button></div>`;
+      <div class="pmain"><div class="pt">${x.editor && !x.main && !x.on ? `<span class="star" title="Replacement suggested by the AI">★</span>` : ""}${esc(x.title)}${x.status === "keep" && x.on ? ` <span class="b free">approved</span>` : ""}</div>
+        <div class="am">${esc([short(x.start), x.place, x.free ? "free" : ""].filter(Boolean).join(" · "))}</div>
+        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.check && x.check.length ? `<div class="pcheck">⚠️ Check on the page: ${esc(x.check.join(", "))}</div>` : ""}${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
+      <button class="mini" data-act="open" title="Open the event">Details</button></div>`;
   const section = (post, title) => {
     const list = c.lists?.[post] || [];
     if (!list.length) return "";
     const top = list.filter((x) => x.main || x.on), off = list.filter((x) => !x.main && !x.on), open = opened.has(c.id + post);
     const on = list.filter((x) => x.on);
-    return `<section><div class="sec-head"><h2>${title}</h2><span>${on.length} cochée${on.length > 1 ? "s" : ""}</span>
-        ${c.custom?.[post] ? `<button class="link" data-act="reset" data-post="${post}">Revenir au choix de l'IA</button>` : ""}</div>
+    return `<section><div class="sec-head"><h2>${title}</h2><span>${on.length} ticked</span>
+        ${c.custom?.[post] ? `<button class="link" data-act="reset" data-post="${post}">Back to the AI's choice</button>` : ""}</div>
       ${top.map(row).join("")}
-      ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Masquer" : `Voir ${off.length} autres possibles`}</button>${open ? off.map(row).join("") : ""}` : ""}</section>`;
+      ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Hide" : `Show ${off.length} other option${off.length > 1 ? "s" : ""}`}</button>${open ? off.map(row).join("") : ""}` : ""}</section>`;
   };
   const watch = postsData.watch || [];
   const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.label || x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
-  const summary = c.id === "carburant" ? `<div class="summary"><div><b>Envoi automatique</b><br><span>Calculé chaque matin sur les prix officiels, rien à relire.</span></div>${sendButton(c, true)}</div>`
-    : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alerte à valider" : "Rien de grave"}</b><br><span>Vigilance rouge, air très mauvais, grève du tram : rare, part dans les annonces de la communauté.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
-    : `<div class="summary"><div><b>${shown.length} lignes cochées</b><br><span>Coche ou décoche ce qui doit partir, puis valide : l'envoi est programmé.</span></div>
-       <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post validé ✓" : "Tout est bon"}</button>${sendButton(c, okAll)}</div></div>`;
-  const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lignes</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">Aperçu WhatsApp</button></div>`;
+  const summary = c.id === "carburant" ? `<div class="summary"><div><b>Sent automatically</b><br><span>Worked out every morning from official prices, nothing to review.</span></div>${sendButton(c, true)}</div>`
+    : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alert to approve" : "Nothing serious"}</b><br><span>Red weather warning, very bad air, tram strike: rare, goes to the community announcements.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
+    : `<div class="summary"><div><b>${shown.length} line${shown.length === 1 ? "" : "s"} ticked</b><br><span>Tick what should go out, then approve: sending is scheduled.</span></div>
+       <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post approved ✓" : "All good"}</button>${sendButton(c, okAll)}</div></div>`;
+  const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lines</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">WhatsApp preview</button></div>`;
   $("posts").classList.toggle("pane-preview", pane === "preview");
-  $("notes").innerHTML = tabs + panes + summary + section("to_book", "À réserver maintenant") + section("week", "Cette semaine") +
-    (watch.length && !["carburant", "infos"].includes(c.id) ? `<section><h2>À surveiller</h2>${watch.map((w) =>
-      `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">vérifier ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
-  const now = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  $("phone").innerHTML = `<div class="chan"><div class="avatar">${AVATARS[c.id] || "🎭"}</div><div><b>${esc(c.name)}</b><small>Chaîne · aperçu avant publication</small></div></div>` +
-    (c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">Copier</button>${wa(t)}<span class="time">${now}</span></div>`).join("") || `<p class="empty">Rien à poster sur cette chaîne aujourd'hui.</p>`);
-  $("phone").querySelectorAll(".copy").forEach((b) => b.addEventListener("click", () => { navigator.clipboard.writeText(c.posts[b.dataset.k]); toast("Post copié"); }));
+  $("notes").innerHTML = tabs + panes + summary + section("to_book", "Book now") + section("week", "This week") +
+    (watch.length && !["carburant", "infos"].includes(c.id) ? `<section><h2>To watch</h2>${watch.map((w) =>
+      `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">check ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
+  const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  $("phone").innerHTML = `<div class="chan"><div class="avatar">${AVATARS[c.id] || "🎭"}</div><div><b>${esc(c.name)}</b><small>Group · preview before posting</small></div></div>` +
+    (c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">Copy</button>${wa(t)}<span class="time">${now}</span></div>${english(c.en?.[k])}`).join("") || `<p class="empty">Nothing to post in this group today.</p>`);
+  pollTranslations();
+  $("phone").querySelectorAll(".copy").forEach((b) => b.addEventListener("click", () => { navigator.clipboard.writeText(c.posts[b.dataset.k]); toast("Post copied"); }));
 }
 
 function setView(v) {
@@ -515,18 +535,17 @@ $("notes").addEventListener("click", async (ev) => {
   const act = ev.target.closest("[data-act]"); if (!act) return;
   const c = postsData.channels.find((x) => x.id === channel);
   if (act.dataset.act === "publish") {
-    act.disabled = true; act.textContent = "Envoi…";
+    act.disabled = true; act.textContent = "Sending…";
     const r = await (await fetch("/api/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel }) })).json();
-    const bad = (r.report || []).filter(([, what]) => what.startsWith("échec"));
-    toast(bad.length ? `Échec : ${bad[0][1]}` : "Envoyé sur WhatsApp");
+    toast(r.failed?.length ? `Failed: ${r.failed[0]}` : "Sent to WhatsApp");
     postsData = null; return renderPosts();
   }
   if (act.dataset.act === "all") {
     for (const x of ticked(c).filter((p) => p.status !== "keep")) await save(events.find((y) => y.i === x.i), { status: "keep", line: x.line });
-    toast("Post validé"); return renderPosts();
+    toast("Post approved"); return renderPosts();
   }
   if (act.dataset.act === "more") { const k = c.id + act.dataset.post; opened.has(k) ? opened.delete(k) : opened.add(k); return renderPosts(); }
-  if (act.dataset.act === "reset") { await choose(c.id, act.dataset.post, null); toast("Choix de l'IA remis"); return renderPosts(); }
+  if (act.dataset.act === "reset") { await choose(c.id, act.dataset.post, null); toast("AI's choice restored"); return renderPosts(); }
   if (act.dataset.act === "open") { queue = "picks"; selected = Number(act.closest(".cand").dataset.i); from = "posts"; setView("triage"); return openDetail(true); }
 });
 
@@ -563,10 +582,10 @@ document.addEventListener("keydown", (ev) => {
   else if (k === "e") { ev.preventDefault(); const t = $("line"); t?.focus(); t?.setSelectionRange(t.value.length, t.value.length); }
 });
 
-if (phone()) $("search").placeholder = "Rechercher";
+if (phone()) $("search").placeholder = "Search";
 fetch("/api/events").then((r) => r.json()).then((d) => {
   events = d.events;
-  $("day").textContent = new Date(d.day + "T12:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  $("day").textContent = new Date(d.day + "T12:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   if (d.state !== "ready") return waitForRun(d);
   render();
 });
@@ -574,9 +593,9 @@ fetch("/api/events").then((r) => r.json()).then((d) => {
 // No posts yet today: say why, and reload by itself once the morning run is done.
 function waitForRun(d) {
   const say = {
-    preparing: `La préparation du jour tourne depuis ${d.since}. Elle prend 10 à 15 minutes ; cette page se recharge toute seule quand c'est prêt.`,
-    failed: `La préparation du jour a échoué. Journal : ${d.log}. Nouvel essai automatique à 14 h.`,
-    none: "Pas encore de préparation aujourd'hui : elle part à 10 h, et le message Discord arrive quand c'est prêt.",
+    preparing: `The edition has been preparing since ${d.since}. It takes 10 to 15 minutes; this page reloads by itself when it is ready.`,
+    failed: `Preparing the edition failed. Log: ${d.log}. Automatic retry at 2 pm.`,
+    none: "Nothing prepared yet: preparation starts at 10 am, and the Discord message arrives when it is ready.",
   }[d.state];
   const box = `<p class="empty">${esc(say)}</p>`;
   for (const id of ["list", "insp", "notes", "phone"]) if ($(id)) $(id).innerHTML = box;

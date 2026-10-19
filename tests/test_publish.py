@@ -3,11 +3,11 @@
 import json
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from unittest import mock
 
-from grnbl import memory, publish
+from grnbl import memory, publish, translate
 
 DAY = date(2026, 10, 17)
 
@@ -54,6 +54,33 @@ class Publish(unittest.TestCase):
         self.assertIn("échec", report["gratuit-week"])
         self.assertEqual(report["sorties-week"], "envoyé")
         self.assertFalse(memory.already_posted({"title": "Visite", "start": "2026-10-20"}))
+
+    def test_english_translation_is_never_published(self):
+        # A real edition day on disk: one approved free outing picked for the Gratuit group.
+        day, now = date(2026, 10, 21), datetime(2026, 10, 20, 11, 0, tzinfo=publish.PARIS)
+        folder = self.tmp / "events" / day.isoformat()
+        folder.mkdir(parents=True)
+        (folder / "reviewed.json").write_text(json.dumps([{
+            "title": "Visite du fort", "start": "2026-10-24T14:00", "venue": "Bastille", "free": True, "booking": "none",
+            "review": {"keep": True, "score": 4, "free": True, "line": "Visite gratuite du fort, sans réserver."}}]))
+        (folder / "selection.json").write_text(json.dumps([{"i": 0, "post": "week", "channel": "gratuit", "line": "Visite gratuite du fort."}]))
+        (self.tmp / "decisions").mkdir()
+        (self.tmp / "decisions" / f"{day.isoformat()}.json").write_text(json.dumps({"0": {"status": "keep", "line": None}}))
+        with mock.patch.object(translate, "DATA", self.tmp), \
+                mock.patch.object(translate, "translate", return_value="ENGLISH: free visit of the fort.") as model:
+            self.assertEqual(translate.run(day, now), {"gratuit/week": "translated"})
+            self.assertEqual(translate.run(day, now), {"gratuit/week": "unchanged"})  # same French text, no new call
+            stored = translate.load(day)["gratuit/week"]
+        self.assertEqual(model.call_count, 1)
+        self.assertEqual(stored["en"], "ENGLISH: free visit of the fort.")
+        items = publish.outbox(day, now, fuel_text="", alerts_text="")
+        self.assertEqual([i["text"] for i in items], [stored["fr"]])
+        with mock.patch.object(publish, "deliver", return_value="MSG1") as deliver:
+            report = dict(publish.run(day, send=True, items=items))
+        self.assertEqual(report["gratuit-week"], "envoyé")
+        sent = deliver.call_args.args[1]
+        self.assertIn("Visite gratuite du fort.", sent)
+        self.assertNotIn("ENGLISH", sent)
 
 
 if __name__ == "__main__":
