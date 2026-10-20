@@ -91,7 +91,7 @@ Promise.all(FAMILIES.map(f => document.fonts.load("700 40px '" + f + "'", "grnbl
 }
 
 const jobs = [];
-const job = (family, name, w, h, page, { scale = 1, transparent = false } = {}) =>
+const job = (family, name, w, h, page, { scale = family === "devpost" ? 2 : 1, transparent = false } = {}) =>
   jobs.push({ family, name, w, h, scale, transparent, html: doc({ ...page, transparent }) });
 
 // Strip WhatsApp formatting for a one-line preview.
@@ -152,8 +152,8 @@ for (const F of K.FONTS) {
     .w { position: absolute; inset: 76px 76px 70px; display: flex; flex-direction: column; }
     h1 { font-size: 64px; margin: 18px 0 22px; max-width: 980px; }
     .p { max-width: 860px; }
-    .chips { margin-top: auto; display: flex; flex-wrap: wrap; gap: 10px; }
-    .chips span { font-size: 17px; font-weight: 500; padding: 8px 15px; border-radius: 99px; background: rgba(244,244,246,.12); color: #F4F4F6; }
+    .chips { margin-top: auto; display: flex; flex-wrap: wrap; gap: 12px; }
+    .chips span { font-size: 21px; font-weight: 500; padding: 10px 18px; border-radius: 99px; background: rgba(244,244,246,.12); color: #F4F4F6; }
     .chips span.more { background: #C6FF3D; color: #121212; font-weight: 700; }`,
     body: `<div class="w"><span class="k">The problem</span><h1>Without someone like my mum, nobody hears about it.</h1>
       <p class="p">Free concerts, museum Sundays, the cheapest fuel: it is all public, but spread over 38 sources that nobody checks every week.</p>
@@ -202,18 +202,18 @@ for (const F of K.FONTS) {
   job("devpost", "4-numbers" + sfx, 1200, 800, { font, css: DEV + `
     .w { position: absolute; inset: 76px 76px 70px; display: flex; flex-direction: column; }
     h1 { font-size: 56px; margin: 18px 0 40px; }
-    .tiles { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 16px; }
+    .tiles { flex: 1; display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 16px; }
     .tile { border-radius: 30px; padding: 30px 30px 28px; display: flex; flex-direction: column; }
     .tile .n { font-size: 112px; font-weight: 700; letter-spacing: -.055em; line-height: .9; }
     .tile .t { font-size: 24px; font-weight: 600; line-height: 1.22; letter-spacing: -.015em; margin-top: 18px; }
     .tile .s { margin-top: auto; font-size: 16px; font-weight: 500; opacity: .7; }
+    .tile .n { white-space: nowrap; font-size: 104px; } .b .n { font-size: 90px; }
     .a { background: #C6FF3D; color: #121212; } .b { background: #F4F4F6; color: #121212; } .c { background: #121212; color: #F4F4F6; }
     .c .n { color: #C6FF3D; }`,
     body: `<div class="w"><span class="k">The proof</span><h1>One week of Grenoble, in numbers.</h1><div class="tiles">
       <div class="tile a"><span class="n">45</span><span class="t">free outings worth going to near Grenoble, this week</span><span class="s">Week of 21 October 2026</span></div>
       <div class="tile b"><span class="n">15–17&thinsp;€</span><span class="t">between the cheapest and the dearest full tank in the metro area</span><span class="s">Official prices, 17 October 2026</span></div>
       <div class="tile c"><span class="n">1,203</span><span class="t">events from 38 public sources, read in 27 minutes</span><span class="s">Trial run, 18 October 2026</span></div></div></div>` });
-  // The 15–17 € tile number is wider: fitted in the page if needed.
 
   // 5. The review board (a reconstruction of the Publish screen of grnbl/admin.html, same labels).
   const ap = post("gratuit-a-reserver"), wk = post("gratuit-cette-semaine");
