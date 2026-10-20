@@ -119,7 +119,14 @@ def _row(e: dict, post: str, **extra) -> dict:
     return {"i": e["i"], "post": post, "title": e["title"], "start": e.get("start"), "place": e.get("venue") or e.get("town") or "",
             "status": d.get("status"), "line": d.get("line") or r.get("line") or "", "score": r.get("score"), "free": free,
             "price": _price(e, free), "booking": e.get("booking"), "booking_opens": e.get("booking_opens"),
-            "booking_deadline": e.get("booking_deadline"), "source": e.get("source_name") or "", **extra}
+            "booking_deadline": e.get("booking_deadline"), "source": e.get("source_name") or "", "block": d.get("block"), **extra}
+
+
+def parts(post: str, text: str, lists: dict) -> dict:
+    """A post as the board edits it: the heading, then each line's block with the event it belongs to."""
+    head, *blocks = text.split("\n\n")
+    owner = {r["sent"]: r["i"] for r in lists.get(post, []) if r.get("sent")}
+    return {"post": post, "head": head, "blocks": [{"i": owner.get(b.strip("\n")), "text": b.strip("\n")} for b in blocks]}
 
 
 def attach_sent(lists: dict, texts: list[tuple[str, str]]) -> None:
@@ -128,9 +135,11 @@ def attach_sent(lists: dict, texts: list[tuple[str, str]]) -> None:
     (to_book_post keeps 8 lines at most, or its timing changed): `sent` stays None and the board says so."""
     by_post = dict(texts)
     for post, rows in lists.items():
-        blocks = (by_post.get(post) or "").split("\n\n")[1:]  # the first block is the post's heading
+        blocks = [b.strip("\n") for b in (by_post.get(post) or "").split("\n\n")[1:]]  # the first block is the heading
         for row in rows:
-            if row["on"]:
+            if row["on"] and row.get("block"):
+                row["sent"] = row["block"] if row["block"] in blocks else None
+            elif row["on"]:
                 mark = f"*{row['title'].strip()}*"
                 row["sent"] = next((b.strip("\n") for b in blocks if mark in b.split("\n", 1)[0]), None)
 
@@ -157,6 +166,36 @@ def choice_list(events: list[dict], sel: list[dict], live: dict, channel: str, t
             rows.append(_row(e, post, on=i in live.get(post, []), main=i in mains, editor=i in why, why=why.get(i) or "", check=checks.get(i, [])))
         out[post] = rows[:max(n, len(live.get(post, [])))]
     return out
+
+
+def review_path(day: date) -> Path:
+    return DATA / "decisions" / f"{day.isoformat()}-review.json"
+
+
+def load_review(day: date) -> dict:
+    """Where the card review stands beyond the decisions themselves, so a closed tab resumes in place:
+    `pending` = replacement cards offered but not answered, `passed` = replacements turned down,
+    `later` = lines set aside to check, `verdicts` = what was chosen for them, applied together at the end."""
+    path = review_path(day)
+    state = json.loads(path.read_text()) if path.exists() else {}
+    return {"pending": state.get("pending") or [], "passed": state.get("passed") or [],
+            "later": state.get("later") or [], "verdicts": state.get("verdicts") or {}}
+
+
+def save_review(day: date, state: dict) -> None:
+    def line(p):
+        if p.get("channel") not in CHANNELS or p.get("post") not in ("to_book", "week"):
+            raise ValueError("unknown channel or post")
+        return {"channel": p["channel"], "post": p["post"], "i": int(p["i"]), "instead": str(p.get("instead") or "")}
+    verdicts = {}
+    for i, v in (state.get("verdicts") or {}).items():
+        if v.get("v") in ("keep", "drop"):
+            verdicts[str(int(i))] = {"v": v["v"], "block": v.get("block") if isinstance(v.get("block"), str) else None}
+    clean = {"pending": [line(p) for p in state.get("pending") or []], "passed": sorted({int(i) for i in state.get("passed") or []}),
+             "later": [line(p) for p in state.get("later") or []], "verdicts": verdicts}
+    path = review_path(day)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(clean, ensure_ascii=False, indent=1))
 
 
 # Posted every day for that day, outside the weekly editions.
@@ -253,6 +292,7 @@ class Handler(BaseHTTPRequestHandler):
                 channels.append({
                     "id": cid, "name": c["name"], "label": LABELS.get(cid, c["label"]),
                     "posts": [t for _, t in texts],
+                    "parts": [parts(post, t, lists) for post, t in texts],
                     # English translation under each post, for the board only (translate.py).
                     "en": [translate.shown(english.get(translate.key(cid, post)), t) for post, t in texts],
                     # Only an edition is sent at its slot (tick.py); older daily runs are not scheduled.
@@ -271,15 +311,21 @@ class Handler(BaseHTTPRequestHandler):
             sent, ids = {**publish.status(self.day), **{k: v for k, v in publish.status(today).items() if k in DAILY}}, publish.channel_ids()
             for c in channels:
                 c["outbox"], c["linked"] = sent.get(c["id"], {}), c["id"] in ids
-            return self._json({"channels": channels, "watch": watch, "translating": translate.busy()})
+            return self._json({"channels": channels, "watch": watch, "translating": translate.busy(), "review": load_review(self.day)})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):
         if not self._allowed():
             return
-        if self.path not in ("/api/decide", "/api/publish", "/api/choose"):
+        if self.path not in ("/api/decide", "/api/publish", "/api/choose", "/api/review"):
             return self._send(404, b"not found", "text/plain")
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        if self.path == "/api/review":
+            try:
+                save_review(self.day, body)
+            except (KeyError, TypeError, ValueError):
+                return self._json({"ok": False}, 400)
+            return self._json({"ok": True})
         if self.path == "/api/choose":
             # The ticked lines of one post, in order; null goes back to the editor's picks.
             ids = body.get("ids")
@@ -302,6 +348,9 @@ class Handler(BaseHTTPRequestHandler):
         decision = body.get("decision")
         if decision is not None:
             decision = {"status": decision.get("status"), "line": decision.get("line")}
+            block = (body.get("decision") or {}).get("block")
+            if isinstance(block, str) and block.strip():
+                decision["block"] = block.strip("\n")  # the line's whole block, edited in the preview
         save_decision(self.day, i, decision)
         self._json({"ok": True})
 

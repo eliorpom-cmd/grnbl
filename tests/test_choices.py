@@ -52,3 +52,21 @@ class Choices(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EditedBlock(unittest.TestCase):
+    """A block edited by hand in the board's preview is sent as written, in its slot."""
+
+    def test_week_post_uses_the_edited_block(self):
+        from datetime import datetime
+        from grnbl.digest import outings_post_reviewed
+        from zoneinfo import ZoneInfo
+        now = datetime(2026, 10, 21, 12, 0, tzinfo=ZoneInfo("Europe/Paris"))
+        events = [{"title": "A", "start": "2026-10-23T20:00", "venue": "Salle", "review": {"keep": True, "free": True, "line": "line A"}},
+                  {"title": "B", "start": "2026-10-24T20:00", "venue": "Salle", "review": {"keep": True, "free": True, "line": "line B"},
+                   "decision": {"status": "keep", "block": "🆓 *B, edited* · samedi\n   my own words"}}]
+        sel = [{"i": 0, "post": "week", "channel": "gratuit"}, {"i": 1, "post": "week", "channel": "gratuit"}]
+        text = outings_post_reviewed(events, now, selection=sel)
+        self.assertIn("🆓 *B, edited* · samedi\n   my own words", text)
+        self.assertIn("*A*", text)
+        self.assertNotIn("line B", text)

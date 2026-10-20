@@ -148,6 +148,9 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
 
     def entry(x):
         _, _, start, e, line = x
+        block = (e.get("decision") or {}).get("block")
+        if block:  # edited by hand in the board's preview: sent as written
+            return block.split("\n")
         end = _parse_start(e.get("end")) if e.get("end") else None
         if start < now.replace(hour=0, minute=0, second=0, microsecond=0) and end:
             when = f"jusqu'au {end.day}/{end.month:02d}"  # already running
@@ -259,6 +262,10 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
         where = _place(e)
         if lines[-1]:
             lines.append("")
+        block = (e.get("decision") or {}).get("block")
+        if block:  # edited by hand in the board's preview: sent as written
+            lines.append(block)
+            continue
         lines.append(f"{icon} *{e['title'].strip()}* · {_short_day(start)}{' · ' + where if where else ''}")
         if line:
             lines.append(f"   {line}")
