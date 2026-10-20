@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, tous les visuels (11e planche)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&family=Familjen+Grotesk:wght@400..700&family=Host+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f4f4f6; --ink: #151517; --muted: #6b6c71; --line: #e0e0e4; --card: #fbfbfc; --blue: #2F4BFF; --lime: #C6FF3D; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1240px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 50px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+h2 { font: 800 28px/1.1 "Commissioner"; letter-spacing: -0.02em; margin: 72px 0 6px; }
+h3 { font-size: 15px; font-weight: 800; margin: 28px 0 10px; }
+.lead, .sub { color: var(--muted); max-width: 800px; margin: 0 0 24px; }
+.lead { font-size: 18px; }
+img { display: block; max-width: 100%; height: auto; }
+.cap { font-size: 13px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.shot img { border-radius: 12px; border: 1px solid var(--line); }
+/* Font choice */
+.fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fbox { border-radius: 22px; padding: 28px; background: var(--blue); color: #F4F4F6; }
+.fbox .n { font: 800 12px/1 "Commissioner"; letter-spacing: .08em; text-transform: uppercase; color: var(--lime); }
+.fbox .t { font-size: 44px; font-weight: 700; letter-spacing: -.035em; line-height: 1.02; margin: 14px 0 12px; }
+.fbox .p { font-size: 17px; line-height: 1.45; opacity: .82; }
+.fbox .g { font-size: 30px; font-weight: 600; letter-spacing: -.02em; margin-top: 16px; color: var(--lime); }
+/* WhatsApp photos */
+.wa { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.ph { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; }
+.ph .big { width: 100%; border-radius: 50%; }
+.ph.sq .big { border-radius: 22%; }
+.sizes { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.sizes img { border-radius: 50%; }
+.ph.sq .sizes img { border-radius: 22%; }
+.sizes .s40 { width: 40px; } .sizes .s24 { width: 24px; }
+.ph b { display: block; font-size: 14px; margin-top: 10px; }
+.list { background: #fbfbfb; color: #111b21; border-radius: 20px; padding: 6px 0; max-width: 420px; border: 1px solid var(--line); font-family: system-ui, sans-serif; }
+.row { display: flex; align-items: center; gap: 12px; padding: 8px 14px; }
+.row img { width: 40px; border-radius: 50%; }
+.row.q img { width: 24px; }
+.row span { font-size: 15px; font-weight: 600; }
+.lists { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+/* Transparency */
+.check { background: repeating-conic-gradient(#c9c9ce 0 25%, #e9e9ec 0 50%) 0 0 / 24px 24px; border-radius: 12px; border: 1px solid var(--line); }
+.posts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.posts img { border-radius: 16px; border: 1px solid var(--line); }
+.end { color: var(--muted); max-width: 800px; margin-top: 56px; }
+@media (max-width: 760px) {
+  main { padding: 32px 16px 80px; }
+  .g2, .fonts { grid-template-columns: 1fr; }
+  .g4, .g5, .wa, .posts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : tous les visuels</h1>
+  <p class="lead">Logo 3 et icône B de la 7e planche, fond bleu électrique, bulles citron. Tout est exporté en PNG dans <code>export/</code> ; où poser chaque fichier : <code>OU-POSER.md</code>. Les visuels avec du texte existent en deux polices d'annonces, côte à côte : il en reste une à choisir.</p>
+
+  <h2>1. La police des annonces : une des deux</h2>
+  <p class="sub">Gardées parmi les 4 de la 5e planche. Familjen Grotesk : serrée, un peu de caractère dans le a et le g, se lit bien en titre. Host Grotesk : plus large et plus calme. Écartées : Bricolage Grotesque (vue partout depuis 2024) et Funnel Sans (proche de Funnel Display, déjà évitée pour le nom).</p>
+  <div class="fonts">
+    <div class="fbox" style="font-family:'Familjen Grotesk'"><span class="n">A · Familjen Grotesk</span><div class="t">Announced while you can still book.</div><div class="p">Agendas list a date range. grnbl posts the slot to book and the deadline.</div><div class="g">45 · 1,203 · 15–17 €</div></div>
+    <div class="fbox" style="font-family:'Host Grotesk'"><span class="n">B · Host Grotesk</span><div class="t">Announced while you can still book.</div><div class="p">Agendas list a date range. grnbl posts the slot to book and the deadline.</div><div class="g">45 · 1,203 · 15–17 €</div></div>
+  </div>
+
+  <h2>2. Photos WhatsApp</h2>
+  <p class="sub">640 × 640. La communauté garde l'icône B (carré arrondi chez WhatsApp). Chaque groupe : une seule cabine sur le câble, avec son signe (icônes Lucide) ; même bleu partout pour ne pas faire arc-en-ciel. Le rouge n'existe que sur les annonces, qui reçoivent les alertes. Sous chaque photo : le test à 40 px et 24 px.</p>
+  <div class="wa" id="wa"></div>
+  <h3>Dans une liste, comme dans WhatsApp (40 px, puis 24 px)</h3>
+  <div class="lists"><div class="list" id="l40"></div><div class="list" id="l24"></div></div>
+
+  <h2>3. Devpost (anglais)</h2>
+  <p class="sub">1200 × 800 (3:2), exportées en 2400 × 1600. La couverture, puis 6 images de galerie dans l'ordre du récit. À gauche Familjen, à droite Host.</p>
+  <div id="dev"></div>
+
+  <h2>4. Cartons vidéo (anglais)</h2>
+  <p class="sub">1920 × 1080. Titre, les 8 parties du plan vidéo (le câble avance d'une cabine à chaque partie), carton de fin. Tiers bas en PNG transparent (damier = transparence), à poser par-dessus l'image.</p>
+  <div id="vid"></div>
+
+  <h2>5. Posts dans WhatsApp (français)</h2>
+  <p class="sub">1080 × 2340, format téléphone. <b>Textes d'exemple</b> au format exact de <code>grnbl/digest.py</code> : à remplacer par les vrais posts de l'édition du 21/10 (voir <code>OU-POSER.md</code>).</p>
+  <div class="posts" id="posts"></div>
+
+  <p class="end">À me dire : la police (A ou B). Le reste se pose tel quel ; une fois la police choisie, l'autre série peut partir à la corbeille.</p>
+</main>
+<script>
+const G = [["communaute", "Communauté"], ["annonces", "Annonces (alertes)"], ["gratuit", "Gratuit"], ["sorties", "Sorties"], ["carburant", "Carburant"], ["famille", "Enfants & famille"], ["bons-plans", "Bons plans & brocantes"], ["nature", "Montagne & nature"]];
+const wa = f => `export/whatsapp/${f}.png`;
+document.getElementById("wa").innerHTML = G.map(([f, n]) => `<div class="ph ${f === "communaute" ? "sq" : ""}"><img class="big" src="${wa(f)}" alt="${n}"><div class="sizes"><img class="s40" src="${wa(f)}" alt=""><img class="s24" src="${wa(f)}" alt=""></div><b>${n}</b><div class="cap">export/whatsapp/${f}.png</div></div>`).join("");
+for (const [id, q] of [["l40", ""], ["l24", "q"]])
+  document.getElementById(id).innerHTML = G.map(([f, n]) => `<div class="row ${q}"><img src="${wa(f)}" alt=""><span>${n}</span></div>`).join("");
+
+const pair = (dir, name) => `<div class="grid g2">${["familjen", "host"].map(s => `<div class="shot"><img src="export/${dir}/${name}-${s}.png" alt="${name}"><div class="cap">export/${dir}/${name}-${s}.png</div></div>`).join("")}</div>`;
+const DEV = [["cover", "Couverture"], ["1-problem", "1. Le problème"], ["2-pipeline", "2. Le pipeline"], ["3-post", "3. Un post et sa traduction"], ["4-numbers", "4. Les chiffres"], ["5-board", "5. Le tableau de relecture"], ["6-community", "6. La communauté"]];
+document.getElementById("dev").innerHTML = DEV.map(([f, n]) => `<h3>${n}</h3>${pair("devpost", f)}`).join("");
+
+const VID = [["00-title", "Titre"], ["01-the-problem", "01 The problem"], ["02-the-proof", "02 The proof"], ["03-the-product", "03 The product"], ["04-what-is-not-obvious", "04 What is not obvious"], ["05-how-it-works", "05 How it works"], ["06-it-ran-for-real", "06 It ran for real"], ["07-limits-next", "07 Limits & next"], ["08-close", "08 Close"], ["99-end", "Fin"]];
+const LT = [["elior", "Elior"], ["real-post", "A real post"], ["board", "The review board"], ["timing", "Timing is code"], ["fuel", "Fuel, every morning"]];
+document.getElementById("vid").innerHTML = VID.map(([f, n]) => `<h3>${n}</h3>${pair("video", f)}`).join("") +
+  `<h3>Tiers bas (transparents)</h3>` + LT.map(([f, n]) => `<div class="grid g2" style="margin-bottom:16px">${["familjen", "host"].map(s => `<div><img class="check" src="export/video/lower-third-${f}-${s}.png" alt="${n}"><div class="cap">export/video/lower-third-${f}-${s}.png</div></div>`).join("")}</div>`).join("");
+
+const P = ["communaute-liste", "gratuit-a-reserver", "gratuit-cette-semaine", "sorties-cette-semaine", "carburant", "famille-cette-semaine", "bons-plans", "nature", "annonces-alerte"];
+document.getElementById("posts").innerHTML = P.map(f => `<div><img src="export/posts/${f}.png" alt="${f}"><div class="cap">export/posts/${f}.png</div></div>`).join("");
+</script>
+</body>
+</html>
