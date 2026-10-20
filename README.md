@@ -69,7 +69,7 @@ with the reason for each pick and 3 reserves per post   (Claude Sonnet)
    |  fact-check of each line against the event's data and page   (code)
    |  English translation for the board   (Haiku)
    v
-admin board: about 11 lines per group to read, untick to remove, "Tout est bon" to approve   (human)
+admin board: about 11 lines per group to read, untick to remove, "All good" to approve   (human)
    |
    v
 outbox -> whatsapp/send.mjs -> WhatsApp groups, at the group's slot, once
