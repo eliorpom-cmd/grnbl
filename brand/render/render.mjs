@@ -136,7 +136,7 @@ for (const F of K.FONTS) {
   // Cover: logo, the pitch, a phone cut by the bottom edge.
   job("devpost", "cover" + sfx, 1200, 800, { font, css: DEV + `
     .l { position: absolute; left: 76px; top: 92px; width: 600px; }
-    .logo { width: 470px; height: auto; display: block; margin-left: -10px; }
+    .logo { width: 470px; display: block; margin-left: -10px; }
     .l h1 { font-size: 46px; margin-top: 44px; }
     .meta { position: absolute; left: 76px; bottom: 70px; }
     .ph { position: absolute; left: 768px; top: 92px; }`,
@@ -285,8 +285,9 @@ for (const F of K.FONTS) {
     .sub { color: rgba(244,244,246,.8); font-size: 50px; line-height: 1.2; letter-spacing: -.02em; font-weight: 500; }`;
   job("video", "00-title" + sfx, 1920, 1080, { font, css: VID + `
     .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .logo { width: 960px; height: auto; }
-    .sub { margin-top: 70px; font-size: 64px; color: #F4F4F6; }
+    .logo { width: 760px; }
+    .sub { margin-top: 56px; font-size: 64px; color: #F4F4F6; }
+    .c { padding-bottom: 60px; }
     .k { position: absolute; bottom: 86px; left: 0; right: 0; text-align: center; font-size: 30px; }`,
     body: `<div class="c"><svg class="logo"></svg><p class="sub">${K.TAGLINE}</p></div><p class="k">Neighborhood Hacks 2026 · Grenoble</p>`,
     script: `drawLogo(document.querySelector(".logo"));` });
@@ -308,11 +309,12 @@ for (const F of K.FONTS) {
   });
 
   job("video", "99-end" + sfx, 1920, 1080, { font, css: VID + `
-    .logo { position: absolute; left: 160px; top: 150px; width: 620px; height: auto; }
-    .tag { position: absolute; left: 160px; top: 430px; font-size: 92px; }
+    .top { position: absolute; left: 160px; top: 120px; }
+    .logo { width: 520px; display: block; margin-left: -12px; }
+    .tag { font-size: 92px; margin-top: 40px; }
     .links { position: absolute; left: 160px; right: 160px; bottom: 140px; display: grid; grid-template-columns: 240px 1fr; row-gap: 22px; font-size: 40px; letter-spacing: -.015em; }
     .links dt { color: #C6FF3D; font-weight: 600; } .links dd { font-weight: 500; }`,
-    body: `<svg class="logo"></svg><h1 class="tag">${K.TAGLINE}</h1>
+    body: `<div class="top"><svg class="logo"></svg><h1 class="tag">${K.TAGLINE}</h1></div>
       <dl class="links"><dt>Code</dt><dd>${K.REPO}</dd><dt>Built with</dt><dd>Python, Claude (Haiku, Sonnet), Claude Code, WhatsApp</dd><dt>Made by</dt><dd>Elior, in Grenoble, for Neighborhood Hacks 2026</dd></dl>`,
     script: `drawLogo(document.querySelector(".logo"));` });
 

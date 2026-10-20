@@ -43,6 +43,9 @@ function drawLogo(svg, pad = 10) {
   hang(g, spread(W * .09, W * .91, 5), cy, 21, 8, 6);
   stickerText(g, "grnbl");
   fit(svg, pad);
+  // Height from the viewBox, so the logo takes its real place in the layout.
+  const vb = svg.viewBox.baseVal;
+  svg.style.height = (svg.getBoundingClientRect().width * vb.height / vb.width) + "px";
 }
 
 // Icon B of logo-7.html: three bubbles under the cable, drawn in a 200 x 200 box centred on 0,0.
