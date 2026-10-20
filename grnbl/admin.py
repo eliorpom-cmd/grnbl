@@ -15,6 +15,7 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import re
 import secrets
 import sys
 from datetime import date, datetime
@@ -97,11 +98,41 @@ def save_decision(day: date, i: int, decision: dict | None) -> None:
     path.write_text(json.dumps(decisions, ensure_ascii=False, indent=1))
 
 
+def _price(e: dict, free: bool) -> str:
+    """A short price for the review line: agendas paste whole fare tables."""
+    if free:
+        return "free"
+    raw = (e.get("price") or "").strip()
+    if not raw or "non renseign" in raw.lower():
+        return ""
+    amounts = sorted({float(a.replace(",", ".")) for a in re.findall(r"(\d+(?:[.,]\d+)?)\s*€", raw)})
+    fmt = lambda x: f"{x:g}".replace(".", ",")  # noqa: E731
+    if amounts:
+        return f"{fmt(amounts[0])} €" if len(amounts) == 1 else f"{fmt(amounts[0])}–{fmt(amounts[-1])} €"
+    first = raw.splitlines()[0].rstrip(".")
+    return first if len(first) <= 40 else first[:39] + "…"
+
+
 def _row(e: dict, post: str, **extra) -> dict:
     d, r = e.get("decision") or {}, e.get("review") or {}
+    free = (r.get("free") if r.get("free") is not None else e.get("free")) is True
     return {"i": e["i"], "post": post, "title": e["title"], "start": e.get("start"), "place": e.get("venue") or e.get("town") or "",
-            "status": d.get("status"), "line": d.get("line") or r.get("line") or "", "score": r.get("score"),
-            "free": (r.get("free") if r.get("free") is not None else e.get("free")) is True, **extra}
+            "status": d.get("status"), "line": d.get("line") or r.get("line") or "", "score": r.get("score"), "free": free,
+            "price": _price(e, free), "booking": e.get("booking"), "booking_opens": e.get("booking_opens"),
+            "booking_deadline": e.get("booking_deadline"), "source": e.get("source_name") or "", **extra}
+
+
+def attach_sent(lists: dict, texts: list[tuple[str, str]]) -> None:
+    """Give each ticked row the exact block of the WhatsApp message it becomes, so the board reviews
+    what is sent, not the editor's short line. A ticked row with no block is not in the message
+    (to_book_post keeps 8 lines at most, or its timing changed): `sent` stays None and the board says so."""
+    by_post = dict(texts)
+    for post, rows in lists.items():
+        blocks = (by_post.get(post) or "").split("\n\n")[1:]  # the first block is the post's heading
+        for row in rows:
+            if row["on"]:
+                mark = f"*{row['title'].strip()}*"
+                row["sent"] = next((b.strip("\n") for b in blocks if mark in b.split("\n", 1)[0]), None)
 
 
 def choice_list(events: list[dict], sel: list[dict], live: dict, channel: str, today: date, n: int = 12) -> dict:
@@ -217,6 +248,8 @@ class Handler(BaseHTTPRequestHandler):
                 texts = [(post, write(data, at, selection=used)) for post, write in publish.POSTS]
                 texts = [(post, t) for post, t in texts if t]
                 stale |= any(translate.needs(english.get(translate.key(cid, post)), t) for post, t in texts)
+                lists = choice_list(data, sel, live, cid, now.date()) if sel is not None else {}
+                attach_sent(lists, texts)
                 channels.append({
                     "id": cid, "name": c["name"], "label": LABELS.get(cid, c["label"]),
                     "posts": [t for _, t in texts],
@@ -224,7 +257,7 @@ class Handler(BaseHTTPRequestHandler):
                     "en": [translate.shown(english.get(translate.key(cid, post)), t) for post, t in texts],
                     # Only an edition is sent at its slot (tick.py); older daily runs are not scheduled.
                     "sends_at": at.isoformat(timespec="minutes") if self.day in editions else None,
-                    "lists": choice_list(data, sel, live, cid, now.date()) if sel is not None else {},
+                    "lists": lists,
                     "custom": {post: post in mine for post in ("to_book", "week")},
                 })
             if stale:

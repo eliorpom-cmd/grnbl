@@ -160,9 +160,44 @@
   .en .en-h { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: normal; }
   .en a { color: inherit; }
 
-  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); opacity: 0; background: var(--ink); color: var(--bg); border-radius: 99px; padding: 8px 16px; font-weight: 500; transition: opacity .2s var(--ease), transform .2s var(--ease); pointer-events: none; }
+  .toast { position: fixed; left: 50%; bottom: 104px; z-index: 20; transform: translate(-50%, 12px); opacity: 0; background: var(--ink); color: var(--bg); border-radius: 99px; padding: 8px 16px; font-weight: 500; transition: opacity .2s var(--ease), transform .2s var(--ease); pointer-events: none; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
 
+  /* Guided review: where you are across the groups, then each line exactly as it is sent. */
+  .prog { margin: 0 0 20px; }
+  .prog-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 10px; }
+  .prog-head b { font-size: 15px; }
+  .prog-head span { color: var(--mute); }
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); white-space: nowrap; transition: background .15s var(--ease), border-color .15s var(--ease); }
+  .chip small { color: var(--mute); font-size: 12px; }
+  .chip.on { border-color: var(--ink); color: var(--ink); font-weight: 600; }
+  .chip.done { background: color-mix(in srgb, var(--keep) 10%, var(--panel)); }
+  .chip.done small { color: var(--keep); font-weight: 600; }
+  .chip.auto { opacity: .7; }
+  .ghead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0 0 4px; }
+  .ghead h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+  .ghead span { color: var(--mute); }
+  .bar { height: 4px; border-radius: 99px; background: var(--hover); margin: 10px 0 20px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--keep); border-radius: inherit; transition: width .25s var(--ease); }
+  .item { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 14px 12px; margin: 0 -12px; border-top: 1px solid var(--line); border-radius: 12px; transition: background .15s var(--ease), opacity .15s var(--ease); }
+  .item.ok { background: color-mix(in srgb, var(--keep) 6%, transparent); }
+  .item.gone { opacity: .55; }
+  .item.gone .msg { text-decoration: line-through; }
+  .tick { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--mute); background: var(--panel); display: grid; place-items: center; padding: 0; transition: background .15s var(--ease), border-color .15s var(--ease); }
+  .tick::after { content: ""; width: 7px; height: 13px; border: solid var(--mute); border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); }
+  @media (hover: hover) { .tick:hover { border-color: var(--keep); } .tick:hover::after { border-color: var(--keep); } }
+  .item.ok .tick { background: var(--keep); border-color: var(--keep); }
+  .item.ok .tick::after { border-color: #fff; }
+  .msg { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); font: 14.5px/1.45 -apple-system, "Helvetica Neue", sans-serif; }
+  .msg a { color: var(--accent); }
+  .facts1 { margin-top: 8px; color: var(--body); font-size: 13px; }
+  .why { margin-top: 2px; color: var(--mute); font-size: 13px; }
+  .why b { color: var(--body); font-weight: 600; }
+  .iact { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  /* The group's verdict stays in sight while scrolling the lines. */
+  .notes > .summary { position: sticky; bottom: 12px; z-index: 2; margin: 24px 0 0; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
   @media (max-width: 1100px) { .triage { grid-template-columns: 180px 1fr 380px; } }
   .back, .panes { display: none; }
   .btn { white-space: nowrap; }
@@ -196,7 +231,8 @@
     .summary .acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
     .summary .btn, .summary .sent { height: 48px; justify-content: center; font-size: 16px; }
     .summary .sent { display: flex; align-items: center; }
-    .notes section:last-child { padding-bottom: 150px; }
+    .notes { padding-bottom: 170px; }
+    .notes > .summary { position: fixed; bottom: 0; border: 0; }
     .cand { padding: 14px 8px; }
     .box { width: 26px; height: 26px; }
     .cand { grid-template-columns: 26px 1fr auto; }
@@ -457,6 +493,12 @@ function pollTranslations() {
 // One ticked list per post: the editor's lines come ticked, the human ticks or unticks freely.
 const ticked = (c) => ["to_book", "week"].flatMap((post) => (c.lists?.[post] || []).filter((x) => x.on));
 const opened = new Set();  // posts whose other candidates are shown
+// Where a group stands: lines ticked to go, how many are not checked yet, sent or not.
+function progress(c) {
+  const on = ticked(c), left = on.filter((x) => x.status !== "keep").length, out = Object.values(c.outbox || {});
+  return { c, total: on.length, left, done: on.length > 0 && left === 0, sent: out.length > 0 && out.every((r) => r.status === "sent") };
+}
+const day = (iso) => { const d = new Date(iso); return `${d.toLocaleDateString("en-GB", { weekday: "short" })} ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`; };
 
 // The WhatsApp step: offered once the post is approved, then shows what the outbox says.
 function sendButton(c, ready) {
@@ -479,35 +521,62 @@ async function renderPosts() {
   const shown = ticked(c);
   const okAll = shown.length && shown.every((x) => x.status === "keep");
   const short = (raw) => raw ? new Date(String(raw).length > 10 ? raw : raw + "T00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
-  const row = (x) => `<div class="cand ${x.on ? "on" : ""}" data-i="${x.i}" data-post="${x.post}" role="checkbox" aria-checked="${x.on}" tabindex="0">
-      <span class="box" aria-hidden="true"></span>
-      <div class="pmain"><div class="pt">${x.editor && !x.main && !x.on ? `<span class="star" title="Replacement suggested by the AI">★</span>` : ""}${esc(x.title)}${x.status === "keep" && x.on ? ` <span class="b free">approved</span>` : ""}</div>
-        <div class="am">${esc([short(x.start), x.place, x.free ? "free" : ""].filter(Boolean).join(" · "))}</div>
-        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.check && x.check.length ? `<div class="pcheck">⚠️ Check on the page: ${esc(x.check.join(", "))}</div>` : ""}${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
-      <button class="mini" data-act="open" title="Open the event">Details</button></div>`;
+  const groups = chans.filter((x) => !["carburant", "infos"].includes(x.id)).map(progress);
+  const chips = `<div class="chips">${chans.map((x) => {
+    const g = groups.find((y) => y.c === x);
+    const state = !g ? `<small>auto</small>` : g.sent ? `<small>sent ✓</small>` : g.done ? `<small>✓</small>` : `<small>${g.left} left</small>`;
+    return `<button class="chip ${x.id === c.id ? "on" : ""} ${g?.done ? "done" : ""} ${g ? "" : "auto"}" data-c="${x.id}">${esc(x.label || x.name)} ${state}</button>`;
+  }).join("")}</div>`;
+  const todo = groups.filter((g) => !g.done), first = groups.map((g) => g.c.sends_at).filter(Boolean).sort()[0];
+  const head = `<div class="prog"><div class="prog-head">${todo.length
+    ? `<b>${todo.length} of ${groups.length} groups to review</b><span>${todo.reduce((n, g) => n + g.left, 0)} lines left${first ? ` · first send ${esc(day(first))}` : ""}</span>`
+    : `<b>Everything is approved ✓</b><span>Each group goes out at its time, nothing else to do.</span>`}</div>${chips}</div>`;
+
+  // A line's facts that the message itself does not say: price, booking, where it comes from.
+  const facts = (x) => {
+    const book = x.booking === "required" ? "booking required" : x.booking === "recommended" ? "booking advised" : x.booking === "none" ? "no booking" : "";
+    const opens = x.booking_opens ? `opens ${short(x.booking_opens)}` : x.booking_deadline ? `book by ${short(x.booking_deadline)}` : "";
+    return [x.price, book, opens, x.source && `from ${x.source}`].filter(Boolean).join(" · ");
+  };
+  const item = (x) => {
+    const ok = x.on && x.status === "keep", gone = !x.on;
+    const text = x.on ? (x.sent ? wa(x.sent) : `<b>${esc(x.title)}</b>\n<span class="pcheck">Not in the message: “Book now” keeps 8 lines at most.</span>`)
+      : `<b>${esc(x.title)}</b> · ${esc([short(x.start), x.place].filter(Boolean).join(" · "))}\n   ${esc(x.line)}`;
+    return `<div class="item ${ok ? "ok" : ""} ${gone ? "gone" : ""}" data-i="${x.i}" data-post="${x.post}">
+      ${x.on ? `<button class="tick" data-act="${ok ? "unok" : "ok"}" aria-pressed="${ok}" title="${ok ? "Checked: click to undo" : "Checked, this line can go"}"></button>` : `<span></span>`}
+      <div><div class="msg">${text}</div>
+        ${facts(x) ? `<div class="facts1">${esc(facts(x))}</div>` : ""}
+        ${x.why ? `<div class="why"><b>Why:</b> ${esc(x.why)}</div>` : ""}
+        ${x.check?.length ? `<div class="pcheck">⚠️ Check on the page: ${esc(x.check.join(", "))}</div>` : ""}
+        <div class="iact">${x.on ? `<button class="mini" data-act="drop">✕ Remove</button>` : `<button class="mini" data-act="add">${x.main ? "↩︎ Put back" : "+ Add"}</button>`}
+          <button class="mini" data-act="open">Details</button></div></div></div>`;
+  };
   const section = (post, title) => {
     const list = c.lists?.[post] || [];
     if (!list.length) return "";
     const top = list.filter((x) => x.main || x.on), off = list.filter((x) => !x.main && !x.on), open = opened.has(c.id + post);
-    const on = list.filter((x) => x.on);
-    return `<section><div class="sec-head"><h2>${title}</h2><span>${on.length} ticked</span>
+    return `<section><div class="sec-head"><h2>${title}</h2><span>${list.filter((x) => x.on).length} lines</span>
         ${c.custom?.[post] ? `<button class="link" data-act="reset" data-post="${post}">Back to the AI's choice</button>` : ""}</div>
-      ${top.map(row).join("")}
-      ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Hide" : `Show ${off.length} other option${off.length > 1 ? "s" : ""}`}</button>${open ? off.map(row).join("") : ""}` : ""}</section>`;
+      ${top.map(item).join("")}
+      ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Hide the other options" : `Show ${off.length} other option${off.length > 1 ? "s" : ""}`}</button>${open ? off.map(item).join("") : ""}` : ""}</section>`;
   };
   const watch = postsData.watch || [];
-  const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.label || x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
+  const g = groups.find((y) => y.c === c), next = g && groups.find((y) => !y.done && y !== g);
   const summary = c.id === "carburant" ? `<div class="summary"><div><b>Sent automatically</b><br><span>Worked out every morning from official prices, nothing to review.</span></div>${sendButton(c, true)}</div>`
     : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alert to approve" : "Nothing serious"}</b><br><span>Red weather warning, very bad air, tram strike: rare, goes to the community announcements.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
-    : `<div class="summary"><div><b>${shown.length} line${shown.length === 1 ? "" : "s"} ticked</b><br><span>Tick what should go out, then approve: sending is scheduled.</span></div>
-       <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post approved ✓" : "All good"}</button>${sendButton(c, okAll)}</div></div>`;
-  const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lines</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">WhatsApp preview</button></div>`;
+    : g.done ? `<div class="summary"><div><b>${esc(c.label)} approved ✓</b><br><span>${next ? `Next: ${esc(next.c.label)}, ${next.left} lines.` : "That was the last group."}</span></div>
+       <div class="acts">${sendButton(c, true)}${next ? `<button class="btn keep" data-act="next" data-to="${next.c.id}">Next: ${esc(next.c.label)} →</button>` : ""}</div></div>`
+    : `<div class="summary"><div><b>${g.left} of ${g.total} lines to check</b><br><span>Tick each line that can go, or remove it. Nothing goes out until every line is ticked.</span></div>
+       <div class="acts"><button class="btn" data-act="all">Tick the ${g.left} left</button></div></div>`;
+  const ghead = g ? `<div class="ghead"><h2>${esc(c.label)}</h2><span>${c.sends_at ? `goes out ${esc(day(c.sends_at))}` : ""} · ${g.total - g.left} of ${g.total} checked</span></div>
+    <div class="bar"><i style="width:${g.total ? Math.round(100 * (g.total - g.left) / g.total) : 0}%"></i></div>` : "";
+  const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lines</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">Full message</button></div>`;
   $("posts").classList.toggle("pane-preview", pane === "preview");
-  $("notes").innerHTML = tabs + panes + summary + section("to_book", "Book now") + section("week", "This week") +
-    (watch.length && !["carburant", "infos"].includes(c.id) ? `<section><h2>To watch</h2>${watch.map((w) =>
-      `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">check ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
+  $("notes").innerHTML = head + panes + ghead + section("to_book", "Book now") + section("week", "This week") +
+    (watch.length && g ? `<section><h2>To watch</h2>${watch.map((w) =>
+      `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">check ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "") + summary;
   const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  $("phone").innerHTML = `<div class="chan"><div class="avatar">${AVATARS[c.id] || "🎭"}</div><div><b>${esc(c.name)}</b><small>Group · preview before posting</small></div></div>` +
+  $("phone").innerHTML = `<div class="chan"><div class="avatar">${AVATARS[c.id] || "🎭"}</div><div><b>${esc(c.name)}</b><small>Full message, as members will see it</small></div></div>` +
     (c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">Copy</button>${wa(t)}<span class="time">${now}</span></div>${english(c.en?.[k])}`).join("") || `<p class="empty">Nothing to post in this group today.</p>`);
   pollTranslations();
   $("phone").querySelectorAll(".copy").forEach((b) => b.addEventListener("click", () => { navigator.clipboard.writeText(c.posts[b.dataset.k]); toast("Post copied"); }));
@@ -542,27 +611,27 @@ $("notes").addEventListener("click", async (ev) => {
   }
   if (act.dataset.act === "all") {
     for (const x of ticked(c).filter((p) => p.status !== "keep")) await save(events.find((y) => y.i === x.i), { status: "keep", line: x.line });
-    toast("Post approved"); return renderPosts();
+    toast("All lines ticked"); return renderPosts();
   }
+  const it = act.closest(".item"), ev_ = it && events.find((y) => y.i === Number(it.dataset.i));
+  const x = it && c.lists[it.dataset.post].find((y) => y.i === Number(it.dataset.i));
+  if (act.dataset.act === "ok") { await save(ev_, { status: "keep", line: x.line }); return renderPosts(); }
+  if (act.dataset.act === "unok") { await save(ev_, null); return renderPosts(); }
+  if (act.dataset.act === "drop" || act.dataset.act === "add") {
+    x.on = act.dataset.act === "add";
+    await choose(channel, it.dataset.post, c.lists[it.dataset.post].filter((y) => y.on).map((y) => y.i));
+    toast(x.on ? "Line added" : "Line removed"); return renderPosts();
+  }
+  if (act.dataset.act === "next") { channel = act.dataset.to; window.scrollTo(0, 0); $("notes").scrollTop = 0; return renderPosts(); }
   if (act.dataset.act === "more") { const k = c.id + act.dataset.post; opened.has(k) ? opened.delete(k) : opened.add(k); return renderPosts(); }
   if (act.dataset.act === "reset") { await choose(c.id, act.dataset.post, null); toast("AI's choice restored"); return renderPosts(); }
-  if (act.dataset.act === "open") { queue = "picks"; selected = Number(act.closest(".cand").dataset.i); from = "posts"; setView("triage"); return openDetail(true); }
+  if (act.dataset.act === "open") { queue = "picks"; selected = Number(it.dataset.i); from = "posts"; setView("triage"); return openDetail(true); }
 });
 
 async function choose(channel, post, ids) {
   await fetch("/api/choose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel, post, ids }) });
   postsData = null;
 }
-// Tick or untick a line: the post becomes the ticked lines, in the list's order.
-async function toggle(el) {
-  const c = postsData.channels.find((x) => x.id === channel), post = el.dataset.post, i = Number(el.dataset.i);
-  const list = c.lists[post], x = list.find((y) => y.i === i);
-  x.on = !x.on; el.classList.toggle("on", x.on); el.setAttribute("aria-checked", x.on);
-  await choose(channel, post, list.filter((y) => y.on).map((y) => y.i));
-  renderPosts();
-}
-$("notes").addEventListener("click", (ev) => { const el = ev.target.closest(".cand"); if (el && !ev.target.closest("button")) toggle(el); });
-$("notes").addEventListener("keydown", (ev) => { const el = ev.target.closest(".cand"); if (el && (ev.key === " " || ev.key === "Enter")) { ev.preventDefault(); toggle(el); } });
 $("search").addEventListener("input", (ev) => { query = ev.target.value.trim().toLowerCase(); render(); });
 
 document.addEventListener("keydown", (ev) => {
