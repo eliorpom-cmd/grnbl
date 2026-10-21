@@ -100,8 +100,18 @@ def select(events: list[dict], today: date, channel: str, n_book: int = 5, n_wee
                            n_book=n_book, n_week=n_week,
                            taste_calls=_taste(today),
                            candidates=json.dumps([_brief(i, e, today) for i, e in pool], ensure_ascii=False))
-    picks = [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
-             if p.get("i") in allowed and p.get("post") in ("to_book", "week")]
+    def ask_once():
+        try:
+            return [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
+                    if p.get("i") in allowed and p.get("post") in ("to_book", "week")]
+        except Exception as e:  # noqa: BLE001 - one retry below, then an empty group is reported
+            print(f"editor: {channel}: {e}")
+            return []
+
+    # A group with candidates never comes back empty in silence: the 21/10 run lost Famille that way.
+    picks = ask_once() or ask_once()
+    if not picks:
+        print(f"editor: {channel}: no picks after a retry")
     # The rules stay the rules: the post follows the timing, the channel is written on each pick.
     for p in picks:
         p["post"] = "week" if editorial.timing(events[p["i"]], today) == "this_week" else "to_book"
