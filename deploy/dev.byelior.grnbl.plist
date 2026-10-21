@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template. Install (from the repo folder):
+     sed -e "s|__GRNBL_DIR__|$PWD|g" -e "s|__HOME__|$HOME|g" deploy/dev.byelior.grnbl.plist > ~/Library/LaunchAgents/dev.byelior.grnbl.plist
+     launchctl load ~/Library/LaunchAgents/dev.byelior.grnbl.plist -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
