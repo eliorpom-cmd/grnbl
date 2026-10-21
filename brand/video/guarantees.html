@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>grnbl · guarantees</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  .head { position: absolute; left: 160px; top: 100px; }
+  .head h1 { font-size: 84px; margin-top: 18px; }
+  .col { position: absolute; top: 330px; width: 500px; }
+  .col h2 { font-size: 30px; margin-bottom: 22px; }
+  .col h2 .tag { font-size: 30px; }
+  .it { font-size: 33px; line-height: 1.25; font-weight: 500; margin-bottom: 20px; padding-left: 40px; position: relative;
+    letter-spacing: -.015em; }
+  .it::before { content: ""; position: absolute; left: 0; top: 9px; width: 18px; height: 18px; border-radius: 50%;
+    background: #C6FF3D; border: 4px solid #121212; }
+  .group { position: absolute; top: 820px; width: 300px; height: 150px; border-radius: 30px; border: 6px solid #121212;
+    box-shadow: 10px 10px 0 #121212; display: flex; align-items: center; justify-content: center; font-size: 40px;
+    font-weight: 700; color: #121212; }
+  #free { left: 1080px; background: #C6FF3D; }
+  #out { left: 1460px; background: #F4F4F6; }
+  #ticket { position: absolute; left: 160px; top: 850px; padding: 20px 30px; border-radius: 18px; background: #F4F4F6;
+    color: #121212; border: 5px solid #121212; font-size: 32px; font-weight: 700; white-space: nowrap; }
+  #ticket small { font-weight: 600; color: #FF3B30; margin-left: 12px; }
+  #no { position: absolute; left: 1080px; top: 668px; font-size: 34px; font-weight: 700; color: #F4F4F6; background: #FF3B30;
+    border: 5px solid #121212; padding: 6px 20px; border-radius: 99px; }
+</style></head>
+<body>
+<div class="head"><p class="k">Who decides what</p><h1>The AI suggests. The code guarantees.</h1></div>
+<div class="col" id="c0" style="left:160px"><h2><span class="tag">Code</span></h2>
+  <p class="it">When to post: never too late to book</p><p class="it">Which group: free stays free</p><p class="it">Fact check of every line</p></div>
+<div class="col" id="c1" style="left:710px"><h2><span class="tag ai">Claude</span></h2>
+  <p class="it">Reads pages with no structure</p><p class="it">Scores interest, writes one line</p><p class="it">Picks a varied post per group</p></div>
+<div class="col" id="c2" style="left:1260px"><h2><span class="tag human">Human</span></h2>
+  <p class="it">Reads ~11 lines per group</p><p class="it">Unticks, a reserve takes the place</p><p class="it">Nothing goes out before "Looks good"</p></div>
+<div class="group" id="free">🆓 Gratuit</div>
+<div class="group" id="out">🎭 Sorties</div>
+<div id="ticket">🎟️ Concert, 25 €<small>paid</small></div>
+<p id="no">✕ paid: not for Gratuit</p>
+<p id="cap" style="position:absolute;left:160px;top:820px;width:900px;line-height:1.15;font-size:44px;font-weight:600;letter-spacing:-.02em">A paid event can never reach the Free group.</p>
+<script src="content.js"></script>
+<script src="common.js"></script>
+<script>
+const DURATION = 12.5;
+const cols = [0, 1, 2].map(i => document.getElementById("c" + i));
+const tk = document.getElementById("ticket"), no = document.getElementById("no");
+function frame(t) {
+  show(document.querySelector(".head"), easeOut(span(t, 0, .6)), 16);
+  cols.forEach((c, i) => {
+    show(c.querySelector("h2"), easeOut(span(t, .6 + i * .5, .4)), 16);
+    c.querySelectorAll(".it").forEach((p, j) => show(p, easeOut(span(t, 1 + i * .5 + j * .25, .4)), 16));
+  });
+  // A paid event heads for the Free group, is refused, and drops into Sorties.
+  [document.getElementById("free"), document.getElementById("out")].forEach((g, i) => show(g, easeOut(span(t, 4.6 + i * .2, .5)), 30));
+  const W = tk.offsetWidth, above = left => left + 150 - W / 2 - 160, Y = -125;
+  const go = easeInOut(span(t, 6.0, 1.0)), shake = span(t, 7.0, .6), move = easeInOut(span(t, 7.8, 1.0)), drop = easeInOut(span(t, 8.9, .6));
+  let x = lerp(0, above(1080), go), y = lerp(0, Y, go) - Math.sin(Math.PI * go) * 40;
+  x += Math.sin(shake * Math.PI * 6) * 14 * (1 - shake);
+  x = lerp(x, above(1460), move); y += -Math.sin(Math.PI * move) * 40;
+  y = lerp(y, 0, drop);
+  show(tk, easeOut(span(t, 5.4, .4)), 20);
+  tk.style.transform = `translate(${x}px, ${y}px) scale(${1 - .5 * drop})`;
+  tk.style.opacity = Math.min(span(t, 5.4, .4), 1 - drop);
+  const out = document.getElementById("out");
+  out.style.transform = `scale(${1 + .06 * Math.sin(Math.PI * span(t, 9.3, .4))})`;
+  no.style.opacity = span(t, 7.0, .15) * (1 - span(t, 7.8, .3));
+  no.style.transform = `scale(${pop(span(t, 7.0, .35))})`;
+  show(document.getElementById("cap"), easeOut(span(t, 9.7, .5)), 16);
+}
+</script>
+</body></html>

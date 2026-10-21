@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>grnbl · before / after</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  .head { position: absolute; left: 160px; top: 90px; }
+  .head h1 { font-size: 70px; margin-top: 16px; }
+  .card { position: absolute; top: 430px; width: 700px; border-radius: 30px; border: 6px solid #121212;
+    box-shadow: 12px 12px 0 #121212; overflow: hidden; }
+  #before { left: 160px; background: #F4F4F6; color: #121212; }
+  .bar { height: 64px; background: #E2E3EA; border-bottom: 4px solid #121212; display: flex; align-items: center;
+    gap: 12px; padding: 0 24px; font-size: 22px; color: #5a5c66; font-weight: 500; }
+  .bar i { width: 16px; height: 16px; border-radius: 50%; background: #c4c6cf; display: inline-block; }
+  .bar .url { margin-left: 14px; }
+  .body { padding: 34px 40px 44px; }
+  .body .t { font-size: 44px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
+  .body .ln { font-size: 33px; margin-top: 18px; color: #3a3c46; font-weight: 500; position: relative; display: inline-block; }
+  .mark { position: absolute; left: -8px; right: -8px; bottom: 2px; height: 16px; background: #FF3B30; opacity: .35;
+    transform-origin: left; border-radius: 4px; }
+  #after { left: 1060px; background: #ECE5DD; padding: 40px 34px 46px; }
+  .who { font-size: 24px; font-weight: 700; color: #121212; margin-bottom: 16px; }
+  .msg { background: #FFFFFF; color: #111; border-radius: 0 22px 22px 22px; padding: 24px 28px; font-size: 31px;
+    line-height: 1.38; font-family: -apple-system, 'Helvetica Neue', Arial, 'Noto Color Emoji', sans-serif;
+    min-height: 230px; white-space: pre-wrap; box-shadow: 0 1px 1px rgba(0,0,0,.15); }
+  .msg b { font-weight: 700; }
+  .msg .hl { background: #C6FF3D; border-radius: 6px; box-shadow: 0 0 0 4px #C6FF3D; }
+  #arrow { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+  .cap { position: absolute; left: 160px; right: 160px; bottom: 80px; font-size: 46px; font-weight: 600;
+    letter-spacing: -.02em; }
+  .cap em { font-style: normal; color: #C6FF3D; }
+  .lab { position: absolute; font-size: 28px; font-weight: 600; color: #C6FF3D; }
+</style></head>
+<body>
+<div class="head"><p class="k">Before / after</p><h1>The agenda says when it runs.<br>grnbl says when to go.</h1></div>
+<div class="card" id="before"><div class="bar"><i></i><i></i><i></i><span class="url" id="url"></span></div>
+  <div class="body"><div class="t" id="bt"></div><div id="blines"></div></div></div>
+<p class="lab" id="lab1" style="left:160px; top:378px">What the agenda says</p>
+<p class="lab" id="lab2" style="left:1060px; top:378px">What the group gets</p>
+<div class="card" id="after"><div class="who" id="who"></div><div class="msg" id="msg"></div></div>
+<svg id="arrow" viewBox="0 0 1920 1080"><path id="ap" d="M 900 680 C 960 680, 990 680, 1040 680" fill="none" stroke="#121212" stroke-width="9" stroke-linecap="round"/>
+  <path id="ah" d="M 1018 658 L 1044 680 L 1018 702" fill="none" stroke="#121212" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<p class="cap" id="cap">Booking timing is <em>code</em>, not AI: posted while there are places left.</p>
+<script src="content.js"></script>
+<script src="common.js"></script>
+<script>
+const B = CONTENT.before, A = CONTENT.after, DURATION = 12;
+document.getElementById("url").textContent = B.site;
+document.getElementById("bt").textContent = B.title;
+document.getElementById("who").textContent = "grnbl · " + A.group;
+const blines = document.getElementById("blines");
+const lines = B.lines.map((s, i) => { const d = document.createElement("div"); d.innerHTML = `<span class="ln">${i === 0 ? '<span class="mark"></span>' : ""}<span></span></span>`; d.querySelector("span span:last-child").textContent = s; blines.appendChild(d); return d; });
+// The post, as WhatsApp shows it: *bold*, and the two facts the agenda did not give, highlighted.
+const POST = [A.head, "", A.line, A.sub].join("\n");
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const bold = s => esc(s).replace(/\*([^*\n]+)\*/g, "<b>$1</b>");
+const msg = document.getElementById("msg"), ap = document.getElementById("ap"), ah = document.getElementById("ah");
+const L = ap.getTotalLength(); ap.style.strokeDasharray = L;
+// Highlighted spans: the precise date and the booking deadline (everything after the last "·" and the sub line).
+const when = A.line.split(" · ").pop(), until = A.sub.trim();
+
+function frame(t) {
+  show(document.querySelector(".head"), easeOut(span(t, 0, .6)), 16);
+  show(document.getElementById("lab1"), easeOut(span(t, .6, .5)), 10);
+  show(document.getElementById("before"), easeOut(span(t, .6, .7)), 40);
+  document.querySelector(".mark").style.transform = `scaleX(${easeOut(span(t, 2.2, .6))})`;
+  ap.style.strokeDashoffset = L * (1 - easeInOut(span(t, 3.4, .7)));
+  ah.style.opacity = span(t, 4.0, .2);
+  show(document.getElementById("lab2"), easeOut(span(t, 4.2, .5)), 10);
+  show(document.getElementById("after"), easeOut(span(t, 4.2, .6)), 40);
+  // Types the post in about 2.5 s.
+  const n = Math.round(POST.length * span(t, 4.8, 2.6));
+  let html = bold(POST.slice(0, n));
+  if (t > 8) {
+    const k = span(t, 8, .4) > 0;
+    if (k) html = html.replace(esc(when), `<span class="hl">${esc(when)}</span>`).replace(esc(until), `<span class="hl">${esc(until)}</span>`);
+  }
+  msg.innerHTML = html;
+  show(document.getElementById("cap"), easeOut(span(t, 9, .6)), 20);
+}
+</script>
+</body></html>

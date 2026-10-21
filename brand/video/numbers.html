@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>grnbl · numbers</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  .head { position: absolute; left: 160px; top: 110px; }
+  .grid { position: absolute; left: 160px; right: 160px; top: 330px; display: grid;
+    grid-template-columns: 1fr 1fr; gap: 70px 120px; }
+  .cell { border-top: 6px solid #121212; padding-top: 26px; }
+  .cell .n { font-size: 200px; font-weight: 700; letter-spacing: -.05em; line-height: .9; color: #F4F4F6; }
+  .cell .n .u { font-size: 80px; letter-spacing: -.02em; margin-left: 10px; }
+  .cell .l { font-size: 40px; font-weight: 500; color: rgba(244,244,246,.8); margin-top: 14px; letter-spacing: -.015em; }
+  .cell.hl .n { color: #C6FF3D; }
+  .bub { position: absolute; width: 34px; height: 34px; border-radius: 50%; background: #C6FF3D; border: 6px solid #121212;
+    left: -2px; top: -20px; }
+</style></head>
+<body>
+<div class="head"><p class="k" id="k"></p></div>
+<div class="grid" id="grid"></div>
+<script src="content.js"></script>
+<script src="common.js"></script>
+<script>
+const R = CONTENT.run, DURATION = 9;
+document.getElementById("k").textContent = `One weekly edition, real data, ${R.date}`;
+const CELLS = [
+  { v: R.sources, l: "public sources read" },
+  { v: R.events, l: "events found" },
+  { v: R.kept, l: "worth going to, after review", hl: true },
+  { v: R.minutes, u: "min", l: "for the whole run" },
+];
+const grid = document.getElementById("grid");
+const els = CELLS.map(c => {
+  const d = document.createElement("div"); d.className = "cell" + (c.hl ? " hl" : "");
+  d.innerHTML = `<div class="n num"><span class="v">0</span>${c.u ? `<span class="u">${c.u}</span>` : ""}</div><div class="l">${c.l}</div>`;
+  d.style.position = "relative"; grid.appendChild(d); return d;
+});
+function frame(t) {
+  show(document.querySelector(".head"), easeOut(span(t, 0, .5)), 16);
+  els.forEach((d, i) => {
+    const start = .4 + i * .9;
+    show(d, easeOut(span(t, start, .5)), 40);
+    d.querySelector(".v").textContent = fmt(CELLS[i].v * easeOut(span(t, start + .1, 1.6)));
+  });
+}
+</script>
+</body></html>
