@@ -227,6 +227,34 @@ The same folder runs in a container: `Dockerfile` plus `deploy/serve.sh` (board 
 hour, Paris time), with `data/` on a persistent volume. `deploy/make-seed.sh` packs the Mac's data for a first
 start.
 
+## Site
+
+Every event of an edition gets its own page: when, where, price, our line, and a button to the
+organiser's page to book. No text or photo is copied from the sources.
+
+```bash
+python3 -m grnbl.site               # the latest edition -> site/
+python3 -m grnbl.site 2026-10-21    # a given edition; --out DIR to write elsewhere
+```
+
+A sample built from the test fixture is committed in `site-example/` (open `site-example/index.html`).
+
+Settings, from the environment or `data/site.json` (`{"url": ..., "umami": ..., "links": false}`):
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `SITE_URL` | `https://grnbl.pages.dev` | Where the site lives; the only thing to change to move to another domain |
+| `UMAMI_WEBSITE_ID` | empty | Umami tag (stats.byelior.dev) and `reserve_click` events; no tag when empty |
+| `SITE_LINKS=1` | off | Puts each event's page link in the WhatsApp posts |
+
+Deploying on Cloudflare Pages (direct upload, no build step):
+
+1. `python3 -m grnbl.site` and check `site/index.html`.
+2. `npx wrangler pages project create grnbl --production-branch main` (once).
+3. `npx wrangler pages deploy site --project-name grnbl`.
+4. Optional custom domain: Pages project > Custom domains, then set `SITE_URL` to it and rebuild.
+5. Only then, if wanted, `SITE_LINKS=1`: links in posts must point to pages that are online.
+
 ## Limits
 
 - **Unofficial WhatsApp client.** Baileys is not Meta's API and goes against WhatsApp's terms; the number can be
