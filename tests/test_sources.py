@@ -80,14 +80,41 @@ class Channels(unittest.TestCase):
     def test_each_group_takes_only_its_theme(self):
         broc = {"title": "Vide-grenier à Eybens", "category": "market", "free": True}
         walk = {"title": "Oiseaux des milieux forestiers", "description": "Sortie nature avec la LPO"}
-        kids = {"title": "Atelier", "review": {"family": True, "free": False}}
+        kids = {"title": "Atelier", "description": "Pour les enfants dès 6 ans", "review": {"family": True, "free": False}}
         show = {"title": "Concert", "category": "concert", "review": {"free": False}}
-        self.assertEqual([c for c in channels.CHANNELS if channels.accepts(c, broc)], ["gratuit", "sorties", "bonsplans"])
+        self.assertEqual([c for c in channels.CHANNELS if channels.accepts(c, broc)], ["bonsplans"])
         self.assertTrue(channels.accepts("nature", walk))
         self.assertFalse(channels.accepts("nature", {"title": "Balade théâtralisée - Cadavres exquis",
                                                      "venue": "Musée archéologique"}))
         self.assertTrue(channels.accepts("famille", kids))
         self.assertFalse(any(channels.accepts(c, show) for c in ("gratuit", "famille", "bonsplans", "nature")))
+
+    def test_a_line_outside_its_group_is_never_sent(self):
+        from grnbl.publish import in_their_group
+        events = [{"title": "Vide-grenier", "review": {"free": True}},
+                  {"title": "Concert", "category": "concert", "review": {"free": False}}]
+        sel = [{"i": 0, "post": "week", "channel": "bonsplans"}, {"i": 0, "post": "week", "channel": "gratuit"},
+               {"i": 1, "post": "week", "channel": "sorties"}, {"i": 1, "post": "to_book", "channel": "sorties"}]
+        self.assertEqual([(p["i"], p["channel"], p["post"]) for p in in_their_group(events, sel)],
+                         [(0, "bonsplans", "week"), (1, "sorties", "week")])
+
+    def test_every_event_has_exactly_one_group(self):
+        events = [
+            {"title": "Jeu de piste spécial Halloween à Acrobastille", "category": "outdoor", "review": {"free": False}},
+            {"title": "We Love Pow Pow", "category": "cinema", "description": "le festival du film de ski", "review": {"free": False}},
+            {"title": "Exposition : Les Yeux Ouverts", "category": "exhibition", "review": {"free": True},
+             "description": "Hervé Frumy, artiste amoureux de la montagne, dévoile ses aquarelles"},
+            {"title": "La cascade des usages du bois", "category": "talk", "review": {"free": True},
+             "description": "Elle est prélevée dans la forêt"},
+            {"title": "L'après-midi famille au musée Stendhal", "category": "visit", "review": {"free": True, "family": True}},
+            {"title": "Foire de Grenoble", "category": "market", "review": {"free": False, "family": True}},
+            {"title": "Bourse aux jouets à Gières", "description": "pour les enfants", "review": {"free": None}},
+            {"title": "Soirée Halloween", "category": "party", "review": {"free": False}},
+        ]
+        self.assertEqual([channels.home(e) for e in events],
+                         ["famille", "nature", "gratuit", "gratuit", "famille", "sorties", "bonsplans", "sorties"])
+        for e in events:
+            self.assertEqual(sum(channels.accepts(c, e) for c in channels.CHANNELS), 1, e["title"])
 
 
 class JsonLdDates(unittest.TestCase):

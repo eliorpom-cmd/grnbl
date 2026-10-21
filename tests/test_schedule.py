@@ -29,7 +29,7 @@ class Week(unittest.TestCase):
 
 
 class OneGroupPerEvent(unittest.TestCase):
-    def test_taken_event_is_not_offered_unless_exceptional(self):
+    def test_taken_event_is_never_offered_again_even_as_a_reserve(self):
         from unittest import mock
         from grnbl import editor
         events = [{"title": "Forestivités", "start": "2026-10-24", "review": {"score": 4}},
@@ -44,10 +44,11 @@ class OneGroupPerEvent(unittest.TestCase):
         with mock.patch.object(editor, "candidates", return_value=list(enumerate(events))), \
                 mock.patch.object(editor, "ask", ask), mock.patch.object(editor, "_taste", return_value=""):
             editor.select(events, date(2026, 10, 21), "sorties",
-                          already=[{"i": 0, "reserve": False}, {"i": 1, "reserve": False}])
+                          already=[{"i": 0, "reserve": False}, {"i": 1, "reserve": True}])
         offered = seen["prompt"].split("CANDIDATES:")[1]
         self.assertNotIn("Forestivités", offered)
-        self.assertIn("Fête de la science", offered)
+        self.assertNotIn("Fête de la science", offered)
+        self.assertIn("Atelier", offered)
 
 
 if __name__ == "__main__":

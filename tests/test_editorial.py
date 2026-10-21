@@ -141,7 +141,8 @@ class Channels(unittest.TestCase):
                   {"title": "Visite", "start": "2026-10-20", "review": {"keep": True, "score": 3, "free": True}},
                   {"title": "Atelier", "start": "2026-10-20", "free": None, **ok}]
         self.assertEqual([e["title"] for _, e in candidates(events, TODAY, "gratuit")], ["Visite"])
-        self.assertEqual(len(candidates(events, TODAY, "sorties")), 3)
+        # Free events live in the free group only: Sorties keeps the paid and the unknown price.
+        self.assertEqual([e["title"] for _, e in candidates(events, TODAY, "sorties")], ["Concert", "Atelier"])
 
 
 if __name__ == "__main__":

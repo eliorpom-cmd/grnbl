@@ -29,7 +29,7 @@ from zoneinfo import ZoneInfo
 
 from . import memory, schedule
 from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
-from .channels import CHANNELS
+from .channels import CHANNELS, accepts
 from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +86,26 @@ def day_events(day: date) -> tuple[list[dict], list[dict] | None]:
     for i, e in enumerate(events):
         e["i"] = i
         e["decision"] = decisions.get(str(i))
-    return events, apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
+    selection = apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
+    return events, in_their_group(events, selection)
+
+
+def in_their_group(events: list[dict], selection: list[dict] | None) -> list[dict] | None:
+    """Only the lines whose event belongs to that group (channels.home), each event once:
+    a line ticked by hand or left from an older selection never reaches a second group."""
+    if selection is None:
+        return None
+    seen, out = set(), []
+    for p in selection:
+        i, channel = p.get("i", -1), p.get("channel", "sorties")
+        if not 0 <= i < len(events) or (channel in CHANNELS and not accepts(channel, events[i])):
+            continue
+        if not p.get("reserve"):
+            if i in seen:
+                continue
+            seen.add(i)
+        out.append(p)
+    return out
 
 
 def read_at(day: date, channel: str, now: datetime) -> datetime:
