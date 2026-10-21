@@ -140,6 +140,17 @@ class FactCheck(unittest.TestCase):
         got = factcheck.check("Mardi 22 octobre, Alex Henley et l'Orchestre national, 12 €.", self.EVENT)
         self.assertEqual(got, ["mardi 22 octobre (c'est un jeudi)", "orchestre", "12"])
 
+    def test_wrong_weekday_in_the_short_form_of_the_posts_is_flagged(self):
+        self.assertEqual(factcheck.wrong_weekdays("Mardi 22/10 à 20h", 2026), ["mardi 22/10 (c'est un jeudi)"])
+        self.assertEqual(factcheck.wrong_weekdays("Jeudi 22/10 à 20h", 2026), [])
+        # A time after a comma is not a month.
+        self.assertEqual(factcheck.wrong_weekdays("Samedi 7, 10 h", 2026), [])
+
+    def test_a_january_day_named_by_a_december_event_is_checked_in_the_next_year(self):
+        winter = {"title": "Marché de Noël", "start": "2026-12-01", "end": "2027-01-03"}
+        # 3 January 2027 is a Sunday; read in 2026 it would wrongly be a Saturday.
+        self.assertEqual(factcheck.check("Dimanche 3 janvier, dernier jour du marché de Noël.", winter), [])
+
 
 if __name__ == "__main__":
     unittest.main()

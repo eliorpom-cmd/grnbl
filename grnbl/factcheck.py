@@ -68,18 +68,30 @@ DAYS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 MONTHS = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre",
           "novembre", "decembre"]
 DAY_DATE = re.compile(rf"\b({'|'.join(DAYS)})\s+(\d{{1,2}})(?:er)?\s+({'|'.join(MONTHS)})\b")
+# "samedi 24/10", the form the posts use (digest._short_day). Read before norm(), which drops the slash:
+# "samedi 7, 10 h" must not become the 7th of October.
+DAY_NUM = re.compile(rf"\b({'|'.join(DAYS)})\s+(\d{{1,2}})/(\d{{1,2}})\b")
 
 
-def wrong_weekdays(line: str, year: int) -> list[str]:
+def _year(month: int, year: int, start_month: int | None) -> int:
+    """A December event can name a January day: that day is in the next year."""
+    return year + 1 if start_month and month < start_month - 6 else year
+
+
+def wrong_weekdays(line: str, year: int, start_month: int | None = None) -> list[str]:
     """"Mardi 28 octobre" when the 28th is a Wednesday: the calendar says which day it really is."""
     out = []
-    for day, num, month in DAY_DATE.findall(norm(line)):
+    text = norm(line)
+    found = [(day, num, MONTHS.index(month) + 1, f"{day} {num} {month}") for day, num, month in DAY_DATE.findall(text)]
+    plain = unicodedata.normalize("NFKD", line or "").encode("ascii", "ignore").decode().lower()
+    found += [(day, num, int(m), f"{day} {num}/{m}") for day, num, m in DAY_NUM.findall(plain)]
+    for day, num, month, said in found:
         try:
-            d = date(year, MONTHS.index(month) + 1, int(num))
+            d = date(_year(month, year, start_month), month, int(num))
         except ValueError:
             continue
         if DAYS[d.weekday()] != day:
-            out.append(f"{day} {num} {month} (c'est un {DAYS[d.weekday()]})")
+            out.append(f"{said} (c'est un {DAYS[d.weekday()]})")
     return out
 
 
@@ -101,5 +113,7 @@ def unverified(line: str, hay: str) -> list[str]:
 
 def check(line: str, e: dict, page: str = "") -> list[str]:
     """Everything to verify in a line: wrong weekdays first, then unknown names and numbers."""
-    year = int(str(e.get("start") or date.today().year)[:4])
-    return wrong_weekdays(line, year) + unverified(line, haystack(e, page))
+    start = str(e.get("start") or "")
+    year = int(start[:4]) if start[:4].isdigit() else date.today().year
+    month = int(start[5:7]) if start[5:7].isdigit() else None
+    return wrong_weekdays(line, year, month) + unverified(line, haystack(e, page))
