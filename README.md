@@ -21,9 +21,13 @@ python3 -m unittest discover -s tests -t .
 
 Publishing goes through `whatsapp/send.mjs` (Node, [Baileys](https://github.com/WhiskeySockets/Baileys), an
 unofficial WhatsApp Web client): it connects as a linked device, sends one message and disconnects, so no
-server has to stay up. `deploy/morning.sh` is the daily run for any scheduler (launchd on a Mac, cron on Linux).
+server has to stay up. `deploy/tick.sh` is the hourly run for any scheduler (launchd on a Mac, cron on Linux);
+`grnbl/tick.py` decides what is due (fuel every morning, the weekly edition, each group's slot, alerts).
 
 Python 3.11+, standard library only. The AI steps call Claude through the `claude` CLI.
+WhatsApp needs Node 20+: `cd whatsapp && npm install`, then `node whatsapp/send.mjs link` once.
+
+Licence: MIT (see `LICENSE`).
 
 Three channels: 🆓 free outings, 🎭 outings (paid ones included), ⛽ cheapest fuel.
 
