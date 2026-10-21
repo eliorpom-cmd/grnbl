@@ -72,7 +72,7 @@ with the reason for each pick and 3 reserves per post   (Claude Sonnet)
 admin board: about 11 lines per group to read, untick to remove, "All good" to approve   (human)
    |
    v
-outbox -> whatsapp/send.mjs -> WhatsApp groups, at the group's slot, once
+outbox -> at the group's slot, Discord says "time to post" -> Copy on the board, paste in the group (human)
 ```
 
 An hourly job (`deploy/tick.sh`, launchd on the Mac) runs `grnbl/tick.py`, which does what is due this hour
@@ -80,9 +80,10 @@ and records it in `data/schedule-state.json` so nothing happens twice:
 
 - **Tuesday from 10:00**: prepare the edition (about 27 minutes on the first full run), then ping Discord.
 - **Two hours before a slot**: Discord reminder if a post is not approved yet.
-- **At the slot** (Wednesday 12:00, Thursday 18:00): send the approved posts. A post nobody approved does not
-  go out, and the ping says so.
-- **Every day from 10:00**: the fuel post, sent on its own.
+- **At the slot** (Wednesday 12:00, Thursday 18:00): the approved posts become "to post" and Discord says it is
+  time. I copy each one from the board into its WhatsApp group, then tap "I posted it", which records it so it is
+  never posted twice. A post nobody approved does not go out, and the ping says so.
+- **Every day from 10:00**: the fuel post is ready to paste, with a ping.
 - **Every hour from 7:00 to 22:00**: check the alerts. An alert is only raised if it is seen on two checks in a
   row at least 45 minutes apart. It is then pinged on Discord and waits for a human click on the board.
   Nothing is sent automatically.
@@ -219,9 +220,10 @@ During the hackathon, everything runs on my Mac, which is on from 9:00 to 21:00:
   `data/logs/<day>.log`.
 - `deploy/dev.byelior.grnbl.board.plist`: the board, kept alive by launchd, published through a Cloudflare
   tunnel and protected by its key.
-- Publishing goes through `whatsapp/send.mjs` (Node, [Baileys](https://github.com/WhiskeySockets/Baileys)
-  7.0.0-rc14): it connects as a linked device, sends one message and disconnects. No server stays up for
-  WhatsApp.
+- Posting is done by hand from the board (Copy, then paste in the group). `whatsapp/send.mjs` (Node,
+  [Baileys](https://github.com/WhiskeySockets/Baileys) 7.0.0-rc14) can send instead, but it is an unofficial
+  client, so it is **off unless `GRNBL_AUTO_SEND=1`** and was not used for the posts of the hackathon week
+  after 21/10.
 
 The same folder runs in a container: `Dockerfile` plus `deploy/serve.sh` (board kept alive, `tick.sh` every
 hour, Paris time), with `data/` on a persistent volume. `deploy/make-seed.sh` packs the Mac's data for a first
@@ -257,8 +259,10 @@ Deploying on Cloudflare Pages (direct upload, no build step):
 
 ## Limits
 
-- **Unofficial WhatsApp client.** Baileys is not Meta's API and goes against WhatsApp's terms; the number can be
-  banned. It sends to groups of a normal WhatsApp account on a dedicated landline number.
+- **Posting is manual.** WhatsApp has no official API for posting into community groups from a normal account.
+  The automatic sender (Baileys) goes against WhatsApp's terms, so it is switched off: I paste each approved post
+  myself, about one minute per group. Before 21/10 it did send a few posts (fuel, first tests).
+  The fix at scale is the official WhatsApp Business Platform with channels.
 - **The Mac is the server.** If it is off at 10:00 on Tuesday or at a sending slot, that work waits for the next
   hourly pass.
 - **Scraping.** Most agendas have no API; a site redesign breaks its extraction until the source line is
