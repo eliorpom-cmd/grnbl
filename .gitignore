@@ -5,3 +5,11 @@ __pycache__/
 data/
 whatsapp/node_modules/
 deploy/seed/
+node_modules/
+*.log
+.env.*
+*.pem
+*.key
+# Private working notes for Claude Code sessions (read automatically, never published)
+CLAUDE.local.md
+.claude/settings.local.json

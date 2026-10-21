@@ -253,3 +253,7 @@ start.
 
 Built with Claude Code as a pair programmer. The product itself uses Claude Haiku and Claude Sonnet through
 the `claude` CLI, as described above. Declared as required by the hackathon rules.
+
+## Licence
+
+MIT, see `LICENSE`.
