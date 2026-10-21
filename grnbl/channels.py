@@ -76,7 +76,7 @@ def home(e: dict) -> str:
 
 CHANNELS = {
     "gratuit": {
-        "name": "grnbl · Gratuit", "label": "🆓 Gratuit", "week_title": "🎭 *Cette semaine à Grenoble*",
+        "name": "grnbl · Gratuit", "label": "🆓 Gratuit", "week_title": "🆓 *Gratuit cette semaine*",
         "promise": "only free outings: what costs nothing and is worth leaving the house for",
         "taste": "- only free things are offered to you here;\n"
                  "- the rare before the routine: a once-a-year opening beats an exhibition on a long run;",

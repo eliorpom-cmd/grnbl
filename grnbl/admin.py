@@ -24,7 +24,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
-from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
+from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, title_of, to_book_post
 from .editor import CHANNELS, candidates
 from . import editorial
 from . import publish, schedule, translate
@@ -140,7 +140,7 @@ def attach_sent(lists: dict, texts: list[tuple[str, str]]) -> None:
             if row["on"] and row.get("block"):
                 row["sent"] = row["block"] if row["block"] in blocks else None
             elif row["on"]:
-                mark = f"*{row['title'].strip()}*"
+                mark = f"*{title_of(row)}*"
                 row["sent"] = next((b.strip("\n") for b in blocks if mark in b.split("\n", 1)[0]), None)
 
 

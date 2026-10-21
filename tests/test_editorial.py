@@ -145,5 +145,25 @@ class Channels(unittest.TestCase):
         self.assertEqual([e["title"] for _, e in candidates(events, TODAY, "sorties")], ["Concert", "Atelier"])
 
 
+class PostFormat(unittest.TestCase):
+    def test_block_is_name_then_when_where_price_then_line_and_link(self):
+        from datetime import datetime
+        from grnbl.digest import _day, event_block
+        e = {"title": "BLUES TOUR/ ALEX HENLEY", "venue": "Office de Tourisme Grenoble Alpes", "town": "Grenoble",
+             "price": "Tarif : 12 €", "review": {"free": False}}
+        self.assertEqual(event_block(e, _day(datetime(2026, 10, 22, 20, 30)), "Du blues texan.", "sorties", "🔗 x"),
+                         ["*Blues Tour / Alex Henley*", "Jeudi 22 oct. · 20h30 · Grenoble · 12 €", "Du blues texan.", "🔗 x"])
+
+    def test_no_price_in_the_free_group_and_no_address_as_place(self):
+        from grnbl.digest import event_block
+        e = {"title": "Bourse aux jouets", "venue": "Gymnase du Chamandier, 51, Rue de la Gare", "town": "Gières",
+             "review": {"free": True}}
+        self.assertEqual(event_block(e, "Samedi 24 oct.", "", "gratuit", None)[1], "Samedi 24 oct. · Gymnase du Chamandier, Gières")
+
+    def test_tracking_is_cut_from_links(self):
+        from grnbl.digest import clean_url
+        self.assertEqual(clean_url("https://salon.letudiant.fr/?utm_source=X&utm_medium=Y&id=3"), "https://salon.letudiant.fr/?id=3")
+
+
 if __name__ == "__main__":
     unittest.main()

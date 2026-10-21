@@ -49,7 +49,9 @@ Then add up to 3 reserves per post ("reserve": true), best first: they replace a
 Return ONLY a JSON array, picks in the order they should appear, then the reserves:
 {{"i": <candidate i>, "post": "to_book" | "week", "reserve": true/false,
   "why": short French reason for the editor (why this one),
-  "line": the French line for the post: warm, factual, one sentence, the useful detail first}}
+  "line": the French line for the post: warm, factual, one sentence that says what you will see or do and
+          why it is worth going. The post already shows the name in bold, then day, time, place and price on
+          the line above: never repeat them, and never start with the event's name}}
 
 CANDIDATES:
 {candidates}

@@ -8,7 +8,9 @@ unless they matter.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 from . import editorial
@@ -154,28 +156,25 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
             return block.split("\n")
         end = _parse_start(e.get("end")) if e.get("end") else None
         if start < now.replace(hour=0, minute=0, second=0, microsecond=0) and end:
-            when = f"jusqu'au {end.day}/{end.month:02d}"  # already running
+            when = f"Jusqu'au {_day(end, weekday=False)}"  # already running
         else:
-            when = DAYS[start.weekday()] + f" {start.day}" + (f" à {start.hour}h{start.minute:02d}".replace("h00", "h") if start.hour else "")
-        where = e.get("venue") or e.get("town") or ""
-        free = (e.get("review") or {}).get("free")
-        icon = "🆓" if free is True else "🎟️" if free is False else "📍"
-        page = post_link(e)
-        return ([f"{icon} *{e['title'].strip()}* · {when}{' · ' + where.title() if where.isupper() and len(where) > 6 else ' · ' + where if where else ''}", f"   {line}"]
-                + ([f"   👉 {page}"] if page else []))
+            when = _day(start)
+        link = post_link(e) or clean_url(e.get("url"))
+        return event_block(e, when, line, channel, f"🔗 {link}" if link else None)
 
+    channel = next((p.get("channel") for p in selection or [] if p.get("channel")), "sorties")
     picks = picked(events, selection, "week")
     if picks is not None:
         if not picks:
             return None
-        channel = next((p.get("channel") for p in selection or [] if p.get("channel")), "sorties")
         title = CHANNELS.get(channel, CHANNELS["sorties"])["week_title"]
         found = sum(1 for x in rows if accepts(channel, x[3])) if channel in CHANNELS else len(rows)
-        lines = [f"{title} · notre sélection parmi {found} {'idées' if channel in ('bonsplans', 'nature') else 'sorties'} repérées", ""]
-        for e, line in picks:
-            start = _parse_start(e.get("start"))
-            if start:
-                lines += ([""] if len(lines) > 2 else []) + entry((None, None, start, e, line))
+        kind = "idées" if channel in ("bonsplans", "nature") else "sorties"
+        lines = [title, f"_Sans réservation. {len(picks)} {kind} choisies parmi les {found} repérées cette semaine._"]
+        dated = [(e, line, _parse_start(e.get("start"))) for e, line in picks]
+        # Day by day: what is already running (exhibitions) first, then in date order.
+        for e, line, start in sorted((x for x in dated if x[2]), key=lambda x: x[2]):
+            lines += [""] + entry((None, None, start, e, line))
         return "\n".join(lines)
 
     lines = [f"🎭 *Cette semaine à Grenoble* · {len(rows)} sorties repérées, dont {free_total} gratuites", "", "⭐ *Les immanquables*"]
@@ -220,10 +219,76 @@ def alerts_post(alerts: list[dict], now: datetime) -> str | None:
     return "\n".join(lines)
 
 
+MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+# Venues some agendas give that are the publisher, not the place: the town says more.
+NOT_A_PLACE = re.compile(r"office de tourisme|grenoble[- ]alpes métropole|^ville de\b", re.I)
+TRACKING = re.compile(r"^(?:utm_\w+|fbclid|gclid|mc_\w+|_ga|ref|xtor)$", re.I)
+
+
+def _calm(text: str) -> str:
+    """Without the shouting some agendas use."""
+    text = re.sub(r"\s+", " ", text or "").strip()
+    return text.title() if sum(c.isupper() for c in text) > 0.6 * max(1, sum(c.isalpha() for c in text)) and len(text) > 6 else text
+
+
+def title_of(e: dict) -> str:
+    """The event's name as the post shows it, in bold: calm, capitalised, spaced."""
+    t = _calm(e.get("title") or "")
+    t = re.sub(r"\s*/\s*", " / ", t)
+    # "vide grenier de voiron" gets its capital; "oiZo" is spelled that way on purpose.
+    return t[:1].upper() + t[1:] if not any(c.isupper() for c in t) else t
+
+
 def _place(e: dict) -> str:
-    """Venue or town, without the shouting some agendas use."""
-    where = (e.get("venue") or e.get("town") or "").strip()
-    return where.title() if where.isupper() and len(where) > 6 else where
+    """Venue and town ("L'Atrium, Fontanil-Cornillon"), the town alone when the venue is the publisher."""
+    venue, town = _calm(e.get("venue") or ""), _calm(e.get("town") or "")
+    if NOT_A_PLACE.search(venue):
+        venue = ""
+    # "Gymnase du Chamandier, 51, Rue de la Gare, Gieres": the place's name is enough.
+    venue = re.sub(r"\s*\([^)]{20,}\)", "", venue.split(",")[0]).strip()
+    if venue and town and town.lower() not in venue.lower() and town.lower() != "grenoble":
+        return f"{venue}, {town}"
+    return venue or town
+
+
+def clean_url(url: str | None) -> str | None:
+    """The source link without its tracking tail (utm_…), so a post is not half made of link."""
+    if not url:
+        return None
+    parts = urlsplit(url.strip())
+    query = urlencode([(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if not TRACKING.match(k)])
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, query, ""))
+
+
+def _day(d: datetime, weekday: bool = True) -> str:
+    """"Lundi 23 nov. · 12h15", or without the time when the source gives none."""
+    out = (DAYS[d.weekday()].capitalize() + " " if weekday else "") + f"{d.day}{'er' if d.day == 1 else ''} {MONTHS[d.month - 1]}"
+    return out + (f" · {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour or d.minute else "")
+
+
+def short_price(e: dict) -> str:
+    """"Gratuit", "12 €", "8–15 €", or nothing: agendas paste whole fare tables."""
+    r = e.get("review") or {}
+    if (r.get("free") if r.get("free") is not None else e.get("free")) is True:
+        return "Gratuit"
+    raw = str(e.get("price") or "")
+    amounts = sorted({float(a.replace(",", ".")) for a in re.findall(r"(\d+(?:[.,]\d+)?)\s*€", raw)})
+    fmt = lambda x: f"{x:g}".replace(".", ",")  # noqa: E731
+    if not amounts:
+        return ""
+    return f"{fmt(amounts[0])} €" if len(amounts) == 1 else f"{fmt(amounts[0])}–{fmt(amounts[-1])} €"
+
+
+def event_block(e: dict, when: str, line: str, channel: str | None, action: str | None) -> list[str]:
+    """One event of a post: the name in bold, then when · where · price, our line, the link.
+
+    The price is left out in the free group, where everything is free."""
+    price = "" if channel == "gratuit" else short_price(e)
+    meta = " · ".join(x for x in (when, _place(e), price) if x)
+    out = [f"*{title_of(e)}*", meta]
+    if line and line.strip() != title_of(e):
+        out.append(line.strip())
+    return out + ([action] if action else [])
 
 
 def _short_day(d: datetime) -> str:
@@ -258,26 +323,24 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
         rows.sort(key=lambda x: (x[0], x[1], x[2]))
     if not rows:
         return None
-    lines = ["📅 *À réserver maintenant*", "_Ce qui part vite : les places se prennent avant le jour J._", ""]
-    for opens_first, start, _, e, line in rows[:limit]:
-        r = e.get("review") or {}
-        icon = "🆓" if (r.get("free") if r.get("free") is not None else e.get("free")) is True else "🎟️"
-        where = _place(e)
-        if lines[-1]:
-            lines.append("")
+    channel = next((p.get("channel") for p in selection or [] if p.get("channel")), None)
+    lines = (["📅 *À noter dès maintenant*", "_Les dates à retenir des prochaines semaines._"] if channel == "bonsplans" else
+             ["📅 *À réserver maintenant*", "_Les places partent avant le jour J : on vous prévient tant qu'il en reste._"])
+    # In date order, the way people read a week; the board decides which lines, not their order.
+    for opens_first, start, _, e, line in sorted(rows[:limit], key=lambda x: x[1]):
+        lines.append("")
         block = (e.get("decision") or {}).get("block")
         if block:  # edited by hand in the board's preview: sent as written
             lines.append(block)
             continue
-        lines.append(f"{icon} *{e['title'].strip()}* · {_short_day(start)}{' · ' + where if where else ''}")
-        if line:
-            lines.append(f"   {line}")
         opens = _parse_start(e.get("booking_opens")) if e.get("booking_opens") else None
         deadline = _parse_start(e.get("booking_deadline")) if e.get("booking_deadline") else None
         # The event's page on the site when links are on (site.py, off by default), else the source.
-        link = post_link(e) or e.get("booking_url") or e.get("url")
+        link = post_link(e) or clean_url(e.get("booking_url") or e.get("url"))
         if opens and opens.date() > today:
-            lines.append(f"   ⏰ Réservations dès {_short_day(opens)}{' : ' + link if link else ''}")
+            action = f"⏰ Réservations dès {_day(opens).lower()}{' : ' + link if link else ''}"
         else:
-            lines.append(f"   👉 Réserver{' avant ' + _short_day(deadline) if deadline else ''}{' : ' + link if link else ''}")
+            verb = "Infos" if channel == "bonsplans" else "Réserver"
+            action = f"👉 {verb}{' avant ' + _day(deadline).lower() if deadline else ''}{' : ' + link if link else ''}"
+        lines += event_block(e, _day(start), line, channel, action)
     return "\n".join(lines)
