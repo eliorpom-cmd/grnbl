@@ -56,19 +56,6 @@ def _days_between(start, end) -> str:
     return " ".join(days)
 
 
-def vocabulary(events: list[dict]) -> dict[str, int]:
-    """How many events use each word, over all titles and descriptions of the edition:
-    ordinary words ("propose", "soirée") are everywhere, an invented detail ("texan") is not."""
-    count: dict[str, int] = {}
-    for e in events:
-        for w in set(norm(f"{e.get('title') or ''} {e.get('description') or ''}").split()):
-            count[w] = count.get(w, 0) + 1
-    return count
-
-
-RARE = 3  # used by fewer events than this: a specific detail, checked like a name
-
-
 def _found(word: str, hay: str) -> bool:
     """The word, or one of the same family ("archivistes" for "archiviste", "festive" for "festival")."""
     if f" {word} " in hay:
@@ -96,12 +83,10 @@ def wrong_weekdays(line: str, year: int) -> list[str]:
     return out
 
 
-def unverified(line: str, hay: str, vocab: dict[str, int] | None = None) -> list[str]:
-    """Names, rare words and numbers of the line that appear nowhere in the event's facts or page."""
+def unverified(line: str, hay: str) -> list[str]:
+    """Names and numbers of the line that appear nowhere in the event's facts or page."""
     out = []
     words = [p for w in WORD.findall(line or "") for p in norm(w).split()]
-    if vocab is not None:
-        words += [w for w in norm(line).split() if len(w) > 3 and not w.isdigit() and vocab.get(w, 0) < RARE]
     for part in words:
         if len(part) > 2 and part not in COMMON and not _found(part, hay) and part not in out:
             out.append(part)

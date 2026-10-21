@@ -19,7 +19,7 @@ from datetime import date
 from pathlib import Path
 
 from .. import editorial, memory
-from .extract import ask, parse_array
+from .extract import ask
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 

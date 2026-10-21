@@ -269,7 +269,7 @@ def index_page(day: date, items: list[dict], s: dict, has_og: bool) -> str:
     from .channels import CHANNELS
 
     esc = html.escape
-    body = [f"<h1>Cette semaine à Grenoble</h1>",
+    body = ["<h1>Cette semaine à Grenoble</h1>",
             f'<p class="lede">Édition du {esc(when(day.isoformat(), with_year=True))} · {len({slug(x["event"]) for x in items})} sorties, '
             "triées à la main parmi les agendas de la ville.</p>"]
     if not items:

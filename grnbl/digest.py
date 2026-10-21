@@ -259,7 +259,7 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
     if not rows:
         return None
     lines = ["📅 *À réserver maintenant*", "_Ce qui part vite : les places se prennent avant le jour J._", ""]
-    for opens_first, start, _, e, line in rows[:limit]:
+    for _, start, _, e, line in rows[:limit]:
         r = e.get("review") or {}
         icon = "🆓" if (r.get("free") if r.get("free") is not None else e.get("free")) is True else "🎟️"
         where = _place(e)
