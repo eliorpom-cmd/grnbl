@@ -265,8 +265,13 @@ Deploying on Cloudflare Pages (direct upload, no build step):
   The fix at scale is the official WhatsApp Business Platform with channels.
 - **The Mac is the server.** If it is off at 10:00 on Tuesday or at a sending slot, that work waits for the next
   hourly pass.
-- **Scraping.** Most agendas have no API; a site redesign breaks its extraction until the source line is
-  adjusted. Le Petit Bulletin's Grenoble agenda and Chamrousse's (JavaScript only) are not read.
+- **Scraping.** Most agendas have no API, so grnbl reads their public pages, politely (`grnbl/scrape/fetch.py`):
+  it says who it is (`grnbl/0.1`, with this repo's link, no browser disguise), follows each site's `robots.txt`
+  and its Crawl-delay, waits at least a second between two pages of the same site, and keeps a copy so a page
+  is not downloaded twice. On 21 October none of the 45 sites disallowed the pages read. grnbl keeps facts
+  (date, place, price, booking link) and writes its own line; it never republishes a site's text or photos, and
+  every line links back to the source. A site redesign breaks its extraction until the source line is adjusted.
+  Le Petit Bulletin's Grenoble agenda and Chamrousse's (JavaScript only) are not read.
 - **The AI can embellish a line.** The fact-check and the human read are there for that; one real error in the
   18 October audit (a wrong weekday) led to the weekday check.
 - **French only** for the posts. Fuel and alerts are not translated.
