@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>grnbl · pipeline</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  .head { position: absolute; left: 160px; top: 110px; }
+  .head h1 { font-size: 84px; margin-top: 18px; }
+  #cloud { position: absolute; left: 160px; right: 160px; top: 330px; height: 560px; }
+  .chip { position: absolute; padding: 10px 20px; border-radius: 99px; background: #F4F4F6; color: #121212;
+    font-size: 25px; font-weight: 600; white-space: nowrap; border: 3px solid #121212; }
+  #cable { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  .stage { position: absolute; top: 470px; width: 290px; height: 330px; padding: 30px 28px; border-radius: 34px;
+    background: #F4F4F6; color: #121212; border: 6px solid #121212; box-shadow: 10px 10px 0 #121212; }
+  .stage .big { font-size: 78px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
+  .stage .big.s { font-size: 64px; white-space: nowrap; padding: 7px 0; }
+  .stage .lab { font-size: 27px; font-weight: 600; line-height: 1.2; margin-top: 14px; letter-spacing: -.01em; }
+  .stage .tags { position: absolute; left: 24px; bottom: 26px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .stage .tag { font-size: 21px; padding: 5px 13px; border-width: 3px; }
+  .foot { position: absolute; left: 160px; bottom: 40px; font-size: 30px; color: rgba(244,244,246,.8); font-weight: 500; }
+</style></head>
+<body>
+<div class="head"><p class="k">How it works</p><h1 id="h"></h1></div>
+<div id="cloud"></div>
+<svg id="cable" viewBox="0 0 1920 1080"></svg>
+<div id="stages"></div>
+<p class="foot" id="foot"></p>
+<script src="content.js"></script>
+<script src="common.js"></script>
+<script>
+const R = CONTENT.run, DURATION = 19;
+document.getElementById("h").textContent = `${R.sources} public sources in, ${R.groups} WhatsApp posts out`;
+document.getElementById("foot").textContent = `Full run on real data, ${R.date}: ${R.minutes} minutes.`;
+
+// The source cloud: rows of chips, measured once, laid out left to right.
+const cloud = document.getElementById("cloud");
+const chips = CONTENT.sources.map(name => { const c = document.createElement("span"); c.className = "chip"; c.textContent = name; cloud.appendChild(c); return c; });
+let x = 0, y = 0;
+const W = 1600, ROW = 74;
+const pos = chips.map(c => { const w = c.offsetWidth + 14; if (x + w > W) { x = 0; y += ROW; } const p = { x, y }; x += w; return p; });
+// Center the block vertically in its area.
+const shiftY = (560 - (y + ROW)) / 2;
+pos.forEach((p, i) => { p.y += shiftY; chips[i].style.left = p.x + "px"; chips[i].style.top = p.y + "px"; });
+
+// The five stages, left to right, joined by the cable.
+const STAGES = [
+  { big: fmt(R.events), lab: "events read from the sources", tags: [["code", ""], ["Claude Haiku", "ai"]] },
+  { big: "On time", small: true, lab: "too late to book? not posted", tags: [["code", ""]] },
+  { big: fmt(R.kept), lab: "kept after the AI review", tags: [["Claude Sonnet", "ai"]] },
+  { big: "≈" + R.linesPerGroup, lab: "lines per group, fact-checked", tags: [["Claude Sonnet", "ai"], ["code", ""]] },
+  { big: String(R.groups), lab: "posts, after a human check", tags: [["human", "human"]] },
+];
+const X0 = 123, GAP = 56, SW = 290, CY = 890, MID = 635;
+const stages = STAGES.map((s, i) => {
+  const d = document.createElement("div"); d.className = "stage"; d.style.left = (X0 + i * (SW + GAP)) + "px";
+  d.innerHTML = `<div class="big num${s.small ? " s" : ""}">${s.big}</div><div class="lab">${s.lab}</div><div class="tags">${s.tags.map(([t, c]) => `<span class="tag ${c}">${t}</span>`).join("")}</div>`;
+  document.getElementById("stages").appendChild(d); return d;
+});
+const cx = i => X0 + i * (SW + GAP) + SW / 2;
+const svg = document.getElementById("cable"), NS = "http://www.w3.org/2000/svg";
+const mk = (tag, a) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); svg.appendChild(e); return e; };
+const stems = STAGES.map((_, i) => mk("line", { x1: cx(i), y1: 806, x2: cx(i), y2: CY, stroke: C.ink, "stroke-width": 8, opacity: 0 }));
+const wire = mk("line", { x1: cx(0), y1: CY, x2: cx(0), y2: CY, stroke: C.ink, "stroke-width": 8, "stroke-linecap": "round" });
+// Dots travelling between stages, fewer and fewer: the funnel.
+const FLOW = [6, 5, 3, 2];
+const dots = FLOW.map(n => [...Array(n)].map(() => mk("circle", { r: 13, fill: C.lime, stroke: C.ink, "stroke-width": 5, opacity: 0 })));
+
+const T_CLOUD = 0.3, T_FLY = 3.6, T_STAGE = 4.6, STEP = 2.3;
+function frame(t) {
+  show(document.querySelector(".head"), easeOut(span(t, 0, .6)));
+  // Cloud: pop in one by one, then fly into the first stage.
+  const fly = easeInOut(span(t, T_FLY, 1.1));
+  chips.forEach((c, i) => {
+    const k = pop(span(t, T_CLOUD + i * 0.06, .45));
+    const tx = lerp(0, cx(0) - 160 - pos[i].x - c.offsetWidth / 2, fly);
+    const ty = lerp(0, MID - 330 - pos[i].y - 20, fly);
+    c.style.opacity = Math.min(k, 1 - span(t, T_FLY + .7, .4));
+    c.style.transform = `translate(${tx}px, ${ty}px) scale(${Math.max(0, k) * lerp(1, .3, fly)})`;
+  });
+  // Stages appear one after the other; the wire grows to the last one shown.
+  let reach = cx(0);
+  stages.forEach((s, i) => {
+    const k = span(t, T_STAGE + i * STEP, .5);
+    s.style.opacity = clamp(k * 2);
+    s.style.transform = `scale(${pop(k) * .15 + .85 * (k > 0 ? 1 : 0)})`;
+    stems[i].setAttribute("opacity", clamp(k * 2));
+    if (k > 0) reach = Math.max(reach, lerp(cx(Math.max(0, i - 1)), cx(i), easeOut(clamp(k * 1.6))));
+  });
+  wire.setAttribute("x2", reach);
+  wire.style.opacity = span(t, T_STAGE, .3);
+  // Flow on each segment once its right-hand stage is there.
+  FLOW.forEach((n, seg) => {
+    const on = span(t, T_STAGE + (seg + 1) * STEP + .2, .4);
+    dots[seg].forEach((d, j) => {
+      const k = ((t * .45 + j / n) % 1);
+      d.setAttribute("cx", lerp(cx(seg), cx(seg + 1), k));
+      d.setAttribute("cy", CY);
+      // Fade at both ends of the gap so dots seem to come out of and go into the cards.
+      d.setAttribute("opacity", on * clamp(Math.min(k, 1 - k) * 8));
+    });
+  });
+  const foot = document.getElementById("foot");
+  show(foot, easeOut(span(t, T_STAGE + 4 * STEP + .6, .6)), 16);
+}
+</script>
+</body></html>
