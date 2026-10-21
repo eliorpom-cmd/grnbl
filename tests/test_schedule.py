@@ -11,9 +11,13 @@ class Week(unittest.TestCase):
         self.assertEqual(schedule.edition_for(date(2026, 10, 20)), date(2026, 10, 21))
 
     def test_each_group_sends_on_its_day(self):
-        edition = date(2026, 10, 21)
-        self.assertEqual(schedule.send_time(edition, schedule.slot_of("sorties")), datetime(2026, 10, 21, 12, 0))
-        self.assertEqual(schedule.send_time(edition, schedule.slot_of("nature")), datetime(2026, 10, 22, 18, 0))
+        edition = date(2026, 10, 28)
+        self.assertEqual(schedule.send_time(edition, schedule.slot_of("sorties")), datetime(2026, 10, 28, 12, 0))
+        self.assertEqual(schedule.send_time(edition, schedule.slot_of("nature")), datetime(2026, 10, 29, 18, 0))
+
+    def test_a_moved_slot_sends_at_its_new_time_that_week_only(self):
+        self.assertEqual(schedule.send_time(date(2026, 10, 21), schedule.slot_of("sorties")), datetime(2026, 10, 21, 18, 0))
+        self.assertEqual(schedule.send_time(date(2026, 10, 21), schedule.slot_of("nature")), datetime(2026, 10, 22, 18, 0))
 
     def test_posts_are_written_for_their_sending_day(self):
         self.assertEqual(schedule.channel_day(date(2026, 10, 21), "bonsplans"), date(2026, 10, 22))
