@@ -10,6 +10,7 @@ editor (editor.py) then picks the best of what each group accepts.
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 BARGAIN = re.compile(r"vide[- ]?grenier|brocante|braderie|bourse (?:aux|au|à|de)|\btroc\b|vente (?:solidaire|de livres|"
                      r"au déballage|de jouets)|déstockage|\bpuces\b|ressourcerie|recyclerie|foire aux|vide[- ]?dressing|"
@@ -62,16 +63,22 @@ def outdoors(e: dict) -> bool:
 
 
 def home(e: dict) -> str:
+    return _home(e.get("title") or "", e.get("description") or "", e.get("venue") or "", e.get("category"), is_free(e))
+
+
+@lru_cache(maxsize=8192)
+def _home(title: str, description: str, venue: str, category: str | None, free: bool | None) -> str:
     """The one group an event belongs to. Theme groups first, from the most specific: a toy swap is a
     bargain before it is for families, a children's Halloween trail is for families before it is outdoors.
     What fits no theme goes to Gratuit when it is free, else to Sorties."""
+    e = {"title": title, "description": description, "venue": venue, "category": category}
     if is_bargain(e):
         return "bonsplans"
     if for_families(e):
         return "famille"
     if outdoors(e):
         return "nature"
-    return "gratuit" if is_free(e) is True else "sorties"
+    return "gratuit" if free is True else "sorties"
 
 
 CHANNELS = {

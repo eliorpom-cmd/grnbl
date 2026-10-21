@@ -18,6 +18,7 @@ import os
 import re
 import secrets
 import sys
+import threading
 from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -201,28 +202,40 @@ def save_review(day: date, state: dict) -> None:
 # Posted every day for that day, outside the weekly editions.
 DAILY = ("carburant", "infos")
 _FUEL: dict = {}
+_ALERTS: dict = {}
+
+
+def _kept_fresh(cache: dict, now: datetime, compute) -> str | None:
+    """The last text at once, refreshed in the background every ten minutes: reading fuel prices and
+    weather can take many seconds, and the board must never wait on them to show the edition."""
+    if not cache.get("busy") and (not cache or (now - cache["at"]).total_seconds() > 600):
+        cache["busy"] = True
+
+        def refresh():
+            try:
+                cache["text"] = compute(now)
+            finally:
+                cache.update(at=now, busy=False)
+        threading.Thread(target=refresh, daemon=True).start()
+    return cache.get("text")
+
+
+def _fuel_text(now: datetime) -> str | None:
+    try:
+        return fuel_post(fuel.collect(), now)
+    except Exception as e:  # noqa: BLE001 - the board still shows the outings
+        return f"(fuel prices unavailable: {e})"
 
 
 def fuel_cached(now: datetime) -> str | None:
     """The fuel post, fetched at most every ten minutes: the board refreshes posts after each decision."""
-    if not _FUEL or (now - _FUEL["at"]).total_seconds() > 600:
-        try:
-            text = fuel_post(fuel.collect(), now)
-        except Exception as e:  # noqa: BLE001 - the board still shows the outings
-            text = f"(fuel prices unavailable: {e})"
-        _FUEL.update(at=now, text=text)
-    return _FUEL["text"]
-
-
-_ALERTS: dict = {}
+    return _kept_fresh(_FUEL, now, _fuel_text)
 
 
 def alerts_cached(now: datetime) -> str | None:
-    """The practical alerts post, fetched at most every ten minutes, like the fuel one."""
-    if not _ALERTS or (now - _ALERTS["at"]).total_seconds() > 600:
-        # A source that cannot be read is left out: this text is what gets published.
-        _ALERTS.update(at=now, text=alerts_post(alerts.collect(now)[0], now))
-    return _ALERTS["text"]
+    """The practical alerts post, fetched at most every ten minutes, like the fuel one.
+    A source that cannot be read is left out: this text is what gets published."""
+    return _kept_fresh(_ALERTS, now, lambda at: alerts_post(alerts.collect(at)[0], at))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -281,7 +294,7 @@ class Handler(BaseHTTPRequestHandler):
             for cid, c in CHANNELS.items():
                 sel = [p for p in selection or [] if p.get("channel", "sorties") == cid] if selection is not None else None
                 mine = choices.get(cid, {})
-                used = publish.apply_choices(sel, {cid: mine}) if sel is not None else None
+                used = publish.in_their_group(data, publish.apply_choices(sel, {cid: mine})) if sel is not None else None
                 at = publish.read_at(self.day, cid, now)
                 live = {post: [e["i"] for e, _ in picked(data, used, post) or []] for post in ("to_book", "week")}
                 texts = [(post, write(data, at, selection=used)) for post, write in publish.POSTS]
