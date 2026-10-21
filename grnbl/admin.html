@@ -34,7 +34,8 @@
 
   /* Top bar */
   .top { height: 52px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-bottom: 1px solid var(--line); }
-  .brand { font-weight: 650; letter-spacing: -.02em; font-size: 16px; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -.02em; font-size: 16px; }
+  .brand img { width: 24px; height: 24px; border-radius: 7px; }
   .day { color: var(--mute); }
   .seg { display: flex; background: var(--hover); border-radius: 8px; padding: 2px; }
   .seg button { border: 0; background: none; padding: 4px 14px; border-radius: 6px; color: var(--body); white-space: nowrap; transition: background .18s var(--ease), color .18s var(--ease); }
@@ -45,6 +46,7 @@
   /* Groups strip, shared by both tabs: which group, how far */
   .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
   .chips::-webkit-scrollbar { display: none; }
+  .rv-head .chips { flex-wrap: wrap; overflow: visible; }
   .chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); white-space: nowrap; transition: background .15s var(--ease), border-color .15s var(--ease); }
   .chip small { color: var(--mute); font-size: 12px; }
   .chip.on { border-color: var(--ink); color: var(--ink); font-weight: 600; }
@@ -108,7 +110,7 @@
   .stamp.keep { right: 22px; color: var(--keep); transform: rotate(6deg); }
   .stamp.drop { left: 22px; color: var(--drop); transform: rotate(-6deg); }
   .stamp.later { left: 50%; color: var(--warn); transform: translateX(-50%); }
-  .rv-acts { display: flex; align-items: center; justify-content: center; gap: 28px; margin: 28px 0 0; }
+  .rv-acts { display: flex; align-items: flex-end; justify-content: center; gap: 28px; margin: 28px 0 0; }
   .rv-btn { display: grid; justify-items: center; gap: 6px; border: 0; background: none; color: var(--mute); font-size: 12px; font-weight: 500; }
   .rv-btn span { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; background: var(--panel); border: 1px solid var(--line);
     box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 6px 16px rgba(0, 0, 0, .06); transition: transform .15s var(--ease), background .15s var(--ease), color .15s var(--ease); }
@@ -167,6 +169,7 @@
 
   /* Phone: one column, the details under the card */
   @media (max-width: 900px) {
+    .rv-head .chips { flex-wrap: nowrap; overflow-x: auto; }
     html, body { height: auto; }
     kbd, .rv-keys, .day { display: none; }
     .top { position: sticky; top: 0; z-index: 5; gap: 10px; padding: 8px 16px; padding-top: max(8px, env(safe-area-inset-top)); height: auto; min-height: 52px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(12px); }
@@ -185,7 +188,7 @@
 </head>
 <body>
 <header class="top">
-  <span class="brand">grnbl</span>
+  <span class="brand"><img src="data:image/png;base64,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" alt="">grnbl</span>
   <span class="day" id="day"></span>
   <div class="seg" id="views">
     <button data-v="review" class="on"></button>
@@ -401,10 +404,10 @@ function renderReview() {
       <div class="rv-bar"><i style="transform:scaleX(${checked + left ? checked / (checked + left) : 1})"></i></div></div>
     <div class="stack">${behind.map((_, k) => `<div class="rcard ${k ? "back2" : "back1"}"></div>`).reverse().join("")}${q ? card(q, "front" + (rv.anim ? " enter" : "")) : ""}</div>
     ${isCard ? `<div class="rv-acts">
+      <button class="rv-btn undo" data-rv="undo" ${rv.done.length ? "" : "disabled"}><span>${UNDO}</span>${L("Undo", "Annuler")}</button>
       <button class="rv-btn drop" data-rv="drop"><span>✕</span>${L("Remove", "Retirer")}</button>
       ${q.kind === "line" ? `<button class="rv-btn later" data-rv="later"><span>?</span>${L("Check later", "À vérifier")}</button>` : ""}
       <button class="rv-btn keep" data-rv="keep"><span>✓</span>${L("Keep", "Garder")}</button></div>
-      <div class="rv-acts" style="margin-top:14px"><button class="rv-btn undo" data-rv="undo" ${rv.done.length ? "" : "disabled"}><span>${UNDO}</span>${L("Undo", "Annuler")}</button></div>
       <div class="rv-keys"><span><kbd>←</kbd> ${L("remove", "retirer")}</span>${q.kind === "line" ? `<span><kbd>↓</kbd> ${L("check later", "à vérifier")}</span>` : ""}<span><kbd>→</kbd> ${L("keep", "garder")}</span><span><kbd>Z</kbd> ${L("undo", "annuler")}</span></div>`
       : rv.done.length ? `<div class="rv-acts"><button class="rv-btn undo" data-rv="undo"><span>${UNDO}</span>${L("Undo", "Annuler")}</button></div>` : ""}`;
   const front = $("rv-main").querySelector(".rcard.front");
