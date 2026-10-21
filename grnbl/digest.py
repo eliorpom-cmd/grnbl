@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from . import editorial
 from .channels import CHANNELS, accepts
 from .items import Item
+from .site import post_link
 
 PARIS = ZoneInfo("Europe/Paris")
 DAYS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
@@ -156,7 +157,9 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
         where = e.get("venue") or e.get("town") or ""
         free = (e.get("review") or {}).get("free")
         icon = "🆓" if free is True else "🎟️" if free is False else "📍"
-        return [f"{icon} *{e['title'].strip()}* · {when}{' · ' + where.title() if where.isupper() and len(where) > 6 else ' · ' + where if where else ''}", f"   {line}"]
+        page = post_link(e)
+        return ([f"{icon} *{e['title'].strip()}* · {when}{' · ' + where.title() if where.isupper() and len(where) > 6 else ' · ' + where if where else ''}", f"   {line}"]
+                + ([f"   👉 {page}"] if page else []))
 
     picks = picked(events, selection, "week")
     if picks is not None:
@@ -264,7 +267,8 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
             lines.append(f"   {line}")
         opens = _parse_start(e.get("booking_opens")) if e.get("booking_opens") else None
         deadline = _parse_start(e.get("booking_deadline")) if e.get("booking_deadline") else None
-        link = e.get("booking_url") or e.get("url")
+        # The event's page on the site when links are on (site.py, off by default), else the source.
+        link = post_link(e) or e.get("booking_url") or e.get("url")
         if opens and opens.date() > today:
             lines.append(f"   ⏰ Réservations dès {_short_day(opens)}{' : ' + link if link else ''}")
         else:

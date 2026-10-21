@@ -1,0 +1,33 @@
+{
+ "day": "2026-10-21",
+ "events": [
+  {"title": "Tour Perret : visite des 95 mètres", "start": "2026-10-25T10:00", "venue": "Parc Paul-Mistral",
+   "town": "Grenoble", "price": "Gratuit", "booking": "required", "booking_url": "https://example.org/perret/reserver",
+   "booking_deadline": "2026-10-24", "url": "https://example.org/perret",
+   "description": "SOURCE TEXT that must never be copied onto the site.",
+   "review": {"free": true, "score": 5, "keep": true, "line": "Le belvédère est ouvert un seul week-end."},
+   "decision": {"status": "keep"}},
+  {"title": "Bourse aux skis de Meylan", "start": "2026-10-24T09:00", "end": "2026-10-24T17:00",
+   "venue": "SALLE DES FÊTES DE MEYLAN", "town": "Meylan", "url": "https://example.org/skis",
+   "review": {"free": true, "score": 4, "keep": true}, "decision": {"status": "keep"}},
+  {"title": "Les Rencontres <Ciné> Montagne", "start": "2026-10-22", "end": "2026-10-31",
+   "venue": "Le Summum", "town": "Grenoble", "price": "8 €", "url": "https://example.org/cine",
+   "review": {"free": false, "score": 4, "keep": true}, "decision": null},
+  {"title": "Atelier dessin famille", "start": "2026-10-28T14:30", "town": "Échirolles",
+   "dates": ["2026-10-28T14:30", "2026-10-29T14:30", "2026-10-30T14:30"],
+   "booking": "required", "booking_opens": "2026-10-26T09:00", "url": "https://example.org/atelier",
+   "review": {"free": true, "score": 3, "keep": true}, "decision": null},
+  {"title": "Concert retiré par l'humain", "start": "2026-10-23T20:00", "town": "Grenoble",
+   "url": "https://example.org/retire", "review": {"free": true, "score": 4, "keep": true},
+   "decision": {"status": "drop"}}
+ ],
+ "selection": [
+  {"i": 0, "post": "to_book", "channel": "gratuit", "line": "Dimanche à 10 h, montez en haut de la *tour Perret* : un seul week-end par an."},
+  {"i": 4, "post": "week", "channel": "gratuit", "line": "Retiré."},
+  {"i": 1, "post": "week", "channel": "bonsplans", "line": "Le rendez-vous des skis d'occasion avant l'hiver."},
+  {"i": 2, "post": "week", "channel": "sorties", "line": "Dix jours de films de montagne au Summum.",
+   "zoom": {"what": "Projection « Les Écrins à pied »", "when": "2026-10-24T20:30", "where": "Le Summum", "free": false}},
+  {"i": 3, "post": "to_book", "channel": "famille", "line": "Un atelier dessin pour les 6-10 ans."},
+  {"i": 0, "post": "to_book", "channel": "sorties", "line": "Le belvédère de la tour Perret rouvre."}
+ ]
+}
