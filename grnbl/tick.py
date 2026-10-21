@@ -41,6 +41,10 @@ def fuel(now: datetime) -> None:
         return
     for name, what in publish.run(today, send=True, only=["carburant"]):
         print(f"fuel: {name} {what}")
+        key = f"to-post-fuel-{today}"
+        if what == "à poster à la main" and not schedule.state().get(key):
+            notify.ping(notify.to_post(["⛽ Carburant"]))
+            schedule.remember(key)
 
 
 def check_alerts(now: datetime) -> None:
@@ -129,6 +133,9 @@ def send_slots(now: datetime) -> None:
             out = sorted({CHANNELS[n.split('-')[0]]["label"] for n, w in report if w == "envoyé"})
             if out:
                 notify.ping(f"✅ *grnbl* · envoyé : {', '.join(out)}")
+            by_hand = sorted({CHANNELS[n.split('-')[0]]["label"] for n, w in report if w == "à poster à la main"})
+            if by_hand:
+                notify.ping(notify.to_post(by_hand))
             if unapproved:
                 notify.ping(notify.not_sent(unapproved, at))
             schedule.remember(done_key)

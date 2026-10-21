@@ -542,9 +542,12 @@ $("rv-main").addEventListener("click", async (ev) => {
 // ---------- Messages: each group's chat, every line's block editable in place ----------
 function sendButton(c, ready) {
   const out = Object.values(c.outbox || {}), sent = out.filter((r) => r.status === "sent"), failed = out.find((r) => r.status === "failed");
-  if (out.length && sent.length === out.length) return `<span class="ok-note">${L("Sent at", "Envoyé à")} ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
+  if (out.length && sent.length === out.length) return `<span class="ok-note">${sent[0].by_hand ? L("Posted at", "Posté à") : L("Sent at", "Envoyé à")} ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
   const at = c.sends_at ? new Date(c.sends_at) : null;
   if (!ready) return at ? `<span>${L("Goes out", "Part")} ${esc(sendTime(c.sends_at))} ${L("once every line is checked", "une fois toutes les lignes vérifiées")}</span>` : "";
+  // Posted by hand (publish.AUTO_SEND off): Copy each message into the group, then say it is done.
+  if (!data.auto_send) return `${at && at > new Date() ? `<span>${L("Approved · post it", "Validé · à poster")} ${esc(sendTime(c.sends_at))}</span>` : ""}
+    <button class="btn send" data-act="publish">${L("I posted it", "J'ai posté")}</button>`;
   if (at && at > new Date()) return `<span class="ok-note">${L("Approved · goes out", "Validé · part")} ${esc(sendTime(c.sends_at))} ✓</span>`;
   if (!c.linked) return `<button class="btn" disabled>${L("Group not linked yet", "Groupe pas encore relié")}</button>`;
   return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? L("Retry sending", "Réessayer l'envoi") : L("Post to WhatsApp", "Publier sur WhatsApp")}</button>`;
@@ -602,9 +605,9 @@ $("msgs-in").addEventListener("click", async (ev) => {
     x.block = null; await decide(x, x.status, null); await load(); return renderMsgs();
   }
   if (act.dataset.act === "publish") {
-    act.disabled = true; act.textContent = L("Sending…", "Envoi…");
+    act.disabled = true; act.textContent = data.auto_send ? L("Sending…", "Envoi…") : L("Saving…", "Enregistrement…");
     const r = await (await post2("/api/publish", { channel })).json();
-    toast(r.failed?.length ? `${L("Failed", "Échec")} : ${r.failed[0]}` : L("Sent to WhatsApp", "Envoyé sur WhatsApp"));
+    toast(r.failed?.length ? `${L("Failed", "Échec")} : ${r.failed[0]}` : data.auto_send ? L("Sent to WhatsApp", "Envoyé sur WhatsApp") : L("Marked as posted", "Noté comme posté"));
     await load(); renderMsgs();
   }
 });

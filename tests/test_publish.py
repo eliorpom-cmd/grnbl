@@ -20,8 +20,9 @@ def item(channel, approved, title="Visite"):
 class Publish(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        # These tests cover the automatic sender; ManualPosting below covers the default.
         for target, name, value in ((publish, "DATA", self.tmp), (publish, "CONFIG", self.tmp / "whatsapp.json"),
-                                    (memory, "POSTED", self.tmp / "posted.json")):
+                                    (memory, "POSTED", self.tmp / "posted.json"), (publish, "AUTO_SEND", True)):
             p = mock.patch.object(target, name, value)
             p.start()
             self.addCleanup(p.stop)
@@ -81,6 +82,34 @@ class Publish(unittest.TestCase):
         sent = deliver.call_args.args[1]
         self.assertIn("Visite gratuite du fort.", sent)
         self.assertNotIn("ENGLISH", sent)
+
+
+class ManualPosting(unittest.TestCase):
+    """The default during the hackathon: the unofficial client never sends, Elior pastes by hand."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        for target, name, value in ((publish, "DATA", self.tmp), (publish, "CONFIG", self.tmp / "whatsapp.json"),
+                                    (memory, "POSTED", self.tmp / "posted.json"), (publish, "AUTO_SEND", False)):
+            p = mock.patch.object(target, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        (self.tmp / "whatsapp.json").write_text(json.dumps({"gratuit": "1@newsletter"}))
+
+    def test_nothing_is_sent_and_the_post_waits_for_a_human(self):
+        with mock.patch.object(publish, "deliver") as deliver:
+            report = dict(publish.run(DAY, send=True, items=[item("gratuit", True), item("sorties", False)]))
+        self.assertEqual(deliver.call_count, 0)
+        self.assertEqual(report["gratuit-week"], "à poster à la main")
+        self.assertEqual(publish.status(DAY)["gratuit"]["week"]["status"], "to_post")
+
+    def test_marked_posted_once_and_remembered(self):
+        publish.run(DAY, send=True, items=[item("gratuit", True), item("sorties", False)])
+        self.assertEqual(publish.mark_posted(DAY, "gratuit"), ["gratuit-week"])
+        self.assertEqual(publish.mark_posted(DAY, "gratuit"), [])
+        self.assertEqual(publish.mark_posted(DAY, "sorties"), [])  # not approved: never marked
+        self.assertTrue(publish.status(DAY)["gratuit"]["week"]["by_hand"])
+        self.assertIn("visite|2026-10-20", (self.tmp / "posted.json").read_text())
 
 
 if __name__ == "__main__":

@@ -65,6 +65,11 @@ def reminder(edition: date, labels: list[str], at: datetime) -> str:
             "Ouvre le tableau et appuie sur « Tout est bon », sinon le post ne part pas.")
 
 
+def to_post(labels: list[str]) -> str:
+    return (f"📤 *grnbl* · c'est l'heure : {', '.join(labels)}.\n"
+            "Tableau → Messages → Copier, colle dans le groupe WhatsApp, puis « J'ai posté ».")
+
+
 def not_sent(labels: list[str], at: datetime) -> str:
     return f"⚠️ *grnbl* · {', '.join(labels)} n'est pas parti {_when(at)} : pas validé à temps."
 

@@ -21,6 +21,7 @@ live in data/whatsapp.json, {"gratuit": "<id>@g.us", ...}, listed once by
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import date, datetime
@@ -147,11 +148,11 @@ def _path(day: date, item: dict) -> Path:
 
 
 def status(day: date) -> dict[str, dict[str, dict]]:
-    """What the outbox says per channel and post: status, sent_at, error."""
+    """What the outbox says per channel and post: status, sent_at, error, by_hand."""
     out: dict[str, dict[str, dict]] = {}
     for path in sorted((DATA / "outbox" / day.isoformat()).glob("*.json")):
         r = json.loads(path.read_text())
-        out.setdefault(r["channel"], {})[r["post"]] = {k: r.get(k) for k in ("status", "sent_at", "error")}
+        out.setdefault(r["channel"], {})[r["post"]] = {k: r.get(k) for k in ("status", "sent_at", "error", "by_hand")}
     return out
 
 
@@ -166,6 +167,26 @@ def deliver(jid: str, text: str) -> str:
     if out.returncode != 0:
         raise RuntimeError(out.stderr.strip()[-300:] or f"sender exited {out.returncode}")
     return json.loads(out.stdout.strip().splitlines()[-1])["id"]
+
+
+# Hackathon rule: "projects must comply with the terms of service of any third-party platform used", and
+# whatsapp/send.mjs (Baileys) is an unofficial client. So nothing is sent by it unless GRNBL_AUTO_SEND=1:
+# at its slot a post becomes "to_post", Elior copies it from the board into the group, then marks it posted.
+AUTO_SEND = os.environ.get("GRNBL_AUTO_SEND") == "1"
+
+
+def mark_posted(day: date, channel: str) -> list[str]:
+    """The human pasted the channel's approved posts into WhatsApp: record them as sent, once."""
+    done = []
+    for path in sorted((DATA / "outbox" / day.isoformat()).glob(f"{channel}-*.json")):
+        record = json.loads(path.read_text())
+        if record.get("status") == "sent" or not record.get("approved"):
+            continue
+        record.update(status="sent", by_hand=True, sent_at=datetime.now(PARIS).isoformat(timespec="seconds"))
+        memory.mark_posted(record.get("events") or [], day)
+        path.write_text(json.dumps(record, ensure_ascii=False, indent=1))
+        done.append(path.stem)
+    return done
 
 
 def run(day: date | None = None, send: bool = False, only: list[str] | None = None,
@@ -191,6 +212,9 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
             report.append((name, "en attente de « Tout est bon »"))
         elif not send:
             report.append((name, "prêt (essai : rien envoyé)"))
+        elif not AUTO_SEND:
+            record["status"] = "to_post"
+            report.append((name, "à poster à la main"))
         elif item["channel"] not in ids:
             report.append((name, f"groupe pas encore relié ({CONFIG.name})"))
         else:
