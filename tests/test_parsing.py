@@ -54,5 +54,32 @@ class Fuel(unittest.TestCase):
         self.assertEqual(items[0].data["price"], 2.3)
 
 
+class Fetch(unittest.TestCase):
+    def test_a_broken_certificate_goes_straight_to_the_second_try(self):
+        import ssl
+        import tempfile
+        import urllib.error
+        from pathlib import Path
+        from unittest import mock
+        from grnbl.scrape import fetch
+
+        class Page:
+            headers = mock.Mock(get=lambda *a: None, get_content_charset=lambda: "utf-8")
+            def read(self): return b"<p>agenda</p>"
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        def urlopen(req, timeout, context):
+            if context is fetch._STRICT_OFF:
+                raise urllib.error.URLError(ssl.SSLCertVerificationError("bad chain"))
+            return Page()
+
+        out = Path(tempfile.mkdtemp()) / "page.html"
+        with mock.patch.object(fetch.urllib.request, "urlopen", side_effect=urlopen) as opened, \
+                mock.patch.object(fetch.time, "sleep") as slept:
+            self.assertEqual(fetch.fetch("salle", "https://x.test", path=out), "<p>agenda</p>")
+        self.assertEqual((opened.call_count, slept.call_count), (2, 0))
+
+
 if __name__ == "__main__":
     unittest.main()
