@@ -9,6 +9,7 @@ from __future__ import annotations
 import gzip
 import ssl
 import time
+import urllib.error
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -35,7 +36,7 @@ def fetch(source_id: str, url: str, today: date | None = None, refresh: bool = F
                "Accept": "text/html,application/xhtml+xml"}
     last = None
     for ctx in (_STRICT_OFF, _UNVERIFIED):
-        for attempt in range(2):
+        for _ in range(2):
             try:
                 req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
@@ -47,9 +48,12 @@ def fetch(source_id: str, url: str, today: date | None = None, refresh: bool = F
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(html, encoding="utf-8")
                 return html
-            except ssl.SSLError as e:
+            except (ssl.SSLError, urllib.error.URLError) as e:
                 last = e
-                break  # try the next context
+                # urlopen wraps certificate errors in URLError: no point retrying with the same context.
+                if isinstance(e, ssl.SSLError) or isinstance(e.reason, ssl.SSLError):
+                    break  # try the next context
+                time.sleep(2)
             except Exception as e:  # noqa: BLE001 - any network failure: retry once, then give up
                 last = e
                 time.sleep(2)

@@ -24,7 +24,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
-from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
+from .digest import alerts_post, fuel_post, picked
 from .editor import CHANNELS, candidates
 from . import editorial
 from . import publish, schedule, translate

@@ -78,5 +78,16 @@ class JudgedOnce(unittest.TestCase):
         self.assertEqual(out[1]["review"]["duplicate_of"], 0)
 
 
+    def test_a_duplicate_must_point_to_an_earlier_event(self):
+        # The model sometimes marks both copies, or an event as its own duplicate: one copy must stay.
+        answer = json.dumps([{"i": 0, "keep": True, "duplicate_of": 1}, {"i": 1, "keep": True, "duplicate_of": 0},
+                             {"i": 2, "keep": True, "duplicate_of": 2}, {"i": 3, "keep": True, "duplicate_of": "0"}])
+        with mock.patch.object(review, "ask", return_value=answer):
+            out = review.review([self.ev("Fête"), self.ev("Fête !"), self.ev("Bal"), self.ev("Expo")], TODAY)
+        self.assertEqual([e["review"]["duplicate_of"] for e in out], [None, 0, None, None])
+        from grnbl.digest import chosen
+        self.assertEqual([e["title"] for e in chosen(out)], ["Fête", "Bal", "Expo"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -156,7 +156,7 @@ def outings_post_reviewed(events: list[dict], now: datetime, days: int = 7, limi
         if start < now.replace(hour=0, minute=0, second=0, microsecond=0) and end:
             when = f"jusqu'au {end.day}/{end.month:02d}"  # already running
         else:
-            when = DAYS[start.weekday()] + f" {start.day}" + (f" à {start.hour}h{start.minute:02d}".replace("h00", "h") if start.hour else "")
+            when = _short_day(start, month=False)
         where = e.get("venue") or e.get("town") or ""
         free = (e.get("review") or {}).get("free")
         icon = "🆓" if free is True else "🎟️" if free is False else "📍"
@@ -226,8 +226,10 @@ def _place(e: dict) -> str:
     return where.title() if where.isupper() and len(where) > 6 else where
 
 
-def _short_day(d: datetime) -> str:
-    return f"{DAYS[d.weekday()]} {d.day}/{d.month:02d}" + (f" à {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour else "")
+def _short_day(d: datetime, month: bool = True) -> str:
+    """"samedi 24/10 à 20h", "samedi 24 à 0h30"; no time for a source that gives none (read as 00:00)."""
+    day = f"{DAYS[d.weekday()]} {d.day}" + (f"/{d.month:02d}" if month else "")
+    return day + (f" à {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour or d.minute else "")
 
 
 def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: list[dict] | None = None) -> str | None:
@@ -259,7 +261,7 @@ def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: l
     if not rows:
         return None
     lines = ["📅 *À réserver maintenant*", "_Ce qui part vite : les places se prennent avant le jour J._", ""]
-    for opens_first, start, _, e, line in rows[:limit]:
+    for _, start, _, e, line in rows[:limit]:
         r = e.get("review") or {}
         icon = "🆓" if (r.get("free") if r.get("free") is not None else e.get("free")) is True else "🎟️"
         where = _place(e)
