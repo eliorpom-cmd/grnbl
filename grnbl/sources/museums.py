@@ -85,7 +85,10 @@ def items_from(records: list[dict], now: datetime, horizon: timedelta = timedelt
             free=free,
             data={"price": r.get("tarif"), "kind": r.get("type"), "commune": r.get("adresse_nom_commune")},
         )
-        sessions = [s for s in parse_occurrences(text) if now <= s[0] <= now + horizon]
+        # A session without an hour starts at midnight: it is still upcoming for the whole of its day.
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        sessions = [s for s in parse_occurrences(text)
+                    if (midnight if s[0].time() == time(0) else now) <= s[0] <= now + horizon]
         for start, end in sessions:
             out.append(Item(id=f"musees:{r['id']}:{start:%Y%m%d%H%M}", start=start, end=end, **base))
         if not sessions and not parse_occurrences(text):

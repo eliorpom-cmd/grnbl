@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from statistics import median
+from zoneinfo import ZoneInfo
 
 from ..http import get_json
 from ..items import Item
@@ -20,6 +21,7 @@ FUELS = {"gazole": "Diesel (gazole)", "e10": "SP95-E10", "sp98": "SP98", "sp95":
 # A price nobody has confirmed for this long is not today's price.
 MAX_AGE = timedelta(days=3)
 TANK_LITRES = 50
+PARIS = ZoneInfo("Europe/Paris")
 
 
 def metro_postcodes() -> set[str]:
@@ -42,9 +44,11 @@ def _fresh(stamp: str | None, now: datetime) -> bool:
     if not stamp:
         return False
     try:
-        return now - datetime.fromisoformat(stamp) <= MAX_AGE
+        at = datetime.fromisoformat(stamp)
     except ValueError:
         return False
+    # The feed gives an offset today; a stamp without one is read as French time rather than crash the post.
+    return now - (at if at.tzinfo else at.replace(tzinfo=PARIS)) <= MAX_AGE
 
 
 def _coords(s: dict) -> tuple[float | None, float | None]:
@@ -80,6 +84,7 @@ def cheapest_by_fuel(stations: list[dict], now: datetime | None = None, osm: lis
             for p, s in offers[:3]
         ]
         prices = [p for p, _ in offers]
+        lat, lon = _coords(best)
         items.append(
             Item(
                 id=f"fuel:{key}:{best['id']}",
@@ -87,8 +92,8 @@ def cheapest_by_fuel(stations: list[dict], now: datetime | None = None, osm: lis
                 title=f"{label} le moins cher : {price:.3f} €".replace(".", ","),
                 text=f"{best['adresse'].title()}, {best['ville'].title()}",
                 place=best["ville"].title(),
-                lat=float(best["latitude"]) if best.get("latitude") else None,
-                lon=float(best["longitude"]) if best.get("longitude") else None,
+                lat=lat,
+                lon=lon,
                 data={
                     "fuel": key,
                     "top3": podium,

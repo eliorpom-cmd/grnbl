@@ -39,6 +39,11 @@ class MuseumDates(unittest.TestCase):
         self.assertEqual([i.id for i in items], ["musees:1:202610181030"])
         self.assertTrue(items[0].free)
 
+    def test_a_session_of_today_without_an_hour_is_kept(self):
+        now = datetime(2026, 10, 18, 9, 0, tzinfo=PARIS)
+        records = [{"id": "1", "nom": "Journée portes ouvertes", "horaires_ouverture": "Dimanche 18 octobre 2026."}]
+        self.assertEqual([i.id for i in items_from(records, now)], ["musees:1:202610180000"])
+
 
 class Fuel(unittest.TestCase):
     def station(self, id, price, age_days=0):
@@ -57,6 +62,18 @@ class Fuel(unittest.TestCase):
         now = datetime(2026, 10, 17, 8, tzinfo=timezone.utc)
         items = cheapest_by_fuel([self.station("old", 1.50, age_days=10), self.station("a", 2.3), self.station("b", 2.4)], now)
         self.assertEqual(items[0].data["price"], 2.3)
+
+    def test_a_stamp_without_a_time_zone_is_read_as_french_time(self):
+        now = datetime(2026, 10, 17, 8, tzinfo=timezone.utc)
+        naive = [{**self.station(id, p), "gazole_maj": "2026-10-17T09:00:00"} for id, p in (("a", 2.3), ("b", 2.4))]
+        self.assertEqual(cheapest_by_fuel(naive, now)[0].data["price"], 2.3)
+
+    def test_coordinates_in_degrees(self):
+        now = datetime(2026, 10, 17, 8, tzinfo=timezone.utc)
+        stations = [{**self.station(id, p), "latitude": "4518800", "longitude": "572400"} for id, p in (("a", 2.3), ("b", 2.4))]
+        item = cheapest_by_fuel(stations, now)[0]
+        self.assertAlmostEqual(item.lat, 45.188)
+        self.assertAlmostEqual(item.lon, 5.724)
 
 
 class Fetch(unittest.TestCase):

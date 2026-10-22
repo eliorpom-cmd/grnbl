@@ -165,5 +165,16 @@ class EditedBlock(unittest.TestCase):
         self.assertNotIn("line B", text)
 
 
+class TickedByHand(unittest.TestCase):
+    """The board's API stores any ticked index: the post still checks each line's group when it is written."""
+
+    def test_paid_event_ticked_into_the_free_group_is_left_out(self):
+        from grnbl.publish import in_their_group
+        events = [{"title": "Visite libre", "review": {"free": True}}, {"title": "Concert", "review": {"free": False}},
+                  {"title": "Conférence", "review": {"free": None}}]
+        sel = in_their_group(events, apply_choices([], {"gratuit": {"week": [0, 1, 2]}}))
+        self.assertEqual([p["i"] for p in sel], [0])
+
+
 if __name__ == "__main__":
     unittest.main()

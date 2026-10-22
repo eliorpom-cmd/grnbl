@@ -301,7 +301,8 @@ class Handler(BaseHTTPRequestHandler):
                 texts = [(post, write(data, at, selection=used)) for post, write in publish.POSTS]
                 texts = [(post, t) for post, t in texts if t]
                 stale |= any(translate.needs(english.get(translate.key(cid, post)), t) for post, t in texts)
-                lists = choice_list(data, sel, live, cid, now.date()) if sel is not None else {}
+                # Candidates are timed for the group's sending day, as the editor chose them (editor.run).
+                lists = choice_list(data, sel, live, cid, at.date()) if sel is not None else {}
                 attach_sent(lists, texts)
                 channels.append({
                     "id": cid, "name": c["name"], "label": LABELS.get(cid, c["label"]),
