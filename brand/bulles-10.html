@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, icône (10e tour)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Commissioner:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f4f4f6; --ink: #151517; --muted: #6b6c71; --line: #e0e0e4; --card: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 48px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+.lead { color: var(--muted); max-width: 760px; margin: 0 0 32px; font-size: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.card { border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.top { display: flex; gap: 18px; align-items: center; padding: 20px; background: #ececef; }
+.sizes { display: flex; flex-direction: column; gap: 10px; }
+.sizes div { display: flex; gap: 10px; align-items: center; }
+.ic { flex: none; overflow: hidden; }
+.ic svg { display: block; width: 100%; height: 100%; }
+.wa { display: flex; gap: 12px; align-items: center; padding: 10px 16px; }
+.wa.dark { background: #0b141a; color: #e9edef; }
+.wa b { font-size: 15px; } .wa small { display: block; color: #8696a0; font-size: 13px; }
+.wa .t { margin-left: auto; font-size: 12px; color: #8696a0; }
+.foot { padding: 14px 18px 16px; }
+.foot h3 { margin: 0 0 2px; font-size: 16px; font-weight: 800; } .foot h3 span { color: var(--muted); margin-right: 6px; }
+.foot p { margin: 0; color: var(--muted); font-size: 14px; }
+.end { color: var(--muted); margin-top: 40px; }
+@media (max-width: 640px) { main { padding: 32px 16px 80px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : l'icône, en plus léger</h1>
+  <p class="lead">Les vraies bulles de Grenoble réduites à leurs trois signes : la coupelle du bas d'une autre couleur, la bande en arc juste au-dessus du milieu, le bras coudé. Pas de méridiens, de rivets ni de double câble. Chaque piste en grand, puis en 72, 40 et 24 px sur bleu et violet, et dans la liste WhatsApp.</p>
+  <div class="grid" id="grid"></div>
+  <p class="end">Donne-moi la lettre.</p>
+</main>
+<script>
+const BLUE = "#2F4BFF", VIOLET = "#6A35FF", LIME = "#C6FF3D", INK = "#121212", WHITE = "#ffffff";
+// Each icon draws into a 200 x 200 box; returns SVG markup
+const disc = (x, y, r, c = LIME) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+// Disc with the logo's sticker treatment, lighter: thin ink rim and a small offset shadow
+const sdisc = (x, y, r) => `<circle cx="${x + r * .2}" cy="${y + r * .26}" r="${r + 2.5}" fill="${INK}"/><circle cx="${x}" cy="${y}" r="${r}" fill="${LIME}" stroke="${INK}" stroke-width="5"/>`;
+const wire = (x1, y1, x2, y2, w = 5, c = INK) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+// Point on the cable y = a + b*x
+const onCable = (a, b) => x => a + b * x;
+let uid = 0;
+// A Grenoble bubble reduced to its three signs: dish (lower part, second tone), arched band (gap in the background colour), bent "7" arm.
+// (x, y) = sphere centre, r = radius, top = y of the cable above it. o = options.
+function gb(x, y, r, cy, bg, o = {}) {
+  const id = "c" + (uid++), dish = o.dish || INK, arm = o.arm || INK, w = Math.max(3, r * .2);
+  const dy = y + r * .34, by = y - r * .1, lift = r * .22;
+  let s = `<clipPath id="${id}"><circle cx="${x}" cy="${y}" r="${r}"/></clipPath>`;
+  // bent arm: post beside the sphere, foot turning onto its top
+  const px = x - r * .42, top = cy(px);
+  s += `<path d="M${px} ${top} V${y - r - r * .18} H${x}" fill="none" stroke="${arm}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s += `<line x1="${x}" y1="${y - r - r * .2}" x2="${x}" y2="${y - r + 2}" stroke="${arm}" stroke-width="${w}"/>`;
+  if (o.sticker) s += `<circle cx="${x + r * .18}" cy="${y + r * .24}" r="${r + 2.5}" fill="${INK}"/>`;
+  s += `<g clip-path="url(#${id})"><rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" fill="${LIME}"/>`;
+  // dish: everything under an upward arch
+  s += `<path d="M${x - r - 2} ${dy + lift} Q${x} ${dy - lift} ${x + r + 2} ${dy + lift} V${y + r + 2} H${x - r - 2}Z" fill="${dish}"/>`;
+  // band: a thin arched gap
+  if (!o.noBand) s += `<path d="M${x - r - 2} ${by + lift} Q${x} ${by - lift} ${x + r + 2} ${by + lift}" fill="none" stroke="${bg}" stroke-width="${Math.max(2.5, r * .1)}"/>`;
+  s += `</g>`;
+  if (o.sticker) s += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${INK}" stroke-width="5"/>`;
+  return s;
+}
+const train = (bg, o, xs, r, a, b) => { const y = x => a + b * x; return wire(-10, y(-10), 210, y(210), 5) + xs.map(x => gb(x, y(x) + r * 1.62, r, y, bg, o)).join(""); };
+const ICONS = [
+  { n: "Train de 3", d: "Trois bulles : verre citron, coupelle noire, bande en creux, bras coudé. Les trois signes des vraies bulles, rien d'autre.",
+    svg(bg) { return train(bg, { dish: INK }, [50, 100, 150], 21, 70, -.32); } },
+  { n: "Train de 3, trait du logo", d: "Avec le contour léger et l'ombre du logo : l'icône et le nom vont ensemble.",
+    svg(bg) { return train(bg, { sticker: true }, [50, 100, 150], 20, 70, -.32); } },
+  { n: "Une bulle", d: "Une seule bulle en grand : on voit bien la bande, la coupelle et le bras.",
+    svg(bg) { const y = x => 46 - .236 * (x + 10); return wire(-10, y(-10), 210, y(210), 5) + gb(104, 112, 52, y, bg, { dish: INK }); } },
+  { n: "Perspective", d: "Le train de 4 vu de dessous qui s'éloigne, comme sur les photos.",
+    svg(bg) { const y = x => 70 - .42 * x, R = [34, 23, 15, 10], X = [54, 114, 154, 181];
+      return wire(-10, y(-10), 210, y(210), 5) + X.map((x, k) => gb(x, y(x) + R[k] * 1.62, R[k], y, bg, { noBand: R[k] < 14 })).join(""); } },
+  { n: "Bulle coupée", d: "Une grande bulle qui sort du cadre en bas, bras et câble en haut.",
+    svg(bg) { const y = x => 40 - .245 * (x + 10); return wire(-10, y(-10), 210, y(210), 5) + gb(112, 150, 82, y, bg); } },
+];
+function svgOf(ic, bg) { return `<svg viewBox="0 0 200 200"><rect width="200" height="200" fill="${bg}"/>${ic.svg(bg)}</svg>`; }
+function box(ic, bg, size, radius) { return `<div class="ic" style="width:${size}px;height:${size}px;border-radius:${radius}">${svgOf(ic, bg)}</div>`; }
+const grid = document.getElementById("grid");
+ICONS.forEach((ic, i) => {
+  const L = String.fromCharCode(65 + i);
+  const row = bg => `<div>${box(ic, bg, 72, "17px")}${box(ic, bg, 40, "50%")}${box(ic, bg, 24, "50%")}</div>`;
+  const wa = (cls, bg) => `<div class="wa ${cls}">${box(ic, bg, 48, "50%")}<div><b>grnbl</b><small>Carburant : gazole à 1,62 € à Échirolles</small></div><span class="t">10:31</span></div>`;
+  grid.insertAdjacentHTML("beforeend", `<div class="card"><div class="top">${box(ic, BLUE, 150, "34px")}<div class="sizes">${row(BLUE)}${row(VIOLET)}</div></div>
+    ${wa("", BLUE)}${wa("dark", VIOLET)}<div class="foot"><h3><span>${L}.</span>${ic.n}</h3><p>${ic.d}</p></div></div>`);
+});
+</script>
+</body>
+</html>

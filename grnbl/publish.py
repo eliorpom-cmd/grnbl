@@ -21,6 +21,7 @@ live in data/whatsapp.json, {"gratuit": "<id>@g.us", ...}, listed once by
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import date, datetime
@@ -29,7 +30,7 @@ from zoneinfo import ZoneInfo
 
 from . import memory, schedule
 from .digest import alerts_post, fuel_post, outings_post_reviewed, picked, to_book_post
-from .channels import CHANNELS
+from .channels import CHANNELS, accepts
 from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +87,26 @@ def day_events(day: date) -> tuple[list[dict], list[dict] | None]:
     for i, e in enumerate(events):
         e["i"] = i
         e["decision"] = decisions.get(str(i))
-    return events, apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
+    selection = apply_choices(json.loads(sel.read_text()) if sel.exists() else None, load_choices(day))
+    return events, in_their_group(events, selection)
+
+
+def in_their_group(events: list[dict], selection: list[dict] | None) -> list[dict] | None:
+    """Only the lines whose event belongs to that group (channels.home), each event once:
+    a line ticked by hand or left from an older selection never reaches a second group."""
+    if selection is None:
+        return None
+    seen, out = set(), []
+    for p in selection:
+        i, channel = p.get("i", -1), p.get("channel", "sorties")
+        if not 0 <= i < len(events) or (channel in CHANNELS and not accepts(channel, events[i])):
+            continue
+        if not p.get("reserve"):
+            if i in seen:
+                continue
+            seen.add(i)
+        out.append(p)
+    return out
 
 
 def read_at(day: date, channel: str, now: datetime) -> datetime:
@@ -128,11 +148,11 @@ def _path(day: date, item: dict) -> Path:
 
 
 def status(day: date) -> dict[str, dict[str, dict]]:
-    """What the outbox says per channel and post: status, sent_at, error."""
+    """What the outbox says per channel and post: status, sent_at, error, by_hand."""
     out: dict[str, dict[str, dict]] = {}
     for path in sorted((DATA / "outbox" / day.isoformat()).glob("*.json")):
         r = json.loads(path.read_text())
-        out.setdefault(r["channel"], {})[r["post"]] = {k: r.get(k) for k in ("status", "sent_at", "error")}
+        out.setdefault(r["channel"], {})[r["post"]] = {k: r.get(k) for k in ("status", "sent_at", "error", "by_hand")}
     return out
 
 
@@ -149,6 +169,26 @@ def deliver(jid: str, text: str) -> str:
     return json.loads(out.stdout.strip().splitlines()[-1])["id"]
 
 
+# Hackathon rule: "projects must comply with the terms of service of any third-party platform used", and
+# whatsapp/send.mjs (Baileys) is an unofficial client. So nothing is sent by it unless GRNBL_AUTO_SEND=1:
+# at its slot a post becomes "to_post", Elior copies it from the board into the group, then marks it posted.
+AUTO_SEND = os.environ.get("GRNBL_AUTO_SEND") == "1"
+
+
+def mark_posted(day: date, channel: str) -> list[str]:
+    """The human pasted the channel's approved posts into WhatsApp: record them as sent, once."""
+    done = []
+    for path in sorted((DATA / "outbox" / day.isoformat()).glob(f"{channel}-*.json")):
+        record = json.loads(path.read_text())
+        if record.get("status") == "sent" or not record.get("approved"):
+            continue
+        record.update(status="sent", by_hand=True, sent_at=datetime.now(PARIS).isoformat(timespec="seconds"))
+        memory.mark_posted(record.get("events") or [], day)
+        path.write_text(json.dumps(record, ensure_ascii=False, indent=1))
+        done.append(path.stem)
+    return done
+
+
 def run(day: date | None = None, send: bool = False, only: list[str] | None = None,
         items: list[dict] | None = None) -> list[tuple[str, str]]:
     """Writes the outbox and, with send=True, sends what is approved and not sent yet.
@@ -157,7 +197,12 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
     day = day or now.date()
     ids = channel_ids()
     report = []
-    for item in items if items is not None else outbox(day, now):
+    if items is None:
+        # Fuel and alerts are read from the network: not when the run is for other groups only,
+        # so a source that is down cannot hold back the outings posts (tick.send_slots).
+        skip = lambda channel: "" if only and channel not in only else None
+        items = outbox(day, now, fuel_text=skip("carburant"), alerts_text=skip("infos"))
+    for item in items:
         name = f"{item['channel']}-{item['post']}"
         if only and item["channel"] not in only:
             continue
@@ -172,6 +217,9 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
             report.append((name, "en attente de « Tout est bon »"))
         elif not send:
             report.append((name, "prêt (essai : rien envoyé)"))
+        elif not AUTO_SEND:
+            record["status"] = "to_post"
+            report.append((name, "à poster à la main"))
         elif item["channel"] not in ids:
             report.append((name, f"groupe pas encore relié ({CONFIG.name})"))
         else:

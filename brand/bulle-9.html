@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, la bulle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f4f4f6; --ink: #151517; --muted: #6b6c71; --line: #e0e0e4; --card: #ffffff; --tray: #ececef; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; --tray: #202024; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; --tray: #202024; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 50px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+h2 { font: 800 26px/1.15 "Commissioner"; letter-spacing: -0.02em; margin: 0 0 4px; }
+h2 span { color: var(--muted); margin-right: 8px; }
+.lead, .sub { color: var(--muted); max-width: 780px; margin: 0 0 26px; }
+.lead { font-size: 18px; }
+/* Reference photo next to the drawing */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 72px; }
+.compare figure { margin: 0; border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.compare .pic { aspect-ratio: 1 / 1; display: block; width: 100%; object-fit: cover; object-position: 30% 50%; }
+.compare .pic svg { width: 100%; height: 100%; display: block; }
+.compare figcaption { padding: 10px 16px 12px; font-size: 14px; color: var(--muted); }
+/* One rendering = one section */
+.variant { margin: 0 0 72px; }
+.variant-body { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+.big { width: 320px; height: 320px; border-radius: 72px; overflow: hidden; }
+.big svg { width: 100%; height: 100%; display: block; }
+.panel { border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.sizes { display: flex; flex-wrap: wrap; gap: 28px; padding: 20px; background: var(--tray); }
+.sizes .set { display: flex; gap: 14px; align-items: center; }
+.ic { position: relative; overflow: hidden; flex: none; }
+.ic svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sizes small { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.subvars { display: flex; flex-wrap: wrap; gap: 22px; padding: 0 20px 18px; background: var(--tray); }
+.subvars .sv { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+/* WhatsApp chat-list mockup */
+.wa { display: flex; align-items: center; gap: 12px; padding: 10px 16px; font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.wa.light { background: #fff; color: #111b21; border-top: 1px solid #e9edef; }
+.wa.dark { background: #111b21; color: #e9edef; }
+.wa .txt { flex: 1; min-width: 0; }
+.wa .top { display: flex; justify-content: space-between; align-items: baseline; }
+.wa .name { font-size: 16px; font-weight: 600; }
+.wa .time { font-size: 12px; color: #667781; }
+.wa.dark .time { color: #8696a0; }
+.wa .msg { font-size: 14px; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wa.dark .msg { color: #8696a0; }
+.end { color: var(--ink); font-weight: 800; font-size: 20px; margin-top: 40px; }
+@media (max-width: 760px) {
+  main { padding: 32px 16px 80px; }
+  .compare { grid-template-columns: 1fr; }
+  .variant-body { grid-template-columns: 1fr; }
+  .big { width: 100%; max-width: 320px; height: auto; aspect-ratio: 1 / 1; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : la bulle de la Bastille</h1>
+  <p class="lead">L'idée B du 8e tour, redessinée d'après les vraies cabines et réduite à quelques formes : la sphère, la bande au-dessus du milieu, les méridiens, la coupelle du bas, le bras coudé et les deux câbles. Mêmes proportions que la photo, sept façons de la simplifier.</p>
+
+  <div class="compare">
+    <figure>
+      <img class="pic" src="ref/bastille-1.jpg" alt="Les bulles du téléphérique de la Bastille vues d'en dessous">
+      <figcaption>Photo : Wikimedia Commons</figcaption>
+    </figure>
+    <figure>
+      <div class="pic" id="hero"></div>
+      <figcaption>Le dessin : mêmes proportions, vue d'en dessous</figcaption>
+    </figure>
+  </div>
+
+  <div id="variants"></div>
+
+  <p class="end">Donne-moi le numéro.</p>
+</main>
+
+<script>
+// ======================================================================
+// Geometry: the cabin is a unit sphere seen in orthographic projection.
+// Cabin axes: X right, Y up, Z toward the viewer before rotation.
+// The view first turns the cabin by `yaw` around Y, then tilts it by
+// `pitch` around X (negative pitch = camera below, as in the photos).
+// Every band of the real cabin is a slab between two parallel planes
+// cutting the sphere, so its projection is exact, not a flat stripe.
+// ======================================================================
+const BLUE = "#2F4BFF", VIOLET = "#6A35FF", LIME = "#C6FF3D", INK = "#121212", WHITE = "#ffffff";
+const D2R = Math.PI / 180;
+let UID = 0;
+
+function makeView(yawDeg, pitchDeg) {
+  const cy = Math.cos(yawDeg * D2R), sy = Math.sin(yawDeg * D2R);
+  const cp = Math.cos(pitchDeg * D2R), sp = Math.sin(pitchDeg * D2R);
+  return {
+    // cabin point -> {x, y (up), d (depth toward viewer)}
+    proj([X, Y, Z]) {
+      const x = X * cy + Z * sy, z1 = -X * sy + Z * cy;
+      return { x, y: Y * cp - z1 * sp, d: Y * sp + z1 * cp };
+    },
+    // screen point on the limb (d = 0) -> cabin point
+    unproj(x, y, d = 0) {
+      const Y = y * cp + d * sp, z1 = -y * sp + d * cp;
+      return [x * cy - z1 * sy, Y, x * sy + z1 * cy];
+    },
+  };
+}
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = a => { const l = Math.hypot(...a); return a.map(v => v / l); };
+
+// Circle on the unit sphere: points p with p.n = c
+function circle(n, c) {
+  n = norm(n);
+  const ref = Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  const a = norm(cross(n, ref)), b = cross(n, a), r = Math.sqrt(Math.max(0, 1 - c * c));
+  return t => [0, 1, 2].map(i => c * n[i] + r * (Math.cos(t) * a[i] + Math.sin(t) * b[i]));
+}
+// Sample a circle and return the runs of consecutive points meeting `keep`
+function runs(circ, view, keep, N = 240) {
+  const pts = [];
+  for (let i = 0; i < N; i++) { const p = circ(i / N * 2 * Math.PI); const q = view.proj(p); pts.push({ p, q, ok: keep(p, q) }); }
+  const first = pts.findIndex(o => !o.ok);
+  if (first < 0) return [pts.map(o => o.q).concat([pts[0].q])]; // whole circle kept
+  const out = []; let cur = null;
+  for (let k = 1; k <= N; k++) {
+    const o = pts[(first + k) % N];
+    if (o.ok) { (cur ||= []).push(o.q); } else if (cur) { out.push(cur); cur = null; }
+  }
+  if (cur) out.push(cur);
+  return out.sort((u, v) => v.length - u.length);
+}
+const front = (p, q) => q.d > 0;
+const back = (p, q) => q.d < 0;
+
+// Screen mapping for one drawn sphere
+function frame(cx, cy, R) {
+  const P = q => [cx + R * q.x, cy - R * q.y];
+  const path = (pts, close) => pts.map((q, i) => (i ? "L" : "M") + P(q).map(v => v.toFixed(2)).join(" ")).join("") + (close ? "Z" : "");
+  return { P, path, cx, cy, R };
+}
+
+// Visible region of the cap p.n > c (bounded by the circle and the limb)
+function capRegion(n, c, view, F, steps = 90) {
+  const circ = circle(n, c);
+  const rs = runs(circ, view, front);
+  if (!rs.length) return "";
+  const arc = rs[0];
+  const a0 = arc[0], a1 = arc[arc.length - 1];
+  if (Math.hypot(a0.x - a1.x, a0.y - a1.y) < 1e-6) return F.path(arc, true);
+  const t0 = Math.atan2(a1.y, a1.x), t1 = Math.atan2(a0.y, a0.x);
+  // pick the limb direction that stays inside the cap
+  const inside = t => dot(view.unproj(Math.cos(t), Math.sin(t)), norm(n)) > c;
+  let span = t1 - t0; while (span < 0) span += 2 * Math.PI;
+  let dir = 1;
+  if (!inside(t0 + span / 2)) { dir = -1; span = 2 * Math.PI - span; }
+  const limb = [];
+  for (let i = 0; i <= steps; i++) { const t = t0 + dir * span * i / steps; limb.push({ x: Math.cos(t), y: Math.sin(t) }); }
+  return F.path(arc.concat(limb), true);
+}
+// Band between planes p.n = c - w and p.n = c + w, visible part kept by `keep`
+function band(n, c, w, view, F, keep = front) {
+  const A = runs(circle(n, c - w), view, keep), B = runs(circle(n, c + w), view, keep);
+  if (!A.length || !B.length) return "";
+  // orient B so that its start is near A's end
+  let b = B[0].slice();
+  const aEnd = A[0][A[0].length - 1];
+  if (Math.hypot(b[0].x - aEnd.x, b[0].y - aEnd.y) < Math.hypot(b[b.length - 1].x - aEnd.x, b[b.length - 1].y - aEnd.y)) { /* already ok */ } else b.reverse();
+  return F.path(A[0].concat(b), true);
+}
+// Centre line of a band, for monoline drawings
+function lineOf(n, c, view, F, keep = front) {
+  return runs(circle(n, c), view, keep).map(r => F.path(r, false)).join("");
+}
+
+// ======================================================================
+// The cabin, measured on the photos (fractions of the radius / sines of
+// latitudes). These proportions are what make it read as the Bastille
+// bubble; everything else is reduced to flat shapes.
+// ======================================================================
+const CAB = {
+  belt: Math.sin(16 * D2R),     // horizontal band, slightly above the centre
+  dish: Math.sin(-27 * D2R),    // rim of the bottom dish (lower third)
+  topRing: Math.sin(68 * D2R),  // where the meridians stop under the top
+  side: 60,                     // the real cage has six meridians, 60 degrees apart
+};
+const merNormal = lon => [Math.cos(lon * D2R), 0, -Math.sin(lon * D2R)];
+const between = (lo, hi) => (p, q) => q.d > 0 && p[1] > lo && p[1] < hi;
+const VIEW = makeView(0, -16);  // seen slightly from below, front meridian centred
+
+// All the shapes of one bubble, as SVG path data, for a sphere at (cx, cy, R).
+// `small` = simplified drawing for sizes under 40 px.
+function shapes(cx, cy, R, small, k = {}) {
+  const F = frame(cx, cy, R), v = VIEW;
+  const beltW = k.beltW ?? (small ? .11 : .075), merW = k.merW ?? (small ? .09 : .055), rimW = k.rimW ?? (small ? .07 : .045);
+  const mers = small ? [0] : [0, CAB.side, -CAB.side];
+  return {
+    F,
+    disk: `M${cx - R} ${cy}a${R} ${R} 0 1 0 ${2 * R} 0a${R} ${R} 0 1 0 ${-2 * R} 0Z`,
+    dish: capRegion([0, -1, 0], -CAB.dish, v, F),
+    glass: capRegion([0, 1, 0], CAB.dish, v, F),
+    belt: band([0, 1, 0], CAB.belt, beltW, v, F),
+    rim: band([0, 1, 0], CAB.dish, rimW, v, F),
+    mers: mers.map(lon => band(merNormal(lon), 0, merW, v, F, between(CAB.dish, CAB.topRing))),
+    // centre lines, for monoline drawings
+    beltLine: lineOf([0, 1, 0], CAB.belt, v, F),
+    dishLine: lineOf([0, 1, 0], CAB.dish, v, F),
+    merLines: mers.map(lon => lineOf(merNormal(lon), 0, v, F, between(CAB.dish, CAB.topRing))),
+  };
+}
+
+// Hanger: the offset "7" arm, the carriage and the two cables.
+// The post hangs beside the vertical axis, then its foot turns onto the top of the sphere.
+function hangerShapes(cx, cy, R, o = {}) {
+  const small = !!o.small, slope = o.slope ?? -0.2, armLen = o.armLen ?? .72;
+  const top = cy - R, px = cx + .3 * R;
+  const a = (small ? .2 : .13) * R;                       // post width
+  const cable = o.cableAt || (x => top - armLen * R + slope * (x - px));
+  const gap = o.gap ?? .26 * R;
+  const yc = cable(px);
+  const fb = top + .07 * R, ft = fb - a;                  // foot, slightly behind the sphere top
+  const post = `M${px - a / 2} ${yc}L${px + a / 2} ${yc}L${px + a / 2} ${ft}A${a} ${a} 0 0 1 ${px - a / 2} ${fb}L${cx - .1 * R} ${fb}L${cx - .1 * R} ${ft}L${px - a / 2} ${ft}Z`;
+  // carriage: a beam along the carrying cable, with two wheels riding on it
+  const ang = Math.atan(slope), c = Math.cos(ang), s = Math.sin(ang);
+  const L = (small ? .56 : .5) * R, H = (small ? .2 : .15) * R;
+  const at = (u, w) => [px + u * c - w * s, yc + u * s + w * c]; // beam frame -> tile
+  // beam centred on the carrying cable, rounded ends
+  const beamD = `M${at(-L / 2 + H / 2, -H / 2).join(" ")}L${at(L / 2 - H / 2, -H / 2).join(" ")}A${H / 2} ${H / 2} 0 0 1 ${at(L / 2 - H / 2, H / 2).join(" ")}L${at(-L / 2 + H / 2, H / 2).join(" ")}A${H / 2} ${H / 2} 0 0 1 ${at(-L / 2 + H / 2, -H / 2).join(" ")}Z`;
+  // the two grooved wheels show as round holes in the beam (large sizes only)
+  const wr = H * .26;
+  const wheels = small ? [] : [-.15, .15].map(u => at(u * R, 0));
+  const line = (y0, x0 = -50, x1 = 150) => `M${x0} ${y0(x0)}L${x1} ${y0(x1)}`;
+  return {
+    post, beam: beamD, wheels, wr, px, yc, a,
+    cableTop: line(cable), cableLow: line(x => cable(x) + gap),
+    // centre line of the arm, for monoline drawings
+    postLine: `M${px} ${yc}L${px} ${fb - a / 2 - .12 * R}Q${px} ${fb - a / 2} ${px - .12 * R} ${fb - a / 2}L${cx - .02 * R} ${fb - a / 2}`,
+    beamLine: `M${at(-L / 2, 0).join(" ")}L${at(L / 2, 0).join(" ")}`,
+  };
+}
+
+// ======================================================================
+// Tile helpers (100 x 100 units). `size` = rendered pixels.
+// ======================================================================
+const small = size => size < 40;
+const svg = inner => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const rect = c => `<rect width="100" height="100" fill="${c}"/>`;
+const P = (d, fill, extra = "") => d ? `<path d="${d}" fill="${fill}"${extra}/>` : "";
+const stroke = (d, color, w, extra = "") => d ? `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${extra}/>` : "";
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];
+  return "#" + c.map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)).toString(16).padStart(2, "0")).join("");
+}
+// a mask that keeps everything except the given cut shapes
+function cutMask(id, cuts) {
+  return `<mask id="${id}" maskUnits="userSpaceOnUse" x="-20" y="-20" width="140" height="140"><rect x="-20" y="-20" width="140" height="140" fill="#fff"/>${cuts.map(d => P(d, "#000")).join("")}</mask>`;
+}
+function hangerFill(h, color, sm, bg, cables = true) {
+  const cw = sm ? 4.2 : 1.6;
+  return (cables ? stroke(h.cableTop, color, cw) + (!sm ? stroke(h.cableLow, color, cw * .8) : "") : "") +
+    P(h.post, color) + P(h.beam, color) + h.wheels.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${h.wr}" fill="${bg}"/>`).join("");
+}
+// the standard placement in the tile
+const place = sm => sm ? { cx: 46, cy: 63, R: 32, armLen: .5 } : { cx: 46, cy: 65, R: 29, armLen: .68 };
+
+// ======================================================================
+// The renderings
+// ======================================================================
+
+const RENDER = {
+  // 1. one lime shape, the bands cut out as negative space
+  silhouette(size, bg) {
+    const sm = small(size), { cx, cy, R, armLen } = place(sm), g = shapes(cx, cy, R, sm), h = hangerShapes(cx, cy, R, { small: sm, armLen });
+    const id = "m" + (++UID);
+    return svg(rect(bg) + `<defs>${cutMask(id, [g.belt, g.rim, ...g.mers])}</defs>` +
+      hangerFill(h, LIME, sm, bg) + `<g mask="url(#${id})">${P(g.disk, LIME)}</g>`);
+  },
+  // 2. glass and dish as two flat tones, the metal in white
+  halves(size, bg) {
+    const sm = small(size), { cx, cy, R, armLen } = place(sm), g = shapes(cx, cy, R, sm), h = hangerShapes(cx, cy, R, { small: sm, armLen });
+    return svg(rect(bg) + hangerFill(h, WHITE, sm, bg) + P(g.disk, INK) + P(g.dish, LIME) +
+      [g.belt, ...g.mers].map(d => P(d, WHITE)).join(""));
+  },
+  // 3. construction in strokes of one equal width
+  mono(size, bg) {
+    const sm = small(size), { cx, cy, R, armLen } = place(sm), g = shapes(cx, cy, R, sm), h = hangerShapes(cx, cy, R, { small: sm, armLen });
+    const w = sm ? 6.5 : 4.2, c = LIME;
+    return svg(rect(bg) + stroke(h.cableTop, c, w * .6) + (sm ? "" : stroke(h.cableLow, c, w * .6)) +
+      stroke(h.beamLine, c, w) + stroke(h.postLine, c, w) +
+      `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${bg}" stroke="${c}" stroke-width="${w}"/>` +
+      stroke(g.beltLine, c, w) + stroke(g.dishLine, c, w) + g.merLines.map(d => stroke(d, c, w)).join(""));
+  },
+  // 4. cropped by the frame: only the top of the bubble, with the arm and the cables
+  crop(size, bg) {
+    const sm = small(size), cx = 50, cy = sm ? 98 : 102, R = sm ? 56 : 58;
+    const g = shapes(cx, cy, R, sm), h = hangerShapes(cx, cy, R, { small: sm, armLen: sm ? .36 : .44, gap: .2 * R });
+    const id = "m" + (++UID);
+    return svg(rect(bg) + `<defs>${cutMask(id, [g.belt, ...g.mers])}</defs>` +
+      hangerFill(h, WHITE, sm, bg) + `<g mask="url(#${id})">${P(g.disk, LIME)}</g>`);
+  },
+  // 5. two bubbles on the cables; the one behind is a darker tone of the background
+  pair(size, bg) {
+    const sm = small(size), slope = -0.3;
+    const front = sm ? { cx: 40, R: 31 } : { cx: 38, R: 28 }, backB = sm ? { cx: 74, R: 20 } : { cx: 72, R: 19 };
+    const armLen = sm ? .5 : .62, topF = sm ? 42 : 44;
+    const pxF = front.cx + .3 * front.R;
+    const cable = x => topF - armLen * front.R + slope * (x - pxF);
+    for (const b of [front, backB]) b.cy = cable(b.cx + .3 * b.R) + armLen * b.R + b.R;
+    const far = shade(bg, -.38), gap = .26 * front.R;
+    let out = rect(bg);
+    const draw = (b, color, cutColor) => {
+      const g = shapes(b.cx, b.cy, b.R, sm), h = hangerShapes(b.cx, b.cy, b.R, { small: sm, armLen, slope, cableAt: cable, gap });
+      const id = "m" + (++UID);
+      return hangerFill(h, color, sm, bg, false) +
+        `<defs>${cutMask(id, [g.belt, ...g.mers])}</defs><g mask="url(#${id})">${P(g.disk, color)}</g>`;
+    };
+    const hF = hangerShapes(front.cx, front.cy, front.R, { small: sm, armLen, slope, cableAt: cable, gap });
+    out += stroke(hF.cableTop, WHITE, sm ? 4 : 1.6) + (sm ? "" : stroke(hF.cableLow, WHITE, 1.3));
+    out += draw(backB, far) + draw(front, LIME);
+    return svg(out);
+  },
+  // 6. the cage only: belt, meridians and dish, the sphere is implied
+  globe(size, bg) {
+    const sm = small(size), { cx, cy, R, armLen } = place(sm);
+    const g = shapes(cx, cy, R, sm, sm ? { beltW: .13, merW: .11 } : { beltW: .085, merW: .065 }), h = hangerShapes(cx, cy, R, { small: sm, armLen });
+    return svg(rect(bg) + hangerFill(h, WHITE, sm, bg) + P(g.dish, LIME) + P(g.belt, LIME) + g.mers.map(d => P(d, LIME)).join(""));
+  },
+  // 7. the frame is the bubble: the avatar circle itself becomes the sphere
+  frame(size, bg) {
+    const sm = small(size), cx = 50, cy = 50, R = 50;
+    const g = shapes(cx, cy, R, sm, sm ? { beltW: .1, merW: .085 } : { beltW: .06, merW: .045 });
+    // short arm coming in from the top edge
+    const a = (sm ? .2 : .13) * R, px = cx + .22 * R, ft = sm ? 6 : 5;
+    const arm = `M${px - a / 2} -2L${px + a / 2} -2L${px + a / 2} ${ft}A${a} ${a} 0 0 1 ${px - a / 2} ${ft + a}L${cx - .06 * R} ${ft + a}L${cx - .06 * R} ${ft}L${px - a / 2} ${ft}Z`;
+    return svg(rect(bg) + P(g.dish, LIME) + [g.belt, ...g.mers].map(d => P(d, WHITE)).join("") + P(arm, INK));
+  },
+};
+
+// ======================================================================
+// Board
+// ======================================================================
+const VARIANTS = [
+  { key: "silhouette", title: "Silhouette", text: "Une seule forme citron. Les bandes de métal sont découpées dans la sphère : le fond passe à travers." },
+  { key: "halves", title: "Verre et coupelle", text: "Deux tons : le verre fumé en noir, la coupelle du bas en citron. Bandes et bras en blanc." },
+  { key: "mono", title: "Construction au trait", text: "Un cercle, la bande, le méridien, la coupelle, le bras et les câbles, tous du même trait." },
+  { key: "crop", title: "Recadrée", text: "Le haut de la bulle seulement, coupé par le cadre, avec le bras et les câbles." },
+  { key: "pair", title: "Deux bulles", text: "Deux cabines sur les câbles. Celle de derrière est un ton plus sombre du fond, sans contour." },
+  { key: "globe", title: "Le cerclage", text: "Seulement la bande, les méridiens et la coupelle. La sphère se devine." },
+  { key: "frame", title: "Le cadre est la bulle", text: "Ma proposition : le rond de la photo de profil devient la sphère. Le bras entre par le haut." },
+];
+
+function tile(html, size, radius) {
+  return `<div class="ic" style="width:${size}px;height:${size}px;border-radius:${radius}">${html}</div>`;
+}
+function waRow(icon, theme) {
+  return `<div class="wa ${theme}">${tile(icon, 48, "50%")}<div class="txt"><div class="top"><span class="name">grnbl</span><span class="time">10:31</span></div><div class="msg">Carburant : gazole à 1,62 € à Échirolles</div></div></div>`;
+}
+function sizeSet(fn, bg, label) {
+  return `<div><div class="set">${tile(fn(72, bg), 72, "18px")}${tile(fn(40, bg), 40, "50%")}${tile(fn(24, bg), 24, "50%")}</div><small>${label}</small></div>`;
+}
+
+const root = document.getElementById("variants");
+VARIANTS.forEach((v, i) => {
+  const fn = (size, bg) => RENDER[v.key](size, bg);
+  root.insertAdjacentHTML("beforeend", `
+  <section class="variant" id="v${i + 1}">
+    <h2><span>${i + 1}</span>${v.title}</h2>
+    <p class="sub">${v.text}</p>
+    <div class="variant-body">
+      <div class="big">${fn(320, BLUE)}</div>
+      <div class="panel">
+        <div class="sizes">${sizeSet(fn, BLUE, "Bleu : 72, 40, 24 px")}${sizeSet(fn, VIOLET, "Violet : 72, 40, 24 px")}</div>
+        ${waRow(fn(48, BLUE), "light")}
+        ${waRow(fn(48, VIOLET), "dark")}
+      </div>
+    </div>
+  </section>`);
+});
+// hero: the construction drawing next to the photo
+document.getElementById("hero").innerHTML = RENDER.halves(600, BLUE);
+</script>
+</body>
+</html>

@@ -7,7 +7,8 @@ import ssl
 import urllib.parse
 import urllib.request
 
-USER_AGENT = "grnbl/0.1 (+https://grnbl.xyz)"
+# Said as it is: a small bot, what it does, where its code is. Every source was checked to answer it normally.
+USER_AGENT = "grnbl/0.1 (weekly local events digest; +https://github.com/eliorpom-cmd/grnbl)"
 
 # Certificates are still verified. Python 3.13+ adds VERIFY_X509_STRICT by
 # default, and some French public APIs (geo.api.gouv.fr) serve a chain that

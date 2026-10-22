@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>grnbl, icônes (8e tour)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Commissioner:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #f4f4f6; --ink: #151517; --muted: #6b6c71; --line: #e0e0e4; --card: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+}
+:root[data-theme="dark"] { --bg: #121214; --ink: #f0f0ec; --muted: #9b9ca1; --line: #2a2a2e; --card: #1b1b1e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Commissioner", system-ui, sans-serif; }
+main { max-width: 1160px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 { font: 800 clamp(32px, 5vw, 50px)/1.05 "Commissioner"; letter-spacing: -0.03em; margin: 0 0 12px; }
+h2 { font: 800 28px/1.1 "Commissioner"; letter-spacing: -0.02em; margin: 72px 0 6px; }
+.lead, .sub { color: var(--muted); max-width: 780px; margin: 0 0 26px; }
+.lead { font-size: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.card { border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.logo { display: grid; grid-template-columns: 1fr 1fr; border-radius: 22px; overflow: hidden; }
+.logo .hero { position: relative; height: 230px; }
+.logo .hero svg { position: absolute; left: 40px; top: 40px; width: calc(100% - 80px); height: calc(100% - 80px); overflow: visible; }
+.tag { display: inline-block; font-weight: 800; font-size: 14px; margin: 0 0 10px; }
+.foot { padding: 14px 18px 16px; }
+.foot h3 { margin: 0 0 2px; font-size: 16px; font-weight: 800; } .foot h3 span { color: var(--muted); margin-right: 6px; }
+.foot p { margin: 0; color: var(--muted); font-size: 14px; }
+.icons { display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #ececef; }
+.irow { display: flex; gap: 14px; align-items: center; }
+.ic { position: relative; overflow: hidden; flex: none; }
+.ic svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* WhatsApp chat-list mockup */
+.wa { display: flex; align-items: center; gap: 12px; padding: 10px 16px; font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.wa.light { background: #fff; color: #111b21; border-top: 1px solid #e9edef; }
+.wa.dark { background: #111b21; color: #e9edef; }
+.wa .txt { flex: 1; min-width: 0; }
+.wa .top { display: flex; justify-content: space-between; align-items: baseline; }
+.wa .name { font-size: 16px; font-weight: 600; }
+.wa .time { font-size: 12px; color: #667781; }
+.wa.dark .time { color: #8696a0; }
+.wa .msg { font-size: 14px; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wa.dark .msg { color: #8696a0; }
+.family { padding: 18px; background: #ececef; display: flex; flex-direction: column; gap: 14px; }
+.fam-row { display: flex; flex-wrap: wrap; gap: 18px; }
+.fam-item { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 76px; }
+.fam-item small { font-size: 12px; color: #4a4b50; text-align: center; line-height: 1.2; }
+.fam-item .sm { display: flex; gap: 6px; align-items: center; }
+.fam-label { font-weight: 800; font-size: 14px; color: #2a2a2e; }
+.end { color: var(--ink); font-weight: 800; font-size: 20px; margin-top: 56px; }
+@media (max-width: 640px) { main { padding: 32px 16px 80px; } .grid { grid-template-columns: 1fr; } .logo { grid-template-columns: 1fr; } .logo .hero { height: 170px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>grnbl : nouvelles icônes</h1>
+  <p class="lead">Le logo complet est choisi. Il manque l'icône : la photo de profil de la communauté (carré arrondi) et des groupes (rond). Elle doit se reconnaître à 24 px, dans la liste des discussions.</p>
+
+  <p class="tag">Logo retenu</p>
+  <div class="logo" id="logo"></div>
+
+  <h2>Icône : 11 idées</h2>
+  <p class="sub">Chaque idée en carré arrondi 72 px (communauté), puis en rond 40 px et 24 px (groupes), sur bleu et sur violet. Dessous, la même icône dans une liste de discussions WhatsApp, en clair et en sombre.</p>
+  <div class="grid" id="icons"></div>
+
+  <h2>Exemple : une icône par groupe</h2>
+  <p class="sub">Exemple seulement, pour les deux idées qui me paraissent les plus fortes : la même forme pour tous, un symbole différent par groupe.</p>
+  <div class="grid" id="families"></div>
+
+  <p class="end">Donne-moi la lettre de l'icône.</p>
+</main>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const BLUE = "#2F4BFF", VIOLET = "#6A35FF", LIME = "#C6FF3D", INK = "#121212", WHITE = "#ffffff";
+let uid = 0;
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== undefined) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function text(g, s, attrs = {}, x = 0, y = 0, size = 100) {
+  const t = el("text", { x, y, style: `font-family:'Bagel Fat One';font-size:${size}px;font-feature-settings:'liga' 0`, ...attrs }, g);
+  t.textContent = s; return t;
+}
+function stickerText(g, s, x = 0, y = 0, size = 100, w = 12, anchor, fill = "#fff") {
+  const a = anchor ? { "text-anchor": anchor } : {};
+  text(g, s, { fill: INK, stroke: INK, "stroke-width": w + 4, "stroke-linejoin": "round", ...a }, x + 6 * size / 100, y + 8 * size / 100, size);
+  return text(g, s, { fill, stroke: INK, "stroke-width": w, "stroke-linejoin": "round", "paint-order": "stroke", ...a }, x, y, size);
+}
+// Put a group's visual center on (cx, cy)
+function centerOn(g, cx, cy) { const b = g.getBBox(); g.setAttribute("transform", `translate(${cx - (b.x + b.width / 2)} ${cy - (b.y + b.height / 2)})`); }
+function bubble(g, x, y, r, sw = 5, fill = LIME) {
+  el("circle", { cx: x + r * .27, cy: y + r * .33, r: r + sw / 2, fill: INK }, g);
+  el("circle", { cx: x, cy: y, r, fill, stroke: INK, "stroke-width": sw }, g);
+}
+function line(g, x1, y1, x2, y2, w) { el("line", { x1, y1, x2, y2, stroke: INK, "stroke-width": w, "stroke-linecap": "round" }, g); }
+// Hang bubbles at xs from a cable y = cy(x)
+function hang(g, xs, cy, r, stem, sw = 5) {
+  xs.forEach(x => { line(g, x, cy(x), x, cy(x) + stem + 2, sw); bubble(g, x, cy(x) + stem + r, r, sw); });
+}
+const spread = (a, b, n) => n === 1 ? [(a + b) / 2] : [...Array(n)].map((_, i) => a + i * (b - a) / (n - 1));
+function wordWidth(g) { const t = text(g, "grnbl", { fill: "none" }); const W = t.getComputedTextLength(); t.remove(); return W; }
+// Sticker shape: ink shadow offset, then filled path with ink outline
+function shape(g, d, fill, sw = 7, dx = 6, dy = 8) {
+  el("path", { d, fill: INK, stroke: INK, "stroke-width": sw, "stroke-linejoin": "round", transform: `translate(${dx} ${dy})` }, g);
+  return el("path", { d, fill, stroke: INK, "stroke-width": sw, "stroke-linejoin": "round" }, g);
+}
+// Cable across the whole box
+function cable(g, cy, w = 9) { line(g, -130, cy(-130), 130, cy(130), w); }
+
+// ---------- Group symbols, drawn in ink, about s units tall, centered on (x, y) ----------
+function symbol(g, name, x, y, s, color = INK) {
+  const k = s / 60, t = el("g", { transform: `translate(${x} ${y}) scale(${k})` }, g);
+  const f = { fill: color }, st = { fill: "none", stroke: color, "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" };
+  if (name === "gratuit") { // "0" with a slash: nothing to pay
+    el("ellipse", { cx: 0, cy: 0, rx: 17, ry: 25, ...st, "stroke-width": 10 }, t);
+    line(t, -22, 26, 22, -26, 9); t.lastChild.setAttribute("stroke", color);
+  } else if (name === "sorties") { // five-point star
+    const p = [...Array(10)].map((_, i) => { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 13 : 31; return `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a) + 3).toFixed(1)}`; }).join(" ");
+    el("polygon", { points: p, ...f, stroke: color, "stroke-width": 4, "stroke-linejoin": "round" }, t);
+  } else if (name === "famille") { // adult + child
+    el("circle", { cx: -11, cy: -17, r: 10, ...f }, t);
+    el("path", { d: "M-29 28 V8 a18 18 0 0 1 36 0 V28 Z", ...f }, t);
+    el("circle", { cx: 20, cy: 0, r: 7.5, ...f }, t);
+    el("path", { d: "M8 28 V20 a12 12 0 0 1 24 0 V28 Z", ...f }, t);
+  } else if (name === "bonsplans") { // price tag
+    el("path", { d: "M-26 -26 H4 L30 0 L4 26 L-26 26 Z", ...st, "stroke-width": 0, ...f, transform: "rotate(-45)" }, t);
+    el("circle", { cx: -12, cy: 0, r: 6, fill: LIME, transform: "rotate(-45)" }, t);
+  } else if (name === "nature") { // two peaks
+    el("path", { d: "M-32 24 L-8 -18 L4 2 L14 -12 L34 24 Z", ...f, stroke: color, "stroke-width": 4, "stroke-linejoin": "round" }, t);
+  } else if (name === "carburant") { // drop
+    el("path", { d: "M0 -30 C 12 -12, 24 2, 24 12 A24 24 0 0 1 -24 12 C -24 2, -12 -12, 0 -30 Z", ...f }, t);
+  }
+  return t;
+}
+
+// ---------- Icons, drawn in a 200 x 200 box centered on 0,0 ----------
+const ICONS = [
+  { n: "Bulle de discussion", d: "La cabine a la forme d'une bulle de message, avec les trois points de « en train d'écrire ».",
+    draw(g) {
+      const cy = x => -70 - .26 * x; cable(g, cy); line(g, 0, cy(0), 0, -40, 7);
+      const x = -66, y = -38, w = 132, h = 88, r = 40;
+      shape(g, `M${x + r} ${y} H${x + w - r} A${r} ${r} 0 0 1 ${x + w} ${y + r} V${y + h - r} A${r} ${r} 0 0 1 ${x + w - r} ${y + h} H${x + 46} L${x + 14} ${y + h + 24} L${x + 22} ${y + h - 2} A${r} ${r} 0 0 1 ${x} ${y + h - r} V${y + r} A${r} ${r} 0 0 1 ${x + r} ${y} Z`, LIME);
+      [-30, 0, 30].forEach(dx => el("circle", { cx: dx, cy: y + h / 2, r: 10, fill: INK }, g));
+    } },
+  { n: "Cabine à hublots", d: "Une cabine comme les vraies de la Bastille : boule pleine, bande de vitres au milieu.",
+    draw(g, bg) {
+      const cy = x => -76 - .26 * x; cable(g, cy); line(g, 0, cy(0), 0, -46, 7);
+      const r = 54, c = 6; bubble(g, 0, c, r, 7);
+      const id = "clip" + (uid++), cp = el("clipPath", { id }, g); el("circle", { cx: 0, cy: c, r: r - 3.5 }, cp);
+      const band = el("g", { "clip-path": `url(#${id})` }, g);
+      el("rect", { x: -70, y: c - 20, width: 140, height: 34, fill: INK }, band);
+      [-34, 0, 34].forEach(dx => el("rect", { x: dx - 13, y: c - 13, width: 26, height: 20, rx: 6, fill: bg }, band));
+    } },
+  { n: "Mascotte", d: "Une cabine avec deux yeux et un sourire : un autocollant rigolo, comme un personnage.",
+    draw(g) {
+      const cy = x => -76 - .26 * x; cable(g, cy); line(g, 0, cy(0), 0, -46, 7);
+      const c = 6; bubble(g, 0, c, 54, 7);
+      el("ellipse", { cx: -20, cy: c - 10, rx: 8.5, ry: 12, fill: INK }, g);
+      el("ellipse", { cx: 20, cy: c - 10, rx: 8.5, ry: 12, fill: INK }, g);
+      el("path", { d: `M-24 ${c + 14} Q0 ${c + 38} 24 ${c + 14}`, fill: "none", stroke: INK, "stroke-width": 8, "stroke-linecap": "round" }, g);
+    } },
+  { n: "Pastille citron", d: "Tout le rond en citron vert, le g du logo pendu au câble, de la couleur du fond. Se voit de loin.",
+    fill: LIME,
+    draw(g, bg) {
+      const cy = x => -72 - .26 * x; cable(g, cy); line(g, 2, cy(2), 2, -40, 8);
+      const tg = el("g", {}, g); stickerText(tg, "g", 0, 0, 128, 12, undefined, bg); centerOn(tg, 4, 6);
+    } },
+  { n: "Montagne et cabine", d: "Deux sommets blancs en bas, une cabine qui passe au-dessus : la ville entre les montagnes.",
+    draw(g) {
+      shape(g, "M-120 120 L-120 80 L-50 22 L-22 46 L30 4 L120 82 L120 120 Z", WHITE, 7, 0, 0);
+      const cy = x => -62 - .42 * x; cable(g, cy, 8);
+      hang(g, [-24], cy, 26, 6, 6);
+    } },
+  { n: "Épingle de carte", d: "La cabine prend la forme d'une épingle de carte : un endroit où aller, à Grenoble.",
+    draw(g, bg) {
+      const cy = x => -78 - .26 * x; cable(g, cy); line(g, 0, cy(0), 0, -50, 7);
+      shape(g, "M0 78 C -16 52, -46 30, -46 -4 A46 46 0 1 1 46 -4 C 46 30, 16 52, 0 78 Z", LIME);
+      el("circle", { cx: 0, cy: -4, r: 17, fill: bg, stroke: INK, "stroke-width": 7 }, g);
+    } },
+  { n: "Trois bulles en perspective", d: "Câble raide, trois bulles qui grossissent en approchant : le train vu d'en bas.",
+    draw(g) {
+      const k = -.72, cy = x => -48 + k * x, rs = [32, 20, 12], stem = r => r * .2 + 3, gap = 12;
+      // Place bubbles along the cable with equal gaps between their edges
+      const center = (x, r) => [x, cy(x) + stem(r) + r];
+      let xs = [-28];
+      for (let i = 1; i < rs.length; i++) {
+        let x = xs[i - 1]; const [ax, ay] = center(xs[i - 1], rs[i - 1]);
+        while (Math.hypot(center(x, rs[i])[0] - ax, center(x, rs[i])[1] - ay) < rs[i - 1] + rs[i] + gap) x += .5;
+        xs.push(x);
+      }
+      cable(g, cy, 8);
+      xs.forEach((x, i) => hang(g, [x], cy, rs[i], stem(rs[i]), 6));
+    } },
+  { n: "Deux cabines qui se croisent", d: "Deux câbles, une cabine citron qui monte, une blanche qui descend : l'aller-retour.",
+    draw(g) {
+      const c1 = x => -74 - .34 * x, c2 = x => 6 - .34 * x;
+      cable(g, c1, 8); cable(g, c2, 8);
+      line(g, -36, c1(-36), -36, c1(-36) + 9, 6); bubble(g, -36, c1(-36) + 7 + 30, 30, 6.5);
+      line(g, 36, c2(36), 36, c2(36) + 9, 6); bubble(g, 36, c2(36) + 7 + 30, 30, 6.5, WHITE);
+    } },
+  { n: "Le g traversé", d: "Le g blanc du logo, en grand, et le câble qui passe derrière lui d'un bord à l'autre.",
+    draw(g) {
+      const cy = x => -6 - .34 * x; cable(g, cy, 12);
+      const tg = el("g", {}, g); stickerText(tg, "g", 0, 0, 128, 13); centerOn(tg, -4, -6);
+    } },
+  { n: "Bulle et pastille", d: "Une cabine avec une pastille blanche comme les messages non lus. Blanc, pas rouge : le rouge reste aux alertes.",
+    draw(g) {
+      const cy = x => -78 - .26 * x; cable(g, cy); line(g, -8, cy(-8), -8, -44, 7);
+      bubble(g, -8, 8, 52, 7);
+      bubble(g, 40, -32, 24, 6.5, WHITE);
+      const tg = el("g", {}, g); text(tg, "3", { fill: INK }, 0, 0, 34); centerOn(tg, 40, -32);
+    } },
+  { n: "Billet de sortie", d: "Un billet citron, découpé sur les côtés, avec une petite cabine imprimée dessus.",
+    draw(g, bg) {
+      const t = el("g", { transform: "rotate(-14)" }, g);
+      const w = 66, h = 44, n = 13;
+      shape(t, `M${-w + 10} ${-h} H${w - 10} Q${w} ${-h} ${w} ${-h + 10} V${-n} A${n} ${n} 0 0 0 ${w} ${n} V${h - 10} Q${w} ${h} ${w - 10} ${h} H${-w + 10} Q${-w} ${h} ${-w} ${h - 10} V${n} A${n} ${n} 0 0 0 ${-w} ${-n} V${-h + 10} Q${-w} ${-h} ${-w + 10} ${-h} Z`, LIME);
+      el("line", { x1: 24, y1: -h + 10, x2: 24, y2: h - 10, stroke: INK, "stroke-width": 5, "stroke-dasharray": "8 8", "stroke-linecap": "round" }, t);
+      // Tiny cabin pictogram
+      line(t, -46, -22, 6, -30, 6); line(t, -20, -26, -20, -14, 5);
+      el("circle", { cx: -20, cy: 6, r: 18, fill: INK }, t);
+    } },
+];
+
+function icon(host, def, bg, size, radius, draw) {
+  const d = document.createElement("div"); d.className = "ic";
+  d.style.cssText = `width:${size}px;height:${size}px;border-radius:${radius};background:${def.fill || bg}`;
+  host.appendChild(d);
+  const svg = el("svg", { viewBox: "-100 -100 200 200" }, d), g = el("g", {}, svg);
+  (draw || def.draw)(g, bg);
+}
+function chatRow(host, def, mode, bg) {
+  const r = document.createElement("div"); r.className = "wa " + mode;
+  r.innerHTML = `<div class="av"></div><div class="txt"><div class="top"><span class="name">grnbl</span><span class="time">10:31</span></div><div class="msg">Carburant : gazole à 1,62 € à Échirolles</div></div>`;
+  host.appendChild(r);
+  icon(r.querySelector(".av"), def, bg, 48, "50%");
+}
+
+// ---------- Group families for the two strongest ideas ----------
+const GROUPS = [["gratuit", "Gratuit"], ["sorties", "Sorties"], ["famille", "Famille"], ["bonsplans", "Bons plans"], ["nature", "Nature"], ["carburant", "Carburant"]];
+const FAMILIES = [
+  { base: 0, n: "Bulle de discussion", d: "Les trois points laissent place au symbole du groupe. La forme reste celle de la communauté.",
+    draw: s => (g) => {
+      const cy = x => -70 - .26 * x; cable(g, cy); line(g, 0, cy(0), 0, -40, 7);
+      const x = -66, y = -38, w = 132, h = 88, r = 40;
+      shape(g, `M${x + r} ${y} H${x + w - r} A${r} ${r} 0 0 1 ${x + w} ${y + r} V${y + h - r} A${r} ${r} 0 0 1 ${x + w - r} ${y + h} H${x + 46} L${x + 14} ${y + h + 24} L${x + 22} ${y + h - 2} A${r} ${r} 0 0 1 ${x} ${y + h - r} V${y + r} A${r} ${r} 0 0 1 ${x + r} ${y} Z`, LIME);
+      symbol(g, s, 0, y + h / 2, 66);
+    } },
+  { base: 3, n: "Pastille citron", d: "Le g laisse place au symbole du groupe, pendu au même câble. Tout reste citron et bleu.",
+    draw: s => (g, bg) => {
+      const cy = x => -66 - .26 * x; cable(g, cy); line(g, 0, cy(0), 0, -34, 8);
+      const t = el("g", {}, g);
+      symbol(el("g", { transform: "translate(6 8)" }, t), s, 0, 16, 96, INK);
+      symbol(t, s, 0, 16, 96, bg);
+      t.querySelectorAll(":scope > g:last-child *").forEach(e => { e.setAttribute("stroke", INK); if (!e.getAttribute("stroke-width")) e.setAttribute("stroke-width", 5); });
+    } },
+];
+
+function render() {
+  // Chosen logo: variant 3 of round 7
+  const L = document.getElementById("logo");
+  for (const bg of [BLUE, VIOLET]) {
+    const h = document.createElement("div"); h.className = "hero"; h.style.background = bg; L.appendChild(h);
+    const s = el("svg", {}, h), g = el("g", {}, s);
+    const W = wordWidth(g), cy = x => 50 - 18 * x / W;
+    line(g, -12, cy(-12), W + 12, cy(W + 12), 8); hang(g, spread(W * .09, W * .91, 5), cy, 21, 8, 6); stickerText(g, "grnbl");
+    const bb = g.getBBox(); s.setAttribute("viewBox", `${bb.x - 10} ${bb.y - 10} ${bb.width + 20} ${bb.height + 20}`);
+  }
+  const I = document.getElementById("icons");
+  ICONS.forEach((ic, i) => {
+    const c = document.createElement("div"); c.className = "card";
+    c.innerHTML = `<div class="icons"></div><div class="chats"></div><div class="foot"><h3><span>${String.fromCharCode(65 + i)}.</span>${ic.n}</h3><p>${ic.d}</p></div>`;
+    I.appendChild(c);
+    const box = c.querySelector(".icons");
+    for (const bg of [BLUE, VIOLET]) {
+      const row = document.createElement("div"); row.className = "irow"; box.appendChild(row);
+      icon(row, ic, bg, 72, "17px"); icon(row, ic, bg, 40, "50%"); icon(row, ic, bg, 24, "50%");
+    }
+    const ch = c.querySelector(".chats");
+    chatRow(ch, ic, "light", BLUE); chatRow(ch, ic, "dark", VIOLET);
+  });
+  const F = document.getElementById("families");
+  FAMILIES.forEach(f => {
+    const base = ICONS[f.base], letter = String.fromCharCode(65 + f.base);
+    const c = document.createElement("div"); c.className = "card"; c.style.gridColumn = "1 / -1";
+    c.innerHTML = `<div class="family"><div class="fam-label">Exemple, idée ${letter}</div><div class="fam-row"></div></div><div class="foot"><h3><span>${letter}.</span>${f.n} : les 6 groupes</h3><p>${f.d}</p></div>`;
+    F.appendChild(c);
+    const row = c.querySelector(".fam-row");
+    const add = (label, draw) => {
+      const it = document.createElement("div"); it.className = "fam-item"; row.appendChild(it);
+      icon(it, base, BLUE, 56, "50%", draw);
+      const sm = document.createElement("div"); sm.className = "sm"; it.appendChild(sm);
+      icon(sm, base, BLUE, 40, "50%", draw); icon(sm, base, BLUE, 24, "50%", draw);
+      const s = document.createElement("small"); s.textContent = label; it.appendChild(s);
+    };
+    add("Communauté", base.draw);
+    GROUPS.forEach(([k, label]) => add(label, f.draw(k)));
+  });
+}
+document.fonts.load("400 100px 'Bagel Fat One'", "grnbl").then(render, render);
+</script>
+</body>
+</html>

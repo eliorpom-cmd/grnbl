@@ -28,7 +28,6 @@ from .scrape.fetch import RAW, fetch
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 CANDIDATES = 40
-EXCEPTIONAL = 5  # review score that lets an event be posted by several groups
 ORDER = ["famille", "nature", "bonsplans", "gratuit", "sorties"]
 
 PROMPT = """You are the editor of "{channel}", a WhatsApp channel for ordinary people of the Grenoble area
@@ -41,18 +40,18 @@ Below are the best candidates, already checked (dates, booking). Compose two pos
 
 Choose them together, not one by one:
 - variety: no more than two of the same kind (concert, exhibition, sport, kids, visit...);
-- at least one for families with children;
 {taste}
 - buzz counts (press, several sources);
 - leave out anything you would not tell a friend about: ordinary league matches, commercial routine.
 The line uses only facts present in the candidate (title, dates, place, price, its line): never add a fact.
-{already}
 {taste_calls}
 Then add up to 3 reserves per post ("reserve": true), best first: they replace a pick the human removes.
 Return ONLY a JSON array, picks in the order they should appear, then the reserves:
 {{"i": <candidate i>, "post": "to_book" | "week", "reserve": true/false,
   "why": short French reason for the editor (why this one),
-  "line": the French line for the post: warm, factual, one sentence, the useful detail first}}
+  "line": the French line for the post: warm, factual, one sentence that says what you will see or do and
+          why it is worth going. The post already shows the name in bold, then day, time, place and price on
+          the line above: never repeat them, and never start with the event's name}}
 
 CANDIDATES:
 {candidates}
@@ -89,24 +88,35 @@ def _brief(i: int, e: dict, today: date) -> dict:
 
 def select(events: list[dict], today: date, channel: str, n_book: int = 5, n_week: int = 6,
            already: list[dict] | None = None) -> list[dict]:
-    # One event, one group: what an earlier group posts is not offered again, unless it is
-    # exceptional (scored 5 by the review), the kind of event every group should carry.
-    used = {p["i"] for p in already or [] if not p.get("reserve")}
-    pool = [(i, e) for i, e in candidates(events, today, channel)
-            if i not in used or ((e.get("review") or {}).get("score") or 0) >= EXCEPTIONAL]
+    # One event, one group: candidates only holds the events whose home is this group
+    # (channels.home); what an earlier group took, reserves included, is never offered again.
+    used = {p["i"] for p in already or []}
+    pool = [(i, e) for i, e in candidates(events, today, channel) if i not in used]
     if not pool:
         return []
     allowed = {i for i, _ in pool}
     c = CHANNELS[channel]
-    taken = [events[i]["title"] for i in sorted(used)]
     prompt = PROMPT.format(channel=c["name"], promise=c["promise"], taste=c["taste"], today=today.isoformat(),
                            n_book=n_book, n_week=n_week,
                            taste_calls=_taste(today),
-                           already=(f"Already posted by other groups (offered again only when exceptional): "
-                                    f"{json.dumps(taken, ensure_ascii=False)}\n") if taken else "",
                            candidates=json.dumps([_brief(i, e, today) for i, e in pool], ensure_ascii=False))
-    picks = [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
-             if p.get("i") in allowed and p.get("post") in ("to_book", "week")]
+    def ask_once():
+        try:
+            picks, seen = [], set()
+            for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600)):
+                # Offered events only, each once: the model sometimes lists a pick again as a reserve.
+                if p.get("i") in allowed and p.get("i") not in seen and p.get("post") in ("to_book", "week"):
+                    seen.add(p["i"])
+                    picks.append(p)
+            return picks
+        except Exception as e:  # noqa: BLE001 - one retry below, then an empty group is reported
+            print(f"editor: {channel}: {e}")
+            return []
+
+    # A group with candidates never comes back empty in silence: the 21/10 run lost Famille that way.
+    picks = ask_once() or ask_once()
+    if not picks:
+        print(f"editor: {channel}: no picks after a retry")
     # The rules stay the rules: the post follows the timing, the channel is written on each pick.
     for p in picks:
         p["post"] = "week" if editorial.timing(events[p["i"]], today) == "this_week" else "to_book"

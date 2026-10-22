@@ -19,7 +19,7 @@ from datetime import date
 from pathlib import Path
 
 from .. import editorial, memory
-from .extract import ask, parse_array
+from .extract import ask
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 
@@ -113,7 +113,7 @@ def review(events: list[dict], today: date, batch: int = 40, model: str = "sonne
 
     def one(chunk):
         prompt = PROMPT.format(today=today.isoformat(), taste=taste, events=json.dumps(chunk, ensure_ascii=False))
-        for attempt in range(2):
+        for _ in range(2):
             try:
                 return parse_array_any(ask(prompt, model=model, timeout=900))
             except Exception:  # noqa: BLE001 - retried once, then that batch stays "not reviewed"
@@ -125,8 +125,12 @@ def review(events: list[dict], today: date, batch: int = 40, model: str = "sonne
             for v in answer:
                 i = v.get("i")
                 if isinstance(i, int) and i in fingerprints:
-                    verdicts[i] = v
                     dup = v.get("duplicate_of")
+                    # A duplicate points to an event listed earlier, as asked (and as a recalled verdict does):
+                    # pointing at itself or at a later one would drop both copies (digest.chosen).
+                    if not (isinstance(dup, int) and 0 <= dup < i):
+                        v["duplicate_of"] = dup = None
+                    verdicts[i] = v
                     _remember(fingerprints[i], today, {**v, "duplicate_key": keys.get(dup) if isinstance(dup, int) else None})
     out = []
     for i, e in enumerate(events):

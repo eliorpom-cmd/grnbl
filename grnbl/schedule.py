@@ -29,6 +29,8 @@ PREPARE = {"weekday": 1, "at": time(10, 0)}  # Tuesday 10:00, for the slots of t
 REMIND_BEFORE = timedelta(hours=2)
 FUEL_AT = time(10, 0)
 ALERT_HOURS = range(7, 23)  # checked every hour from 7:00 to 22:00
+# One-off shifts of a slot for a given edition: {(edition, slot id): time}.
+MOVED = {(date(2026, 10, 21), "mercredi"): time(18, 0)}  # posts reworked on the day, sent in the evening
 
 
 def next_day(weekday: int, after: date) -> date:
@@ -48,7 +50,7 @@ def slot_of(channel: str) -> dict | None:
 def send_time(edition: date, slot: dict) -> datetime:
     """When the slot of that edition sends: its weekday on or after the edition day."""
     day = edition + timedelta(days=(slot["weekday"] - edition.weekday()) % 7)
-    return datetime.combine(day, slot["at"])
+    return datetime.combine(day, MOVED.get((edition, slot["id"]), slot["at"]))
 
 
 def channel_day(edition: date, channel: str) -> date:

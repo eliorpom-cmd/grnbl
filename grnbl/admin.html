@@ -6,20 +6,19 @@
 <title>grnbl · editor</title>
 <style>
   :root {
-    --bg: #fbfbfd; --panel: #ffffff; --hover: #f2f2f5; --sel: #e8f0fe;
-    --ink: #1d1d1f; --body: #515154; --mute: #86868b; --line: rgba(0, 0, 0, .08);
+    --bg: #fbfbfd; --panel: #ffffff; --hover: #f2f2f5; --line: rgba(0, 0, 0, .08);
+    --ink: #1d1d1f; --body: #515154; --mute: #86868b;
     --accent: #0071e3; --keep: #1a7f37; --drop: #c4314b; --warn: #b25e09;
-    --wa-bg: #efeae2; --wa-bubble: #ffffff; --wa-ink: #111b21; --wa-meta: #667781;
+    --wa-bg: #efeae2; --wa-bubble: #ffffff; --wa-ink: #111b21; --wa-meta: #667781; --wa-link: #027eb5;
     --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 24px rgba(0, 0, 0, .06);
-    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease: cubic-bezier(0.4, 0, 0.2, 1); --expo: cubic-bezier(0.16, 1, 0.3, 1);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0b0b0d; --panel: #141416; --hover: #1c1c1f; --sel: #10243f;
-      --warn: #fbbf24;
-      --ink: #f5f5f7; --body: #b4b4b9; --mute: #7c7c82; --line: rgba(255, 255, 255, .08);
+      --bg: #0b0b0d; --panel: #141416; --hover: #1c1c1f; --line: rgba(255, 255, 255, .08);
+      --ink: #f5f5f7; --body: #b4b4b9; --mute: #7c7c82;
       --accent: #3b93ff; --keep: #3fb950; --drop: #ff6b81; --warn: #f0a04b;
-      --wa-bg: #0b141a; --wa-bubble: #202c33; --wa-ink: #e9edef; --wa-meta: #8696a0;
+      --wa-bg: #0b141a; --wa-bubble: #202c33; --wa-ink: #e9edef; --wa-meta: #8696a0; --wa-link: #53bdeb;
       --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .35);
     }
   }
@@ -27,583 +26,649 @@
   [hidden] { display: none !important; }
   html, body { height: 100%; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; }
-  button, input, textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; }
+  button { font: inherit; color: inherit; cursor: pointer; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; text-underline-offset: 2px; }
   kbd { font: 11px/1 -apple-system, sans-serif; color: var(--mute); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; background: var(--panel); }
+  .empty { color: var(--mute); text-align: center; padding: 64px 24px; }
 
   /* Top bar */
   .top { height: 52px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-bottom: 1px solid var(--line); }
-  .brand { font-weight: 650; letter-spacing: -.02em; font-size: 16px; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; letter-spacing: -.02em; font-size: 16px; }
+  .brand img { width: 24px; height: 24px; border-radius: 7px; }
   .day { color: var(--mute); }
-  .seg { display: flex; background: var(--hover); border-radius: 8px; padding: 2px; margin-left: 8px; }
-  .seg button { border: 0; background: none; padding: 4px 14px; border-radius: 6px; color: var(--body); transition: background .18s var(--ease), color .18s var(--ease); }
-  .pcheck { margin-top: 4px; font-size: 13px; color: var(--warn, #b45309); }
-  .seg.chans { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
-  .seg.chans button { white-space: nowrap; }
+  .seg { display: flex; background: var(--hover); border-radius: 8px; padding: 2px; }
+  .seg button { border: 0; background: none; padding: 4px 14px; border-radius: 6px; color: var(--body); white-space: nowrap; transition: background .18s var(--ease), color .18s var(--ease); }
   .seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-  .search { margin-left: auto; width: 240px; height: 30px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 0 10px; outline: none; transition: border-color .18s var(--ease); }
-  .search:focus { border-color: var(--accent); }
+  .top .lang { margin-left: auto; }
+  .top .lang button { padding: 4px 10px; font-size: 12.5px; }
 
-  /* Triage: queues | list | inspector */
-  .triage { flex: 1; min-height: 0; display: grid; grid-template-columns: 216px minmax(320px, 1fr) minmax(380px, 460px); }
-  .queues { border-right: 1px solid var(--line); padding: 12px 8px; overflow: auto; }
-  .group { color: var(--mute); font-size: 12px; font-weight: 600; padding: 14px 10px 4px; }
-  .q { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 6px 10px; border-radius: 7px; text-align: left; color: var(--body); transition: background .15s var(--ease); }
-  .q:hover { background: var(--hover); }
-  .q.on { background: var(--hover); color: var(--ink); font-weight: 600; }
-  .q .n { margin-left: auto; color: var(--mute); font-variant-numeric: tabular-nums; font-weight: 400; }
-  .q .ic { width: 8px; height: 8px; border-radius: 50%; flex: none; margin: 0 4px; background: var(--mute); opacity: .5; }
-  .q .ic.keep { background: var(--keep); opacity: 1; } .q .ic.drop { background: var(--drop); opacity: 1; }
-  .q .ic.warn { background: var(--warn); opacity: 1; } .q .ic.accent { background: var(--accent); opacity: 1; }
+  /* Groups strip, shared by both tabs: which group, how far */
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .rv-head .chips { flex-wrap: wrap; overflow: visible; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); white-space: nowrap; transition: background .15s var(--ease), border-color .15s var(--ease); }
+  .chip small { color: var(--mute); font-size: 12px; }
+  .chip.on { border-color: var(--ink); color: var(--ink); font-weight: 600; }
+  .chip.done { background: color-mix(in srgb, var(--keep) 10%, var(--panel)); }
+  .chip.done small { color: var(--keep); font-weight: 600; }
 
-  .list { overflow: auto; border-right: 1px solid var(--line); }
-  .list-head { position: sticky; top: 0; z-index: 1; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); padding: 12px 16px 10px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 8px; }
-  .list-head h2 { margin: 0; font-size: 15px; font-weight: 650; }
-  .list-head span { color: var(--mute); }
-  .row { display: grid; grid-template-columns: 8px 1fr auto; gap: 10px; align-items: start; padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .15s var(--ease); }
-  .row:hover { background: var(--hover); }
-  .row.sel { background: var(--sel); }
-  .row .st { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; background: var(--line); }
-  .row .st.keep { background: var(--keep); } .row .st.drop { background: var(--drop); }
-  .row .t { font-weight: 550; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .row .m { color: var(--mute); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .row .side { text-align: right; font-size: 12px; color: var(--mute); white-space: nowrap; }
-  .score { letter-spacing: 1.5px; color: var(--accent); font-size: 10px; }
-  .badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
-  .b { font-size: 11px; line-height: 18px; padding: 0 7px; border-radius: 99px; background: var(--hover); color: var(--body); white-space: nowrap; }
-  .b.pick { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-  .b.book { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
-  .b.free { background: color-mix(in srgb, var(--keep) 14%, transparent); color: var(--keep); }
-  .empty { color: var(--mute); text-align: center; padding: 64px 24px; }
-
-  /* Inspector */
-  .insp { overflow: auto; padding: 24px 24px 32px; }
-  .insp h1 { margin: 0 0 4px; font-size: 22px; line-height: 1.2; letter-spacing: -.02em; font-weight: 650; }
-  .insp .sub { color: var(--body); margin-bottom: 18px; }
-  .facts { display: grid; grid-template-columns: 96px 1fr; gap: 6px 12px; margin: 0 0 20px; }
-  .facts dt { color: var(--mute); }
-  .facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
-  .note { border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; background: var(--hover); color: var(--body); }
-  .note b { color: var(--ink); font-weight: 600; }
-  .note.pick { background: color-mix(in srgb, var(--accent) 9%, transparent); }
-  .note.dropped { background: color-mix(in srgb, var(--drop) 9%, transparent); }
-  .label { font-size: 12px; font-weight: 600; color: var(--mute); margin: 20px 0 6px; display: flex; justify-content: space-between; }
-  textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 10px 12px; outline: none; line-height: 1.45; transition: border-color .18s var(--ease); }
-  textarea:focus { border-color: var(--accent); }
-  .actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
-  .btn { height: 36px; border-radius: 99px; padding: 0 16px; border: 1px solid var(--line); background: var(--panel); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: transform .15s var(--ease), background .15s var(--ease); }
+  .btn { height: 36px; border-radius: 99px; padding: 0 16px; border: 1px solid var(--line); background: var(--panel); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; transition: transform .15s var(--ease), background .15s var(--ease); }
   .btn:active { transform: scale(.97); }
-  .btn.keep { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-  .btn.keep.on { background: var(--keep); border-color: var(--keep); color: #fff; }
-  .btn.drop.on { background: var(--drop); border-color: var(--drop); color: #fff; }
-  .btn kbd { border-color: currentColor; color: inherit; opacity: .6; background: none; }
-  .undo { margin-left: auto; color: var(--mute); font-size: 13px; background: none; border: 0; }
-  .hint { color: var(--mute); font-size: 12px; margin-top: 24px; display: flex; gap: 14px; flex-wrap: wrap; }
-
-  /* Posts: editor's notes | WhatsApp preview */
-  .posts { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(320px, 1fr) minmax(380px, 520px); }
-  .notes { overflow: auto; padding: 24px; border-right: 1px solid var(--line); }
-  .chans { display: inline-flex; margin: 0 0 24px; }
-  .notes h2 { font-size: 15px; font-weight: 650; margin: 0 0 4px; }
-  .notes .lead { color: var(--body); margin: 0 0 16px; }
-  .pick-row { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
-  .pick-row:hover .pt { color: var(--accent); }
-  .pick-row .num { color: var(--mute); font-variant-numeric: tabular-nums; }
-  .pick-row .pt { font-weight: 550; transition: color .15s var(--ease); }
-  .pick-row .pw { color: var(--body); font-size: 13px; }
-  .notes section + section { margin-top: 28px; }
-  .summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: 12px; background: var(--hover); margin: 0 0 24px; }
-  .summary span { color: var(--body); }
-  .summary .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn.dark { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .btn.send { background: var(--keep); border-color: var(--keep); color: #fff; }
   .btn:disabled { opacity: .55; cursor: default; }
-  .summary .sent { color: var(--keep); font-weight: 600; white-space: nowrap; }
-  .prow { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); transition: opacity .18s var(--ease); }
-  .prow.off { opacity: .5; } .prow.dropped .pline { text-decoration: line-through; }
-  .pt { font-weight: 600; }
-  .pline { color: var(--ink); margin-top: 2px; }
-  .pw { color: var(--mute); font-size: 12.5px; margin-top: 2px; }
-  .pact { display: flex; gap: 6px; align-items: start; }
-  .mini { height: 28px; min-width: 28px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--body); font-size: 12.5px; transition: background .15s var(--ease), color .15s var(--ease); }
-  @media (hover: hover) { .mini:hover { background: var(--ink); color: var(--bg); } }
-  .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0 0 4px; }
-  .sec-head h2 { margin: 0; white-space: nowrap; }
-  .sec-head span { color: var(--mute); white-space: nowrap; }
-  .link { margin-left: auto; white-space: nowrap; border: 0; background: none; color: var(--accent); padding: 4px 0; font-size: 13px; }
-  .cand { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: start; padding: 12px 8px; margin: 0 -8px; border-top: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: background .15s var(--ease), opacity .15s var(--ease); }
-  .cand:not(.on) { opacity: .8; }
-  .cand.on { background: color-mix(in srgb, var(--keep) 6%, transparent); }
-  @media (hover: hover) { .cand:hover { background: var(--hover); } }
-  .cand:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .box { width: 22px; height: 22px; margin-top: 1px; border-radius: 6px; border: 1.5px solid var(--mute); display: grid; place-items: center; transition: background .15s var(--ease), border-color .15s var(--ease); }
-  .cand.on .box { background: var(--keep); border-color: var(--keep); }
-  .cand.on .box::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
-  .am { color: var(--mute); font-size: 12.5px; }
-  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--body); }
-  .star { color: var(--warn); margin-right: 6px; }
-  .more { width: 100%; margin: 4px 0 0; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; background: none; color: var(--accent); font-weight: 600; }
-  .bench { color: var(--mute); font-size: 12px; font-weight: 600; padding: 14px 0 4px; }
-  .phone { overflow: auto; background: var(--wa-bg); padding: 20px 18px 40px; }
-  .chan { display: flex; align-items: center; gap: 10px; margin: -20px -18px 16px; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: -20px; z-index: 1; }
-  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--hover); display: grid; place-items: center; font-size: 18px; }
-  .chan small { display: block; color: var(--mute); }
-  .bubble { position: relative; background: var(--wa-bubble); color: var(--wa-ink); border-radius: 8px; padding: 8px 10px 20px; margin: 0 0 14px; max-width: 100%; box-shadow: 0 1px .5px rgba(11, 20, 26, .13); white-space: pre-wrap; overflow-wrap: anywhere; font: 14.2px/1.42 -apple-system, "Helvetica Neue", sans-serif; }
+  .ok-note { color: var(--keep); font-weight: 600; }
+
+  /* WhatsApp text, also used inside the cards; editable spots show it on hover and focus */
+  .wa { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--wa-ink); font: 14.2px/1.42 -apple-system, "Helvetica Neue", sans-serif; }
+  .wa a { color: var(--wa-link); }
+  [contenteditable] { outline: none; border-radius: 6px; transition: box-shadow .15s var(--ease), background .15s var(--ease); cursor: text; }
+  [contenteditable]:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
+  [contenteditable]:focus { box-shadow: 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  .edited { font-size: 11.5px; color: var(--accent); font-weight: 600; margin-top: 4px; display: flex; gap: 10px; }
+  .edited button { border: 0; background: none; padding: 0; color: var(--mute); font-size: 11.5px; text-decoration: underline; }
+
+  /* ---------- Review: cards on the left, the event's details on the right ---------- */
+  .review { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rv-main { overflow: auto; display: flex; flex-direction: column; align-items: center; padding: 20px 24px 32px; border-right: 1px solid var(--line); }
+  .rv-head { width: 100%; max-width: 560px; margin: 0 0 18px; }
+  .rv-group { display: flex; align-items: center; gap: 12px; margin: 16px 0 0; }
+  .rv-group .emo { width: 44px; height: 44px; border-radius: 12px; background: var(--hover); display: grid; place-items: center; font-size: 22px; flex: none; }
+  .rv-group h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; line-height: 1.2; }
+  .rv-group p { margin: 0; color: var(--mute); font-size: 13px; }
+  .rv-bar { height: 4px; border-radius: 99px; background: var(--hover); margin-top: 14px; overflow: hidden; }
+  .rv-bar i { display: block; height: 100%; background: var(--keep); border-radius: inherit; transform-origin: 0 50%; transition: transform .6s var(--expo); }
+  .stack { position: relative; width: 100%; max-width: 560px; display: grid; }
+  .stack > * { grid-area: 1 / 1; }
+  .rcard { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 22px 24px 24px; box-shadow: var(--shadow);
+    transform-origin: 50% 100%; touch-action: pan-y; transition: transform .6s var(--expo), opacity .6s var(--expo); }
+  .rcard.back1, .rcard.back2 { position: absolute; inset: 0; padding: 0; pointer-events: none; }
+  .rcard.back1 { transform: translateY(14px) scale(.955); opacity: .7; }
+  .rcard.back2 { transform: translateY(28px) scale(.91); opacity: .35; }
+  .rcard.drag { transition: none; cursor: grabbing; user-select: none; }
+  .rcard.out-keep { transform: translateX(120%) rotate(8deg); opacity: 0; transition-duration: .45s; }
+  .rcard.out-drop { transform: translateX(-120%) rotate(-8deg); opacity: 0; transition-duration: .45s; }
+  .rcard.out-later { transform: translateY(-110%) scale(.96); opacity: 0; transition-duration: .45s; }
+  .rcard.enter { transform: translateY(14px) scale(.955); opacity: .7; }
+  .rc-top { color: var(--mute); font-size: 13px; margin: 0 0 12px; }
+  .rc-top b { color: var(--body); font-weight: 600; }
+  .rc-new { display: inline-block; margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--accent); }
+  .rc-title { margin: 0; font-size: 24px; line-height: 1.2; letter-spacing: -.02em; font-weight: 650; text-wrap: balance; }
+  .rc-meta { margin: 6px 0 18px; color: var(--body); }
+  .rc-cap { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--mute); margin: 0 0 6px; }
+  .rc-cap span:last-child { font-weight: 400; }
+  .rc-msg { background: var(--wa-bg); border-radius: 14px; padding: 12px 14px; max-height: 36vh; overflow: auto; }
+  .rc-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 0; }
+  .rc-facts dt { font-size: 12px; color: var(--mute); }
+  .rc-facts dd { margin: 2px 0 0; color: var(--ink); font-weight: 550; overflow-wrap: anywhere; }
+  .rc-facts dd small { display: block; font-weight: 400; color: var(--body); font-size: 13px; }
+  .rc-why { margin: 18px 0 0; color: var(--body); }
+  .rc-why b, .dt-sec b { display: block; font-size: 12px; color: var(--mute); font-weight: 600; margin-bottom: 2px; }
+  .rc-warn { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); font-weight: 550; }
+  .stamp { position: absolute; top: 22px; padding: 4px 12px; border-radius: 10px; border: 2px solid; font-weight: 700; font-size: 15px; opacity: 0; pointer-events: none; background: var(--panel); z-index: 2; }
+  .stamp.keep { right: 22px; color: var(--keep); transform: rotate(6deg); }
+  .stamp.drop { left: 22px; color: var(--drop); transform: rotate(-6deg); }
+  .stamp.later { left: 50%; color: var(--warn); transform: translateX(-50%); }
+  .rv-acts { display: flex; align-items: flex-end; justify-content: center; gap: 28px; margin: 28px 0 0; }
+  .rv-btn { display: grid; justify-items: center; gap: 6px; border: 0; background: none; color: var(--mute); font-size: 12px; font-weight: 500; }
+  .rv-btn span { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; background: var(--panel); border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 6px 16px rgba(0, 0, 0, .06); transition: transform .15s var(--ease), background .15s var(--ease), color .15s var(--ease); }
+  .rv-btn.keep span { color: var(--keep); } .rv-btn.drop span { color: var(--drop); }
+  .rv-btn.later span { width: 52px; height: 52px; font-size: 22px; font-weight: 600; color: var(--warn); }
+  .rv-btn.undo span { width: 44px; height: 44px; color: var(--body); }
+  .rv-btn:disabled { opacity: .35; cursor: default; }
+  @media (hover: hover) { .rv-btn.keep:not(:disabled):hover span { background: var(--keep); color: #fff; } .rv-btn.drop:not(:disabled):hover span { background: var(--drop); color: #fff; } .rv-btn.later:hover span { background: var(--warn); color: #fff; } }
+  .rv-btn:not(:disabled):active span { transform: scale(.92); }
+  .rv-keys { margin-top: 18px; color: var(--mute); font-size: 12px; display: flex; gap: 14px; }
+  .rc-done { text-align: center; padding: 36px 24px 32px; }
+  .rc-done .big { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; background: var(--keep); color: #fff; font-size: 30px; }
+  .rc-done p { color: var(--body); margin: 6px 0 22px; }
+  .rc-done ul { list-style: none; padding: 0; margin: 0 0 24px; text-align: left; }
+  .rc-done li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .rc-done li span { color: var(--mute); text-align: right; }
+  .rc-done li a { font-size: 13px; }
+
+  /* Details of the card in front */
+  .rv-detail { overflow: auto; padding: 28px 32px 40px; }
+  .rv-detail.swap { animation: fadein .5s var(--expo); }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .dt-kicker { color: var(--mute); font-size: 12px; font-weight: 600; margin: 0 0 8px; }
+  .dt-title { margin: 0 0 6px; font-size: 22px; line-height: 1.2; letter-spacing: -.02em; font-weight: 650; }
+  .dt-desc { color: var(--body); margin: 0 0 22px; white-space: pre-line; }
+  .dt-facts { display: grid; grid-template-columns: 112px 1fr; gap: 8px 14px; margin: 0 0 22px; }
+  .dt-facts dt { color: var(--mute); }
+  .dt-facts dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+  .dt-sec { border-radius: 14px; background: var(--hover); padding: 12px 14px; margin: 0 0 12px; color: var(--body); }
+  .dt-link { display: inline-flex; margin: 4px 0 22px; }
+
+  /* ---------- Messages: each group's WhatsApp chat, editable in place ---------- */
+  .msgs { flex: 1; min-height: 0; overflow: auto; background: var(--wa-bg); }
+  .msgs-in { max-width: 720px; margin: 0 auto; padding: 0 16px 48px; }
+  .msgs-bar { position: sticky; top: 0; z-index: 2; margin: 0 -16px 18px; padding: 14px 16px 12px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  .msgs-state { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  .msgs-state span { color: var(--body); }
+  .chat-head { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; font-size: 20px; }
+  .chat-head small { display: block; color: var(--wa-meta); }
+  .chat-head b { color: var(--wa-ink); }
+  .bubble { position: relative; background: var(--wa-bubble); border-radius: 8px; padding: 8px 10px 22px; margin: 0 0 8px; box-shadow: 0 1px .5px rgba(11, 20, 26, .13); }
   .bubble .time { position: absolute; right: 10px; bottom: 4px; font-size: 11px; color: var(--wa-meta); }
   .bubble .copy { position: absolute; right: 6px; top: 6px; border: 0; border-radius: 6px; background: var(--hover); color: var(--body); font-size: 12px; padding: 2px 8px; opacity: 0; transition: opacity .15s var(--ease); }
   .bubble:hover .copy { opacity: 1; }
-  .bubble a { color: #027eb5; }
-  /* English translation under a post: for readers of the board, never posted, so quieter than the bubble. */
-  .en { margin: -4px 4px 22px; padding: 2px 0 2px 12px; border-left: 2px solid color-mix(in srgb, var(--wa-meta) 50%, transparent); color: var(--wa-meta);
+  .blk { margin: 12px -4px 0; padding: 2px 4px; }
+  .blk.todo { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--warn) 70%, transparent); }
+  .tip { color: var(--wa-meta); font-size: 12.5px; margin: 0 4px 16px; }
+  .en { margin: 0 4px 24px; padding: 2px 0 2px 12px; border-left: 2px solid color-mix(in srgb, var(--wa-meta) 50%, transparent); color: var(--wa-meta);
     white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.45 -apple-system, "Helvetica Neue", sans-serif; }
   .en .en-h { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: normal; }
   .en a { color: inherit; }
 
-  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); opacity: 0; background: var(--ink); color: var(--bg); border-radius: 99px; padding: 8px 16px; font-weight: 500; transition: opacity .2s var(--ease), transform .2s var(--ease); pointer-events: none; }
+  .toast { position: fixed; left: 50%; bottom: 32px; z-index: 20; transform: translate(-50%, 12px); opacity: 0; background: var(--ink); color: var(--bg); border-radius: 99px; padding: 8px 16px; font-weight: 500; transition: opacity .2s var(--ease), transform .2s var(--ease); pointer-events: none; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
 
-  @media (max-width: 1100px) { .triage { grid-template-columns: 180px 1fr 380px; } }
-  .back, .panes { display: none; }
-  .btn { white-space: nowrap; }
-
-  /* Phone: one page that scrolls, the action under the thumb, one thing at a time. */
-  @media (max-width: 820px) {
+  /* Phone: one column, the details under the card */
+  @media (max-width: 900px) {
+    .rv-head .chips { flex-wrap: nowrap; overflow-x: auto; }
     html, body { height: auto; }
-    body { font-size: 15px; }
-    kbd, .hint, .day, .undo kbd { display: none; }
-    .top { position: sticky; top: 0; z-index: 5; height: auto; min-height: 52px; flex-wrap: wrap; gap: 8px 10px; padding: 8px 16px;
-      padding-top: max(8px, env(safe-area-inset-top)); background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(12px); }
-    .top .seg { margin-left: auto; }
-    .seg button { min-height: 36px; padding: 0 16px; }
-    .search { display: none; order: 3; width: 100%; height: 40px; margin: 0; font-size: 16px; }
-    body.v-triage .search { display: block; }
-
-    /* Publish */
-    .posts { display: block; }
-    .notes { overflow: visible; border: 0; padding: 16px 16px 0; }
-    .chans { display: flex; width: 100%; margin: 0 0 12px; }
-    .chans button, .panes button { flex: 1; }
-    .panes { display: flex; width: 100%; margin: 0 0 16px; }
-    .posts.pane-preview .notes section, .posts:not(.pane-preview) .phone { display: none; }
-    .phone { overflow: visible; min-height: 60vh; padding: 16px 16px 140px; }
-    .chan { position: static; margin: -16px -16px 16px; padding: 12px 16px; }
+    kbd, .rv-keys, .day { display: none; }
+    .top { position: sticky; top: 0; z-index: 5; gap: 10px; padding: 8px 16px; padding-top: max(8px, env(safe-area-inset-top)); height: auto; min-height: 52px; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(12px); }
+    .seg button { min-height: 34px; }
+    .review { display: block; }
+    .rv-main { border: 0; padding: 12px 16px 8px; overflow: visible; }
+    .rcard { padding: 18px 18px 20px; }
+    .rc-title { font-size: 22px; }
+    .rc-msg { max-height: none; }
+    .rv-detail { overflow: visible; padding: 24px 16px 48px; border-top: 1px solid var(--line); }
+    .msgs { overflow: visible; }
     .bubble .copy { opacity: 1; }
-    .summary { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; margin: 0; border-radius: 16px 16px 0 0;
-      flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px; padding-bottom: max(14px, env(safe-area-inset-bottom));
-      background: var(--panel); box-shadow: 0 -1px 0 var(--line), 0 -8px 24px rgba(0, 0, 0, .08); }
-    .summary br, .summary > div > span { display: none; }
-    .summary .acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
-    .summary .btn, .summary .sent { height: 48px; justify-content: center; font-size: 16px; }
-    .summary .sent { display: flex; align-items: center; }
-    .notes section:last-child { padding-bottom: 150px; }
-    .cand { padding: 14px 8px; }
-    .box { width: 26px; height: 26px; }
-    .cand { grid-template-columns: 26px 1fr auto; }
-    .mini { height: 40px; min-width: 40px; font-size: 14px; padding: 0 14px; }
-
-    /* Browse: the list, then the event on its own screen */
-    .triage { display: block; }
-    .queues { position: sticky; top: var(--top, 104px); z-index: 4; display: flex; overflow-x: auto; gap: 6px; border: 0; border-bottom: 1px solid var(--line);
-      padding: 8px 16px; background: var(--bg); scrollbar-width: none; }
-    .queues::-webkit-scrollbar { display: none; }
-    .group { display: none; }
-    .q { width: auto; white-space: nowrap; min-height: 36px; border-radius: 99px; border: 1px solid var(--line); padding: 0 12px; }
-    .list { overflow: visible; border: 0; }
-    .list-head { position: static; padding: 14px 16px 8px; }
-    .row { padding: 14px 16px; }
-    .row .t { white-space: normal; }
-    .row .side { display: none; }
-    .insp { display: none; }
-    .triage.detail .insp { display: block; position: fixed; inset: 0; z-index: 10; overflow: auto; background: var(--bg); padding: 0 16px 120px; }
-    .back { display: flex; align-items: center; position: sticky; top: 0; z-index: 1; margin: 0 -16px 12px; padding: 10px 16px;
-      padding-top: max(10px, env(safe-area-inset-top)); border: 0; width: calc(100% + 32px); background: color-mix(in srgb, var(--bg) 90%, transparent);
-      backdrop-filter: blur(12px); color: var(--accent); font-size: 16px; font-weight: 600; text-align: left; }
-    .insp h1 { font-size: 24px; }
-    .facts { grid-template-columns: 92px 1fr; }
-    textarea { font-size: 16px; }
-    .actions { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom));
-      background: var(--panel); box-shadow: 0 -1px 0 var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .actions .btn { height: 48px; justify-content: center; font-size: 16px; }
-    .actions .undo { grid-column: 1 / -1; margin: 0; padding: 4px; }
-    .toast { bottom: calc(110px + env(safe-area-inset-bottom)); }
   }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
 <header class="top">
-  <span class="brand">grnbl</span>
+  <span class="brand"><img src="data:image/png;base64,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" alt="">grnbl</span>
   <span class="day" id="day"></span>
   <div class="seg" id="views">
-    <button data-v="posts" class="on">Publish <kbd>1</kbd></button>
-    <button data-v="triage">Browse <kbd>2</kbd></button>
+    <button data-v="review" class="on"></button>
+    <button data-v="msgs"></button>
   </div>
-  <input class="search" id="search" placeholder="Search  /" autocomplete="off">
+  <div class="seg lang" id="lang"><button data-l="en">EN</button><button data-l="fr">FR</button></div>
 </header>
 
-<div class="triage" id="triage" hidden>
-  <nav class="queues" id="queues"></nav>
-  <div class="list" id="list"></div>
-  <aside class="insp" id="insp"></aside>
-</div>
-
-<div class="posts" id="posts">
-  <div class="notes" id="notes"></div>
-  <div class="phone" id="phone"></div>
-</div>
-
+<div class="review" id="review"><div class="rv-main" id="rv-main"><p class="empty">Loading this week's edition…</p></div><aside class="rv-detail" id="rv-detail"></aside></div>
+<div class="msgs" id="msgs" hidden><div class="msgs-in" id="msgs-in"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
-const QUEUES = [
-  ["Editorial", [
-    ["picks", "Today's picks", "accent"],
-    ["todo", "Everything the AI keeps", "dot"],
-    ["kept", "Kept", "keep"],
-    ["dropped", "Dropped", "drop"],
-    ["dupes", "Duplicates", "dot"],
-  ]],
-  ["Timing", [
-    ["book", "To book", "warn"],
-    ["week", "This week", "accent"],
-    ["late", "Out of window", "dot"],
-  ]],
-  ["Filters", [
-    ["free", "Free", "keep"],
-    ["family", "Family", "dot"],
-    ["rare", "Rare", "dot"],
-  ]],
-];
-const TIMING = { book_now: "book now", opens_soon: "booking soon", this_week: "this week", too_late: "too late", sold_out: "sold out", later: "later" };
-let pane = "lines", from = null;
-const phone = () => matchMedia("(max-width: 820px)").matches;
-const AVATARS = { gratuit: "🆓", sorties: "🎭", famille: "👨‍👩‍👧", bonsplans: "🛍️", nature: "🏔️", infos: "🚨", carburant: "⛽" };
-let events = [], view = "posts", queue = "picks", selected = null, query = "", channel = "gratuit", postsData = null;
+// ---------- Language: English by default (the jury), French on demand, remembered per browser ----------
+let lang = "en";
+try { lang = localStorage.getItem("grnbl-lang") || "en"; } catch {}
+const L = (en, fr) => (lang === "fr" ? fr : en);
+const loc = () => (lang === "fr" ? "fr-FR" : "en-GB");
+const NAMES = {
+  gratuit: ["🆓 Free", "🆓 Gratuit"], sorties: ["🎭 Outings", "🎭 Sorties"], famille: ["👨‍👩‍👧 Family", "👨‍👩‍👧 Famille"],
+  bonsplans: ["🛍️ Deals", "🛍️ Bons plans"], nature: ["🏔️ Outdoors", "🏔️ Nature"], infos: ["🚨 Alerts", "🚨 Alertes"], carburant: ["⛽ Fuel", "⛽ Carburant"],
+};
+const label = (c) => (NAMES[c.id] ? NAMES[c.id][lang === "fr" ? 1 : 0] : c.label || c.name);
+const emoji = (c) => [...label(c)][0];
+const DAILY = ["carburant", "infos"];
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove("on"), 1600); };
+const post2 = (url, body) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
-function status(e) {
-  if (e.decision?.status) return e.decision.status;
-  if (e.review?.duplicate_of != null) return "dupe";
-  return e.review?.keep ? "ai-keep" : "ai-drop";
-}
-function inQueue(e, q) {
-  const s = status(e), t = e.timing;
-  switch (q) {
-    case "picks": return !!e.pick;
-    case "todo": return s === "ai-keep";
-    case "kept": return s === "keep";
-    case "dropped": return s === "drop" || (s === "ai-drop" && !e.review?.auto);
-    case "dupes": return s === "dupe";
-    case "book": return (t === "book_now" || t === "opens_soon") && s !== "drop" && s !== "ai-drop";
-    case "week": return t === "this_week" && s !== "drop" && s !== "ai-drop";
-    case "late": return t === "too_late" || t === "later" || t === "sold_out";
-    case "free": return (e.review?.free ?? e.free) === true && s !== "ai-drop" && s !== "drop";
-    case "family": return (e.review?.family ?? e.family) && s !== "ai-drop" && s !== "drop";
-    case "rare": return e.review?.rare && s !== "ai-drop" && s !== "drop";
-  }
-  return false;
-}
-function matches(e) {
-  if (!query) return true;
-  const hay = `${e.title} ${e.venue || ""} ${e.town || ""} ${e.source_name || ""}`.toLowerCase();
-  return hay.includes(query);
-}
-function rows() {
-  return events.filter((e) => inQueue(e, queue) && matches(e)).sort((a, b) =>
-    (a.pick ? 0 : 1) - (b.pick ? 0 : 1) || (a.pick?.rank ?? 0) - (b.pick?.rank ?? 0) ||
-    (b.review?.score ?? 0) - (a.review?.score ?? 0) || String(a.start).localeCompare(String(b.start)));
-}
 function when(raw, short) {
   if (!raw) return "";
   const s = String(raw), d = new Date(s.length > 10 ? s : s + "T00:00");
-  const day = d.toLocaleDateString("en-GB", short ? { weekday: "short", day: "numeric", month: "short" } : { weekday: "long", day: "numeric", month: "long" });
-  return s.length > 10 ? `${day} · ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : day;
+  const day = d.toLocaleDateString(loc(), short ? { weekday: "short", day: "numeric", month: "short" } : { weekday: "long", day: "numeric", month: "long" });
+  return s.length > 10 ? `${day} · ${d.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit" })}` : day;
 }
-function span(e, short) {
-  return e.end && String(e.end).slice(0, 10) !== String(e.start).slice(0, 10) ? `${when(e.start, true)} → ${when(e.end, true)}` : when(e.start, short);
-}
-const place = (e) => { const p = e.venue || e.town || ""; return p === p.toUpperCase() && p.length > 6 ? p.toLowerCase().replace(/(^|[\s-])\S/g, (c) => c.toUpperCase()) : p; };
-const free = (e) => (e.review?.free ?? e.free) === true;
+const sendTime = (iso) => { const d = new Date(iso); return `${d.toLocaleDateString(loc(), { weekday: "long" })} ${d.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit" })}`; };
 
-function renderQueues() {
-  $("queues").innerHTML = QUEUES.map(([g, qs]) => `<div class="group">${g}</div>` + qs.map(([k, label, ic]) => {
-    const n = events.filter((e) => inQueue(e, k) && matches(e)).length;
-    return `<button class="q ${k === queue ? "on" : ""}" data-q="${k}"><span class="ic ${ic}"></span>${label}<span class="n">${n}</span></button>`;
-  }).join("")).join("");
-}
-
-function renderList() {
-  const rs = rows();
-  if (!rs.some((e) => e.i === selected)) selected = rs[0]?.i ?? null;
-  const name = QUEUES.flatMap((g) => g[1]).find((q) => q[0] === queue)[1];
-  $("list").innerHTML = `<div class="list-head"><h2>${name}</h2><span>${rs.length}</span></div>` + (rs.map((e) => {
-    const s = status(e), r = e.review || {};
-    const dot = s === "keep" ? "keep" : s === "drop" ? "drop" : "";
-    const badges = [
-      e.pick ? `<span class="b pick">Picked</span>` : "",
-      e.timing === "book_now" || e.timing === "opens_soon" ? `<span class="b book">${TIMING[e.timing]}</span>` : "",
-      free(e) ? `<span class="b free">free</span>` : "",
-      r.rare ? `<span class="b">rare</span>` : "",
-      (r.family ?? e.family) ? `<span class="b">family</span>` : "",
-    ].join("");
-    return `<div class="row ${e.i === selected ? "sel" : ""}" data-i="${e.i}">
-      <span class="st ${dot}"></span>
-      <div style="min-width:0"><div class="t">${esc(e.title)}</div><div class="m">${esc(span(e, true))}${place(e) ? " · " + esc(place(e)) : ""}</div>${badges ? `<div class="badges">${badges}</div>` : ""}</div>
-      <div class="side"><div class="score">${"●".repeat(r.score || 0)}${"○".repeat(r.score ? 5 - r.score : 0)}</div>${esc(e.source_name || "")}${e.also ? ` +${e.also.length}` : ""}</div>
-    </div>`;
-  }).join("") || `<p class="empty">Nothing here. Pick another queue or clear the search.</p>`);
-}
-
-function renderInspector() {
-  const e = events.find((x) => x.i === selected);
-  if (!e) { $("insp").innerHTML = `<button class="back" data-back>‹ List</button><p class="empty">Select an event.</p>`; return; }
-  const r = e.review || {}, s = status(e), d = e.decision;
-  const booking = e.booking === "required" ? "Required" : e.booking === "recommended" ? "Recommended" : e.booking === "none" ? "No" : "Unknown";
-  const facts = [
-    ["When", span(e)],
-    ["Where", [e.venue, e.town].filter(Boolean).join(", ")],
-    ["Price", e.price || (free(e) ? "Free" : "")],
-    ["Booking", booking + (e.booking_opens ? ` · opens ${when(e.booking_opens)}` : "") + (e.booking_deadline ? ` · by ${when(e.booking_deadline)}` : "")],
-    ["Timing", TIMING[e.timing] || ""],
-    ["Source", `${esc(e.source_name || "")}${e.also ? ` and ${e.also.length} other${e.also.length > 1 ? "s" : ""}` : ""}`],
-  ].filter(([, v]) => v);
-  const link = e.booking_url || e.url;
-  const line = d?.line || e.pick?.line || r.line || "";
-  $("insp").innerHTML = `
-    <button class="back" data-back>‹ ${from === "posts" ? "Publish" : "List"}</button>
-    <h1>${esc(e.title)}</h1>
-    <div class="sub">${esc(e.description || "")}</div>
-    <dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${k === "Source" ? v : esc(v)}</dd>`).join("")}
-      ${link ? `<dt>Link</dt><dd><a href="${esc(link)}" target="_blank" rel="noopener">${esc(new URL(link).hostname.replace("www.", ""))} ↗</a></dd>` : ""}</dl>
-    ${e.pick ? `<div class="note pick"><b>Editor-in-chief:</b> ${esc(e.pick.why)}${e.pick.zoom ? `<br><b>Highlight:</b> ${esc(e.pick.zoom.what)}, ${esc(when(e.pick.zoom.when))}` : ""}</div>` : ""}
-    ${r.keep === false && r.why ? `<div class="note dropped"><b>${r.auto ? "Rule" : "AI"}:</b> ${esc(r.why)}</div>` : ""}
-    ${s === "dupe" ? `<div class="note">Duplicate of “${esc(events.find((x) => x.i === r.duplicate_of)?.title || "#" + r.duplicate_of)}”</div>` : ""}
-    <div class="label"><span>Post line</span><span><kbd>E</kbd> edit</span></div>
-    <textarea id="line">${esc(line)}</textarea>
-    <div class="actions">
-      <button class="btn keep ${s === "keep" ? "on" : ""}" data-a="keep">Keep <kbd>G</kbd></button>
-      <button class="btn drop ${s === "drop" ? "on" : ""}" data-a="drop">Drop <kbd>X</kbd></button>
-      ${d ? `<button class="undo" data-a="undo">Undo my decision <kbd>U</kbd></button>` : ""}
-    </div>
-    <div class="hint"><span><kbd>J</kbd> <kbd>K</kbd> navigate</span><span><kbd>G</kbd> keep</span><span><kbd>X</kbd> drop</span><span><kbd>/</kbd> search</span><span><kbd>1</kbd> publish</span></div>`;
-}
-
-function render() {
-  if (view === "triage") { renderQueues(); renderList(); renderInspector(); }
-  else renderPosts();
-}
-
-function openDetail(on) {
-  $("triage").classList.toggle("detail", on && phone());
-  document.body.style.overflow = on && phone() ? "hidden" : "";
-  if (on) $("insp").scrollTop = 0;
-}
-function select(i, scroll) {
-  selected = i; renderList(); renderInspector(); openDetail(true);
-  if (scroll) document.querySelector(`.row[data-i="${i}"]`)?.scrollIntoView({ block: "nearest" });
-}
-function move(step) {
-  const rs = rows(), k = rs.findIndex((e) => e.i === selected);
-  const next = rs[Math.max(0, Math.min(rs.length - 1, k + step))];
-  if (next) select(next.i, true);
-}
-
-async function save(e, decision) {
-  await fetch("/api/decide", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ i: e.i, decision }) });
-  e.decision = decision;
-  postsData = null;
-}
-
-async function decide(status) {
-  const e = events.find((x) => x.i === selected);
-  if (!e) return;
-  const rs = rows(), k = rs.findIndex((x) => x.i === e.i);
-  const decision = status ? { status, line: ($("line")?.value || "").trim() } : null;
-  await save(e, decision);
-  toast(status === "keep" ? "Kept" : status === "drop" ? "Dropped" : "Decision undone");
-  // Move on to the next one still in the queue, like an inbox.
-  const after = rows();
-  if (status && !after.some((x) => x.i === e.i)) selected = (after[k] || after[k - 1] || {}).i ?? null;
-  else if (status) { const n = rs[k + 1]; if (n) selected = n.i; }
-  render();
-  document.querySelector(`.row[data-i="${selected}"]`)?.scrollIntoView({ block: "nearest" });
-}
-
-// WhatsApp formatting: *bold*, _italic_, links.
+// WhatsApp formatting: *bold*, _italic_, links. And back: what an edited block becomes as WhatsApp text.
 function wa(text) {
   return esc(text)
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
     .replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<b>$2</b>")
     .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>");
 }
-
-// The English translation shown under a post (translate.py): read-only, never sent.
-function english(x) {
-  const head = (note) => `<span class="en-h">English translation (not posted)${note ? " · " + note : ""}</span>`;
-  if (!x) return postsData.translating ? `<div class="en">${head()}Translating…</div>` : "";
-  if (!x.text) return `<div class="en">${head()}Translation unavailable.</div>`;
-  return `<div class="en">${head(x.stale ? (postsData.translating ? "earlier version, updating…" : "earlier version") : "")}${wa(x.text)}</div>`;
+function toWa(el) {
+  const walk = (n) => [...n.childNodes].map((c) => {
+    if (c.nodeType === 3) return c.textContent;
+    if (c.nodeType !== 1) return "";
+    const t = c.tagName, inner = walk(c);
+    if (t === "BR") return "\n";
+    if (t === "B" || t === "STRONG") return inner.trim() ? `*${inner.trim()}*` : inner;
+    if (t === "I" || t === "EM") return inner.trim() ? `_${inner.trim()}_` : inner;
+    if (t === "DIV" || t === "P") return "\n" + inner;
+    return inner;
+  }).join("");
+  // A blank line would split the block in two posts' worth of parts: keep single line breaks.
+  return walk(el).replace(/ /g, " ").replace(/\n{2,}/g, "\n").replace(/^\n+|\s+$/g, "");
 }
-// While translations are being made, check again a little later.
-function pollTranslations() {
-  clearTimeout(pollTranslations.h);
-  if (postsData?.translating) pollTranslations.h = setTimeout(() => { if (view === "posts") { postsData = null; renderPosts(); } }, 8000);
-}
 
-// One ticked list per post: the editor's lines come ticked, the human ticks or unticks freely.
+let events = [], data = null, view = "review", channel = null;
+
+async function load() { data = await (await fetch("/api/posts")).json(); }
+const groups = () => data.channels.filter((c) => c.lists && !DAILY.includes(c.id));
 const ticked = (c) => ["to_book", "week"].flatMap((post) => (c.lists?.[post] || []).filter((x) => x.on));
-const opened = new Set();  // posts whose other candidates are shown
+function progress(c) {
+  const on = ticked(c), left = on.filter((x) => x.status !== "keep").length, out = Object.values(c.outbox || {});
+  return { total: on.length, left, done: on.length > 0 && left === 0, sent: out.length > 0 && out.every((r) => r.status === "sent") };
+}
+// Lines of a post in their list order, as the server wants them.
+const onIds = (c, post) => c.lists[post].filter((y) => y.on).map((y) => y.i);
+const choose = (c, post) => post2("/api/choose", { channel: c.id, post, ids: onIds(c, post) });
+// A decision keeps the hand-edited block along with the status.
+const decide = (x, status, block = x.block) => post2("/api/decide", { i: x.i, decision: status || block ? { status: status || null, line: x.line, block: block || null } : null });
 
-// The WhatsApp step: offered once the post is approved, then shows what the outbox says.
+function chips(current, onlyGroups) {
+  return `<div class="chips">${data.channels.filter((c) => !onlyGroups || !DAILY.includes(c.id)).map((c) => {
+    const g = c.lists && !DAILY.includes(c.id) ? progress(c) : null;
+    const st = !g ? `<small>${L("auto", "auto")}</small>` : g.sent ? `<small>${L("sent", "envoyé")} ✓</small>` : g.done ? `<small>✓</small>` : g.total ? `<small>${g.left} ${L("left", "restantes")}</small>` : `<small>–</small>`;
+    return `<button class="chip ${c.id === current ? "on" : ""} ${g?.done ? "done" : ""}" data-c="${c.id}">${esc(label(c))} ${st}</button>`;
+  }).join("")}</div>`;
+}
+
+// ---------- Review ----------
+// Pass 1, group by group: Keep (decision "keep"), Remove (the line leaves its post, the editor's next unused
+// reserve comes up as a replacement card) or Check later (set aside, nothing changes). Pass 2: the set-aside
+// cards again, details on the right; what is chosen there is only noted, then applied together on the last card.
+// All of it is stored on the server (/api/review), so a closed tab resumes exactly where it was.
+const rv = { queue: [], done: [], busy: false, anim: false, inter: null };
+const st = () => (data.review ||= { pending: [], passed: [], later: [], verdicts: {} });
+const findLine = (cid, post, i) => { const c = data.channels.find((y) => y.id === cid); return c && { c, x: c.lists?.[post]?.find((y) => y.i === i) }; };
+
+// The queue is worked out again from the stored state after every action: done cards simply drop out.
+function buildQueue() {
+  const s = st(), later = new Set(s.later.map((p) => p.i)), passed = new Set(s.passed);
+  const q = [];
+  for (const c of groups()) {
+    const pend = s.pending.filter((p) => p.channel === c.id && !later.has(p.i) && !passed.has(p.i))
+      .map((p) => ({ kind: "line", c, x: c.lists[p.post]?.find((y) => y.i === p.i), instead: p.instead })).filter((y) => y.x && !y.x.on);
+    const todo = ["to_book", "week"].flatMap((post) => (c.lists[post] || []).filter((x) => x.on && x.status !== "keep" && !later.has(x.i))).map((x) => ({ kind: "line", c, x }));
+    q.push(...pend, ...todo);
+  }
+  const checks = s.later.map((p) => ({ ...findLine(p.channel, p.post, p.i), instead: p.instead })).filter((y) => y.x);
+  q.push(...checks.filter((y) => !s.verdicts[y.x.i]).map((y) => ({ kind: "check", ...y })));
+  if (checks.length) q.push({ kind: "batch", checks });
+  q.push({ kind: "end" });
+  rv.queue = q;
+}
+const saveState = () => post2("/api/review", st());
+const linesLeft = () => rv.queue.filter((q) => q.kind === "line" || q.kind === "check").length;
+
+function card(q, cls) {
+  if (q.kind === "group") {
+    const g = progress(q.c), later = st().later.filter((p) => p.channel === q.c.id).length, next = rv.queue[0];
+    const nextLabel = next?.kind === "line" ? `${L("Continue", "Continuer")} : ${esc(label(next.c))} →` : next?.kind === "check" ? `${L("Check the set-aside cards", "Vérifier les cartes mises de côté")} →` : L("Finish →", "Terminer →");
+    return `<article class="rcard rc-done ${cls}"><div class="big">✓</div><h1 class="rc-title">${esc(label(q.c))} ${later ? L("is nearly ready", "est presque prêt") : L("is ready", "est prêt")}</h1>
+      <p>${g.total - g.left} ${L("lines kept", "lignes gardées")}${later ? ` · ${later} ${L("to check at the end", "à vérifier à la fin")}` : ""}${q.c.sends_at ? ` · ${L("goes out", "part")} ${esc(sendTime(q.c.sends_at))}` : ""}</p>
+      <button class="btn dark" data-rv="next">${nextLabel}</button></article>`;
+  }
+  if (q.kind === "intro") {
+    return `<article class="rcard rc-done ${cls}"><div class="big" style="background:var(--warn)">?</div><h1 class="rc-title">${L("Second pass", "Deuxième passe")}</h1>
+      <p>${q.n} ${L("cards set aside. Read the details on the right, choose for each one: nothing is applied until the last card.", "cartes mises de côté. Lis le détail à droite et choisis pour chacune : rien n'est appliqué avant la dernière carte.")}</p>
+      <button class="btn dark" data-rv="next">${L("Start", "Commencer")} →</button></article>`;
+  }
+  if (q.kind === "batch") {
+    const s = st(), n = q.checks.filter((y) => s.verdicts[y.x.i]).length;
+    return `<article class="rcard rc-done ${cls}" style="text-align:left"><h1 class="rc-title" style="text-align:center">${L("Your decisions", "Tes décisions")}</h1>
+      <p style="text-align:center">${L("Change any of them, then apply them all at once.", "Change ce que tu veux, puis applique tout d'un coup.")}</p>
+      <ul>${q.checks.map(({ c, x }) => { const v = s.verdicts[x.i]?.v;
+        return `<li><span style="text-align:left;color:var(--ink)"><b>${esc(x.title)}</b><br><small style="color:var(--mute)">${esc(label(c))}</small></span>
+          <div class="seg"><button class="${v === "drop" ? "on" : ""}" data-verdict="drop" data-i="${x.i}" style="${v === "drop" ? "color:var(--drop)" : ""}">✕ ${L("Remove", "Retirer")}</button><button class="${v === "keep" ? "on" : ""}" data-verdict="keep" data-i="${x.i}" style="${v === "keep" ? "color:var(--keep)" : ""}">✓ ${L("Keep", "Garder")}</button></div></li>`; }).join("")}</ul>
+      <div style="text-align:center"><button class="btn send" data-rv="apply" ${n === q.checks.length ? "" : "disabled"}>${L("Apply", "Appliquer")} ${n} ${n === 1 ? L("decision", "décision") : L("decisions", "décisions")}</button></div></article>`;
+  }
+  if (q.kind === "end") {
+    const watch = data.watch || [];
+    return `<article class="rcard rc-done ${cls}"><div class="big">✓</div><h1 class="rc-title">${L("All checked", "Tout est vérifié")}</h1>
+      <p>${L("Each group goes out at its time. Nothing else to do this week.", "Chaque groupe part à son heure. Rien d'autre à faire cette semaine.")}</p>
+      <ul>${groups().map((c) => { const g = progress(c);
+        return `<li><b>${esc(label(c))}</b><span>${g.done ? `${g.total} ${L("lines", "lignes")}${c.sends_at ? " · " + esc(sendTime(c.sends_at)) : ""}` : g.total ? `${g.left} ${L("left", "restantes")}` : L("nothing to post", "rien à poster")}</span></li>`; }).join("")}
+        ${watch.map((w) => `<li><b>👀 ${esc(w.name)}</b><span>${L("date to confirm", "date à confirmer")} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${L("check", "vérifier")} ↗</a>`).join(" ")}</span></li>`).join("")}</ul>
+      <button class="btn" data-rv="msgs">${L("See the messages", "Voir les messages")}</button></article>`;
+  }
+  const { c, x } = q;
+  const book = { required: L("Required", "Obligatoire"), recommended: L("Advised", "Conseillée"), none: L("Not needed", "Pas besoin") }[x.booking] || L("Unknown", "Inconnue");
+  const by = x.booking_opens ? `${L("opens", "ouvre")} ${when(x.booking_opens, true)}` : x.booking_deadline ? `${L("by", "avant")} ${when(x.booking_deadline, true)}` : "";
+  const msg = x.sent || x.block || `*${x.title}*\n   ${x.line}`;
+  const price = x.price === "free" ? L("Free", "Gratuit") : x.price || L("Not given", "Non indiqué");
+  return `<article class="rcard ${cls}" data-i="${x.i}">
+    <span class="stamp keep">${L("KEEP", "GARDER")}</span><span class="stamp drop">${L("REMOVE", "RETIRER")}</span><span class="stamp later">${L("CHECK LATER", "À VÉRIFIER")}</span>
+    <div class="rc-top"><b>${esc(label(c))}</b> · ${x.post === "to_book" ? L("Book now", "À réserver") : L("This week", "Cette semaine")}${q.kind === "check" ? ` · <span style="color:var(--warn);font-weight:600">${L("to check", "à vérifier")}</span>` : ""}</div>
+    ${q.instead ? `<span class="rc-new">${L("Replacement for", "Remplace")} « ${esc(q.instead)} »</span>` : ""}
+    <h1 class="rc-title">${esc(x.title)}</h1>
+    <div class="rc-meta">${esc([when(x.start, true), x.place].filter(Boolean).join(" · "))}</div>
+    <div class="rc-cap"><span>${!x.on ? L("Joins the message if kept", "Rejoint le message si gardé") : x.sent ? L("As sent on WhatsApp", "Tel qu'envoyé sur WhatsApp") : L("Not in the message: “Book now” keeps 8 lines", "Absent du message : « À réserver » garde 8 lignes")}</span><span>${L("click to edit", "clique pour modifier")}</span></div>
+    <div class="rc-msg"><div class="wa" contenteditable="true" spellcheck="true" data-edit>${wa(msg)}</div></div>
+    <dl class="rc-facts"><div><dt>${L("Price", "Prix")}</dt><dd>${esc(price)}</dd></div>
+      <div><dt>${L("Booking", "Réservation")}</dt><dd>${esc(book)}${by ? `<small>${esc(by)}</small>` : ""}</dd></div>
+      <div><dt>${L("Source", "Source")}</dt><dd>${esc(x.source || "–")}</dd></div></dl>
+    ${x.why ? `<p class="rc-why"><b>${L("Why the AI picked it", "Pourquoi l'IA l'a choisi")}</b>${esc(x.why)}</p>` : ""}
+    ${x.check?.length ? `<p class="rc-warn">⚠️ ${L("Check on the page", "À vérifier sur la page")} : ${esc(x.check.join(", "))}</p>` : ""}
+  </article>`;
+}
+
+function detail(q) {
+  const box = $("rv-detail");
+  if (!["line", "check"].includes(q?.kind)) {
+    box.innerHTML = `<p class="empty">${q?.kind === "end" ? L("Nothing left to check.", "Plus rien à vérifier.") : q?.kind === "batch" ? L("Apply your decisions on the left.", "Applique tes décisions à gauche.") : L("Continue when you are ready.", "Continue quand tu veux.")}</p>`;
+    return;
+  }
+  const e = events.find((y) => y.i === q.x.i) || {}, r = e.review || {};
+  const facts = [
+    [L("When", "Quand"), e.end && String(e.end).slice(0, 10) !== String(e.start).slice(0, 10) ? `${when(e.start, true)} → ${when(e.end, true)}` : when(e.start)],
+    [L("Other dates", "Autres dates"), (e.dates || []).slice(0, 8).map((d) => when(d, true)).join("\n")],
+    [L("Where", "Où"), [e.venue, e.town].filter(Boolean).join(", ")],
+    [L("Price", "Prix"), e.price || ""],
+    [L("Booking", "Réservation"), { required: L("Required", "Obligatoire"), recommended: L("Advised", "Conseillée"), none: L("Not needed", "Pas besoin") }[e.booking] || ""],
+    [L("Booking opens", "Ouverture"), e.booking_opens ? when(e.booking_opens) : ""],
+    [L("Book by", "Date limite"), e.booking_deadline ? when(e.booking_deadline) : ""],
+    [L("Sold out", "Complet"), e.sold_out ? L("Yes", "Oui") : ""],
+    [L("Source", "Source"), `${e.source_name || ""}${e.also?.length ? ` ${L("and", "et")} ${e.also.length} ${L("other(s)", "autre(s)")}` : ""}`],
+    [L("Score", "Note"), r.score ? "●".repeat(r.score) + "○".repeat(5 - r.score) : ""],
+  ].filter(([, v]) => v);
+  const link = e.booking_url || e.url;
+  let host = ""; try { host = new URL(link).hostname.replace("www.", ""); } catch {}
+  box.innerHTML = `<p class="dt-kicker">${L("Details", "Détails")}</p>
+    <h2 class="dt-title">${esc(e.title || q.x.title)}</h2>
+    ${e.description ? `<p class="dt-desc">${esc(e.description)}</p>` : ""}
+    ${link ? `<a class="btn dt-link" href="${esc(link)}" target="_blank" rel="noopener">${L("Open the page", "Ouvrir la page")} · ${esc(host)} ↗</a>` : ""}
+    <dl class="dt-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+    ${e.pick?.zoom ? `<div class="dt-sec"><b>${L("Highlight chosen in the programme", "Moment choisi dans le programme")}</b>${esc(e.pick.zoom.what)}, ${esc(when(e.pick.zoom.when))}</div>` : ""}
+    ${r.why ? `<div class="dt-sec"><b>${L("AI review", "Avis de l'IA")}</b>${esc(r.why)}</div>` : ""}`;
+  box.classList.remove("swap"); void box.offsetWidth; box.classList.add("swap");
+  box.scrollTop = 0;
+}
+
+const UNDO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>`;
+function renderReview() {
+  const q = rv.inter || rv.queue[0], left = linesLeft();
+  const checked = groups().reduce((n, c) => n + ticked(c).filter((x) => x.status === "keep").length, 0) + Object.keys(st().verdicts).length;
+  const c = q?.c || rv.queue.find((y) => y.c)?.c, pass2 = q?.kind === "check" || q?.kind === "intro" || q?.kind === "batch";
+  const groupLeft = c ? rv.queue.filter((y) => y.kind === "line" && y.c === c).length : 0;
+  const head = pass2
+    ? `<div class="rv-group"><div class="emo">?</div><div><h2>${L("Cards to check", "Cartes à vérifier")}${q.c ? ` · ${esc(label(q.c))}` : ""}</h2>
+        <p>${rv.queue.filter((y) => y.kind === "check").length} ${L("left · applied together on the last card", "restantes · appliquées ensemble sur la dernière carte")}</p></div></div>`
+    : c && q?.kind !== "end" ? `<div class="rv-group"><div class="emo">${emoji(c)}</div><div><h2>${L("You are choosing for", "Tu choisis pour")} ${esc(label(c).replace(/^\S+\s/, ""))}</h2>
+        <p>${L("Group", "Groupe")} ${groups().indexOf(c) + 1} / ${groups().length} · ${groupLeft} ${L("left in this group", "restantes dans ce groupe")}${c.sends_at ? ` · ${L("goes out", "part")} ${esc(sendTime(c.sends_at))}` : ""}</p></div></div>`
+    : `<div class="rv-group"><div class="emo">✓</div><div><h2>${L("Done", "Terminé")}</h2><p>${L("Every line is checked.", "Toutes les lignes sont vérifiées.")}</p></div></div>`;
+  const isCard = q?.kind === "line" || q?.kind === "check";
+  const behind = (rv.inter ? rv.queue : rv.queue.slice(1)).slice(0, 2);
+  $("rv-main").innerHTML = `
+    <div class="rv-head">${chips(pass2 ? null : c?.id, true)}${head}
+      <div class="rv-bar"><i style="transform:scaleX(${checked + left ? checked / (checked + left) : 1})"></i></div></div>
+    <div class="stack">${behind.map((_, k) => `<div class="rcard ${k ? "back2" : "back1"}"></div>`).reverse().join("")}${q ? card(q, "front" + (rv.anim ? " enter" : "")) : ""}</div>
+    ${isCard ? `<div class="rv-acts">
+      <button class="rv-btn undo" data-rv="undo" ${rv.done.length ? "" : "disabled"}><span>${UNDO}</span>${L("Undo", "Annuler")}</button>
+      <button class="rv-btn drop" data-rv="drop"><span>✕</span>${L("Remove", "Retirer")}</button>
+      ${q.kind === "line" ? `<button class="rv-btn later" data-rv="later"><span>?</span>${L("Check later", "À vérifier")}</button>` : ""}
+      <button class="rv-btn keep" data-rv="keep"><span>✓</span>${L("Keep", "Garder")}</button></div>
+      <div class="rv-keys"><span><kbd>←</kbd> ${L("remove", "retirer")}</span>${q.kind === "line" ? `<span><kbd>↓</kbd> ${L("check later", "à vérifier")}</span>` : ""}<span><kbd>→</kbd> ${L("keep", "garder")}</span><span><kbd>Z</kbd> ${L("undo", "annuler")}</span></div>`
+      : rv.done.length ? `<div class="rv-acts"><button class="rv-btn undo" data-rv="undo"><span>${UNDO}</span>${L("Undo", "Annuler")}</button></div>` : ""}`;
+  const front = $("rv-main").querySelector(".rcard.front");
+  if (rv.anim && front) { rv.anim = false; requestAnimationFrame(() => requestAnimationFrame(() => front.classList.remove("enter"))); }
+  if (front && isCard) drag(front, q.kind === "line");
+  detail(q);
+}
+
+// The editor's reserves first, then the channel's next best: one replacement card after a removal.
+function replacement(c, x) {
+  const s = st(), seen = new Set([...rv.queue.filter((y) => y.x).map((y) => y.x.i), ...s.passed, ...s.later.map((p) => p.i), x.i]);
+  const sub = (c.lists[x.post] || []).find((y) => !y.on && !y.main && !seen.has(y.i));
+  if (sub) s.pending.push({ channel: c.id, post: x.post, i: sub.i, instead: x.title });
+  return sub;
+}
+const edited = (front, x) => {
+  const ed = front?.querySelector("[data-edit]"); if (!ed) return null;
+  const text = toWa(ed), shown = (x.sent || x.block || `*${x.title}*\n   ${x.line}`).trim();
+  return text && text !== shown ? text : null;
+};
+
+async function act(kind) {
+  const q = rv.inter || rv.queue[0];
+  if (rv.busy || !q || !["line", "check"].includes(q.kind) || (kind === "later" && q.kind !== "line")) return;
+  rv.busy = true;
+  const { c, x } = q, s = st(), front = $("rv-main").querySelector(".rcard.front"), block = edited(front, x);
+  front?.classList.remove("drag"); front?.style.removeProperty("transform");
+  front?.classList.add({ keep: "out-keep", drop: "out-drop", later: "out-later" }[kind]);
+  const step = { kind, c, x, before: { on: x.on, status: x.status, block: x.block }, state: JSON.stringify(s) };
+  if (q.kind === "check") {
+    s.verdicts[x.i] = { v: kind, block };  // noted only: applied together on the last card
+  } else if (kind === "later") {
+    s.later.push({ channel: c.id, post: x.post, i: x.i, instead: q.instead || "" });
+  } else if (kind === "keep") {
+    if (!x.on) { x.on = true; await choose(c, x.post); }  // a replacement joins the post
+    if (block) x.block = block;
+    x.status = "keep"; await decide(x, "keep");
+  } else {
+    if (x.on) { x.on = false; await choose(c, x.post); } else s.passed.push(x.i);
+    replacement(c, x);
+  }
+  rv.done.push(step);
+  await saveState();
+  await new Promise((r) => setTimeout(r, 260));
+  const prev = rv.inter ? null : q;
+  rv.inter = null;
+  buildQueue();
+  // A group card when the group is finished, an intro card when the second pass starts.
+  const next = rv.queue[0];
+  if (prev?.kind === "line" && (next?.kind !== "line" || next.c !== prev.c)) rv.inter = { kind: "group", c: prev.c };
+  rv.busy = false; rv.anim = true;
+  renderReview();
+}
+
+// Past an in-between card: the second pass opens with its own card.
+function advance() {
+  const wasGroup = rv.inter?.kind === "group";
+  rv.inter = wasGroup && rv.queue[0]?.kind === "check" ? { kind: "intro", n: rv.queue.filter((y) => y.kind === "check").length } : null;
+  rv.anim = true; renderReview();
+}
+
+async function applyBatch() {
+  const s = st(), checks = s.later.map((p) => findLine(p.channel, p.post, p.i)).filter((y) => y?.x);
+  for (const { c, x } of checks) {
+    const v = s.verdicts[x.i]; if (!v) continue;
+    if (v.v === "keep") {
+      if (!x.on) { x.on = true; await choose(c, x.post); }
+      if (v.block) x.block = v.block;
+      x.status = "keep"; await decide(x, "keep");
+    } else {
+      if (x.on) { x.on = false; await choose(c, x.post); } else s.passed.push(x.i);
+      replacement(c, x);
+    }
+  }
+  const n = Object.keys(s.verdicts).length;
+  s.later = []; s.verdicts = {}; rv.done = [];
+  await saveState(); await load(); buildQueue(); rv.anim = true;
+  toast(`${n} ${L("decisions applied", "décisions appliquées")}`);
+  renderReview();
+}
+
+async function undo() {
+  const step = rv.done.pop();
+  if (!step || rv.busy) return;
+  const { c, x } = step;
+  data.review = JSON.parse(step.state);
+  if (x.on !== step.before.on) { x.on = step.before.on; await choose(c, x.post); }
+  if (x.status !== step.before.status || x.block !== step.before.block) { x.status = step.before.status; x.block = step.before.block; await decide(x, x.status, x.block); }
+  await saveState();
+  rv.inter = null; buildQueue();
+  toast(L("Undone", "Annulé")); renderReview();
+}
+
+// Drag the front card: right keeps, left removes, up sets it aside; a short drag springs back.
+// The message box is for editing, so it never starts a drag.
+function drag(el, canLater) {
+  let p0 = null, dx = 0, dy = 0;
+  const stamps = { keep: el.querySelector(".stamp.keep"), drop: el.querySelector(".stamp.drop"), later: el.querySelector(".stamp.later") };
+  el.addEventListener("pointerdown", (ev) => { if (ev.target.closest("button, a, [data-edit]")) return; p0 = [ev.clientX, ev.clientY]; dx = dy = 0; el.setPointerCapture(ev.pointerId); el.classList.add("drag"); });
+  el.addEventListener("pointermove", (ev) => {
+    if (!p0) return;
+    dx = ev.clientX - p0[0]; dy = canLater ? Math.min(0, ev.clientY - p0[1]) : 0;
+    el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 24}deg)`;
+    const up = -dy > Math.abs(dx);
+    stamps.keep.style.opacity = up ? 0 : Math.max(0, Math.min(1, dx / 100)); stamps.drop.style.opacity = up ? 0 : Math.max(0, Math.min(1, -dx / 100));
+    stamps.later.style.opacity = up ? Math.min(1, -dy / 100) : 0;
+  });
+  const end = () => {
+    if (!p0) return;
+    p0 = null;
+    if (canLater && -dy > 110 && -dy > Math.abs(dx)) return act("later");
+    if (Math.abs(dx) > 110) return act(dx > 0 ? "keep" : "drop");
+    el.classList.remove("drag"); el.style.removeProperty("transform"); Object.values(stamps).forEach((s) => (s.style.opacity = 0));
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+}
+
+$("rv-main").addEventListener("click", async (ev) => {
+  const ch = ev.target.closest("[data-c]");
+  if (ch) { channel = ch.dataset.c; return setView("msgs"); }
+  const vb = ev.target.closest("[data-verdict]");
+  if (vb) { const s = st(), i = Number(vb.dataset.i); s.verdicts[i] = { ...(s.verdicts[i] || {}), v: vb.dataset.verdict }; await saveState(); buildQueue(); return renderReview(); }
+  const b = ev.target.closest("[data-rv]"); if (!b) return;
+  const k = b.dataset.rv;
+  if (k === "keep" || k === "drop" || k === "later") act(k);
+  else if (k === "undo") undo();
+  else if (k === "next") advance();
+  else if (k === "apply") { b.disabled = true; applyBatch(); }
+  else if (k === "msgs") setView("msgs");
+});
+
+// ---------- Messages: each group's chat, every line's block editable in place ----------
 function sendButton(c, ready) {
   const out = Object.values(c.outbox || {}), sent = out.filter((r) => r.status === "sent"), failed = out.find((r) => r.status === "failed");
-  if (out.length && sent.length === out.length) return `<span class="sent">Sent at ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
+  if (out.length && sent.length === out.length) return `<span class="ok-note">${sent[0].by_hand ? L("Posted at", "Posté à") : L("Sent at", "Envoyé à")} ${esc(sent[0].sent_at.slice(11, 16))} ✓</span>`;
   const at = c.sends_at ? new Date(c.sends_at) : null;
-  const when = at ? `${at.toLocaleDateString("en-GB", { weekday: "long" })} at ${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : "";
-  if (!ready) return when ? `<span class="sent">Goes out ${esc(when)} if approved</span>` : "";
-  if (when && new Date(c.sends_at) > new Date()) return `<span class="sent">Approved · goes out ${esc(when)} ✓</span>`;
-  if (!c.linked) return `<button class="btn" disabled title="Link the group: node whatsapp/send.mjs groups, then data/whatsapp.json">Group not linked yet</button>`;
-  return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? "Retry sending" : "Post to WhatsApp"}</button>`;
+  if (!ready) return at ? `<span>${L("Goes out", "Part")} ${esc(sendTime(c.sends_at))} ${L("once every line is checked", "une fois toutes les lignes vérifiées")}</span>` : "";
+  // Posted by hand (publish.AUTO_SEND off): Copy each message into the group, then say it is done.
+  if (!data.auto_send) return `${at && at > new Date() ? `<span>${L("Approved · post it", "Validé · à poster")} ${esc(sendTime(c.sends_at))}</span>` : ""}
+    <button class="btn send" data-act="publish">${L("I posted it", "J'ai posté")}</button>`;
+  if (at && at > new Date()) return `<span class="ok-note">${L("Approved · goes out", "Validé · part")} ${esc(sendTime(c.sends_at))} ✓</span>`;
+  if (!c.linked) return `<button class="btn" disabled>${L("Group not linked yet", "Groupe pas encore relié")}</button>`;
+  return `<button class="btn send" data-act="publish" ${failed ? `title="${esc(failed.error || "")}"` : ""}>${failed ? L("Retry sending", "Réessayer l'envoi") : L("Post to WhatsApp", "Publier sur WhatsApp")}</button>`;
 }
 
-async function renderPosts() {
-  if (!postsData) {
-    if (!$("phone").innerHTML) $("phone").innerHTML = `<p class="empty">Preparing the posts…</p>`;
-    postsData = await (await fetch("/api/posts")).json();
-  }
-  const chans = postsData.channels, c = chans.find((x) => x.id === channel) || chans[0];
-  const shown = ticked(c);
-  const okAll = shown.length && shown.every((x) => x.status === "keep");
-  const short = (raw) => raw ? new Date(String(raw).length > 10 ? raw : raw + "T00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
-  const row = (x) => `<div class="cand ${x.on ? "on" : ""}" data-i="${x.i}" data-post="${x.post}" role="checkbox" aria-checked="${x.on}" tabindex="0">
-      <span class="box" aria-hidden="true"></span>
-      <div class="pmain"><div class="pt">${x.editor && !x.main && !x.on ? `<span class="star" title="Replacement suggested by the AI">★</span>` : ""}${esc(x.title)}${x.status === "keep" && x.on ? ` <span class="b free">approved</span>` : ""}</div>
-        <div class="am">${esc([short(x.start), x.place, x.free ? "free" : ""].filter(Boolean).join(" · "))}</div>
-        <div class="pline ${x.on ? "" : "clamp"}">${esc(x.line || "")}</div>${x.check && x.check.length ? `<div class="pcheck">⚠️ Check on the page: ${esc(x.check.join(", "))}</div>` : ""}${x.on && x.why ? `<div class="pw">${esc(x.why)}</div>` : ""}</div>
-      <button class="mini" data-act="open" title="Open the event">Details</button></div>`;
-  const section = (post, title) => {
-    const list = c.lists?.[post] || [];
-    if (!list.length) return "";
-    const top = list.filter((x) => x.main || x.on), off = list.filter((x) => !x.main && !x.on), open = opened.has(c.id + post);
-    const on = list.filter((x) => x.on);
-    return `<section><div class="sec-head"><h2>${title}</h2><span>${on.length} ticked</span>
-        ${c.custom?.[post] ? `<button class="link" data-act="reset" data-post="${post}">Back to the AI's choice</button>` : ""}</div>
-      ${top.map(row).join("")}
-      ${off.length ? `<button class="more" data-act="more" data-post="${post}">${open ? "Hide" : `Show ${off.length} other option${off.length > 1 ? "s" : ""}`}</button>${open ? off.map(row).join("") : ""}` : ""}</section>`;
-  };
-  const watch = postsData.watch || [];
-  const tabs = `<div class="seg chans">${chans.map((x) => `<button data-c="${x.id}" class="${x.id === c.id ? "on" : ""}">${esc(x.label || x.name.replace("grnbl · ", ""))}</button>`).join("")}</div>`;
-  const summary = c.id === "carburant" ? `<div class="summary"><div><b>Sent automatically</b><br><span>Worked out every morning from official prices, nothing to review.</span></div>${sendButton(c, true)}</div>`
-    : c.id === "infos" ? `<div class="summary"><div><b>${c.posts.length ? "Alert to approve" : "Nothing serious"}</b><br><span>Red weather warning, very bad air, tram strike: rare, goes to the community announcements.</span></div>${c.posts.length ? sendButton(c, true) : ""}</div>`
-    : `<div class="summary"><div><b>${shown.length} line${shown.length === 1 ? "" : "s"} ticked</b><br><span>Tick what should go out, then approve: sending is scheduled.</span></div>
-       <div class="acts"><button class="btn keep ${okAll ? "on" : ""}" data-act="all">${okAll ? "Post approved ✓" : "All good"}</button>${sendButton(c, okAll)}</div></div>`;
-  const panes = `<div class="seg panes"><button data-pane="lines" class="${pane === "lines" ? "on" : ""}">Lines</button><button data-pane="preview" class="${pane === "preview" ? "on" : ""}">WhatsApp preview</button></div>`;
-  $("posts").classList.toggle("pane-preview", pane === "preview");
-  $("notes").innerHTML = tabs + panes + summary + section("to_book", "Book now") + section("week", "This week") +
-    (watch.length && !["carburant", "infos"].includes(c.id) ? `<section><h2>To watch</h2>${watch.map((w) =>
-      `<div class="prow"><div class="pmain"><div class="pt">👀 ${esc(w.name)}</div><div class="pw">${esc(w.why)} ${w.check.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">check ↗</a>`).join(" ")}</div></div></div>`).join("")}</section>` : "");
-  const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  $("phone").innerHTML = `<div class="chan"><div class="avatar">${AVATARS[c.id] || "🎭"}</div><div><b>${esc(c.name)}</b><small>Group · preview before posting</small></div></div>` +
-    (c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">Copy</button>${wa(t)}<span class="time">${now}</span></div>${english(c.en?.[k])}`).join("") || `<p class="empty">Nothing to post in this group today.</p>`);
-  pollTranslations();
-  $("phone").querySelectorAll(".copy").forEach((b) => b.addEventListener("click", () => { navigator.clipboard.writeText(c.posts[b.dataset.k]); toast("Post copied"); }));
+function english(x) {
+  const head = (note) => `<span class="en-h">${L("English translation (not posted)", "Traduction anglaise (non publiée)")}${note ? " · " + note : ""}</span>`;
+  if (!x) return data.translating ? `<div class="en">${head()}${L("Translating…", "Traduction…")}</div>` : "";
+  if (!x.text) return "";
+  return `<div class="en">${head(x.stale ? (data.translating ? L("earlier version, updating…", "ancienne version, mise à jour…") : L("earlier version", "ancienne version")) : "")}${wa(x.text)}</div>`;
 }
 
-function setView(v) {
-  view = v;
-  document.body.classList.toggle("v-triage", v === "triage");
-  if (v !== "triage") openDetail(false);
-  document.documentElement.style.setProperty("--top", document.querySelector(".top").offsetHeight + "px");
-  $("triage").hidden = v !== "triage"; $("posts").hidden = v !== "posts";
-  document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
-  render();
+function renderMsgs() {
+  const c = data.channels.find((x) => x.id === channel) || groups()[0];
+  channel = c.id;
+  const g = c.lists && !DAILY.includes(c.id) ? progress(c) : null;
+  const rows = Object.fromEntries(["to_book", "week"].flatMap((p) => (c.lists?.[p] || []).map((x) => [x.i, x])));
+  const state = c.id === "carburant" ? `<span>${L("Sent automatically every morning, nothing to review.", "Envoyé automatiquement chaque matin, rien à relire.")}</span>${sendButton(c, true)}`
+    : c.id === "infos" ? `<span>${c.posts.length ? L("Alert to approve: it goes to the community announcements.", "Alerte à valider : elle part dans les annonces de la communauté.") : L("Nothing serious right now.", "Rien de grave en ce moment.")}</span>${c.posts.length ? sendButton(c, true) : ""}`
+    : g.done ? `<span>${g.total} ${L("lines checked", "lignes vérifiées")}</span>${sendButton(c, true)}`
+    : `<span>${g.left} / ${g.total} ${L("lines still to check", "lignes encore à vérifier")}</span><button class="btn dark" data-act="review">${L("Check them →", "Les vérifier →")}</button>`;
+  const now = new Date().toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit" });
+  const bubbles = c.parts ? c.parts.map((p, k) => `<div class="bubble"><button class="copy" data-k="${k}">${L("Copy", "Copier")}</button>
+      <div class="wa">${wa(p.head)}</div>
+      ${p.blocks.map((b) => { const x = rows[b.i];
+        return `<div class="blk ${x && x.status !== "keep" ? "todo" : ""}">${x ? `<div class="wa" contenteditable="true" spellcheck="true" data-i="${b.i}">${wa(b.text)}</div>${x.block ? `<div class="edited">${L("Edited by hand", "Modifié à la main")}<button data-act="restore" data-i="${b.i}">${L("restore the original", "revenir à l'original")}</button></div>` : ""}` : `<div class="wa">${wa(b.text)}</div>`}</div>`; }).join("")}
+      <span class="time">${now}</span></div>${english(c.en?.[k])}`).join("")
+    : c.posts.map((t, k) => `<div class="bubble"><button class="copy" data-k="${k}">${L("Copy", "Copier")}</button><div class="wa">${wa(t)}</div><span class="time">${now}</span></div>`).join("");
+  $("msgs-in").innerHTML = `<div class="msgs-bar">${chips(c.id)}<div class="msgs-state">${state}</div></div>
+    <div class="chat-head"><div class="avatar">${emoji(c)}</div><div><b>${esc(c.name)}</b><small>${L("Full message, as members will see it", "Message complet, tel que les membres le verront")}</small></div></div>
+    ${c.parts?.some((p) => p.blocks.length) ? `<p class="tip">${L("Click any line to edit it. *bold* and _italic_ work as in WhatsApp; ⌘B too.", "Clique sur une ligne pour la modifier. *gras* et _italique_ marchent comme dans WhatsApp ; ⌘B aussi.")}</p>` : ""}
+    ${bubbles || `<p class="empty">${L("Nothing to post in this group.", "Rien à poster dans ce groupe.")}</p>`}`;
+  if (data.translating) { clearTimeout(renderMsgs.h); renderMsgs.h = setTimeout(async () => { if (view === "msgs" && !document.activeElement.isContentEditable) { await load(); renderMsgs(); } }, 8000); }
 }
 
-$("views").addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (b) setView(b.dataset.v); });
-$("queues").addEventListener("click", (ev) => { const b = ev.target.closest(".q"); if (b) { queue = b.dataset.q; selected = null; render(); } });
-$("list").addEventListener("click", (ev) => { const r = ev.target.closest(".row"); if (r) select(Number(r.dataset.i)); });
-$("insp").addEventListener("click", (ev) => {
-  if (ev.target.closest("[data-back]")) { openDetail(false); if (from === "posts") { from = null; setView("posts"); } return; }
-  const b = ev.target.closest("[data-a]"); if (b) decide(b.dataset.a === "undo" ? null : b.dataset.a); });
-$("notes").addEventListener("click", async (ev) => {
-  const ch = ev.target.closest("[data-c]"); if (ch) { channel = ch.dataset.c; renderPosts(); return; }
-  const pn = ev.target.closest("[data-pane]"); if (pn) { pane = pn.dataset.pane; renderPosts(); window.scrollTo(0, 0); return; }
+// Saving an edit: the block is stored with the line's decision, the post is recomposed with it.
+$("msgs-in").addEventListener("focusout", async (ev) => {
+  const el = ev.target.closest("[contenteditable][data-i]"); if (!el) return;
+  const c = data.channels.find((x) => x.id === channel), i = Number(el.dataset.i);
+  const x = ["to_book", "week"].flatMap((p) => c.lists[p]).find((y) => y.i === i);
+  const before = c.parts.flatMap((p) => p.blocks).find((b) => b.i === i)?.text, text = toWa(el);
+  if (!x || text === before) return;
+  await decide(x, x.status, text || null);
+  toast(L("Saved", "Enregistré")); await load(); renderMsgs();
+});
+$("msgs-in").addEventListener("click", async (ev) => {
+  const ch = ev.target.closest("[data-c]"); if (ch) { channel = ch.dataset.c; return renderMsgs(); }
+  const cp = ev.target.closest(".copy");
+  const c = data.channels.find((x) => x.id === channel);
+  if (cp) { navigator.clipboard.writeText(c.posts[cp.dataset.k]); return toast(L("Post copied", "Message copié")); }
   const act = ev.target.closest("[data-act]"); if (!act) return;
-  const c = postsData.channels.find((x) => x.id === channel);
+  if (act.dataset.act === "review") return setView("review");
+  if (act.dataset.act === "restore") {
+    const x = ["to_book", "week"].flatMap((p) => c.lists[p]).find((y) => y.i === Number(act.dataset.i));
+    x.block = null; await decide(x, x.status, null); await load(); return renderMsgs();
+  }
   if (act.dataset.act === "publish") {
-    act.disabled = true; act.textContent = "Sending…";
-    const r = await (await fetch("/api/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel }) })).json();
-    toast(r.failed?.length ? `Failed: ${r.failed[0]}` : "Sent to WhatsApp");
-    postsData = null; return renderPosts();
+    act.disabled = true; act.textContent = data.auto_send ? L("Sending…", "Envoi…") : L("Saving…", "Enregistrement…");
+    const r = await (await post2("/api/publish", { channel })).json();
+    toast(r.failed?.length ? `${L("Failed", "Échec")} : ${r.failed[0]}` : data.auto_send ? L("Sent to WhatsApp", "Envoyé sur WhatsApp") : L("Marked as posted", "Noté comme posté"));
+    await load(); renderMsgs();
   }
-  if (act.dataset.act === "all") {
-    for (const x of ticked(c).filter((p) => p.status !== "keep")) await save(events.find((y) => y.i === x.i), { status: "keep", line: x.line });
-    toast("Post approved"); return renderPosts();
-  }
-  if (act.dataset.act === "more") { const k = c.id + act.dataset.post; opened.has(k) ? opened.delete(k) : opened.add(k); return renderPosts(); }
-  if (act.dataset.act === "reset") { await choose(c.id, act.dataset.post, null); toast("AI's choice restored"); return renderPosts(); }
-  if (act.dataset.act === "open") { queue = "picks"; selected = Number(act.closest(".cand").dataset.i); from = "posts"; setView("triage"); return openDetail(true); }
 });
-
-async function choose(channel, post, ids) {
-  await fetch("/api/choose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ channel, post, ids }) });
-  postsData = null;
-}
-// Tick or untick a line: the post becomes the ticked lines, in the list's order.
-async function toggle(el) {
-  const c = postsData.channels.find((x) => x.id === channel), post = el.dataset.post, i = Number(el.dataset.i);
-  const list = c.lists[post], x = list.find((y) => y.i === i);
-  x.on = !x.on; el.classList.toggle("on", x.on); el.setAttribute("aria-checked", x.on);
-  await choose(channel, post, list.filter((y) => y.on).map((y) => y.i));
-  renderPosts();
-}
-$("notes").addEventListener("click", (ev) => { const el = ev.target.closest(".cand"); if (el && !ev.target.closest("button")) toggle(el); });
-$("notes").addEventListener("keydown", (ev) => { const el = ev.target.closest(".cand"); if (el && (ev.key === " " || ev.key === "Enter")) { ev.preventDefault(); toggle(el); } });
-$("search").addEventListener("input", (ev) => { query = ev.target.value.trim().toLowerCase(); render(); });
-
+// Enter inside an edited line makes a line break, never a new paragraph block.
 document.addEventListener("keydown", (ev) => {
-  const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
-  if (ev.key === "Escape") { document.activeElement.blur(); return; }
-  if (typing) { if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) { document.activeElement.blur(); decide("keep"); } return; }
-  const k = ev.key.toLowerCase();
-  if (k === "1") setView("posts");
-  else if (k === "2") setView("triage");
-  else if (k === "/") { ev.preventDefault(); $("search").focus(); }
-  else if (view !== "triage") return;
-  else if (k === "j" || ev.key === "ArrowDown") { ev.preventDefault(); move(1); }
-  else if (k === "k" || ev.key === "ArrowUp") { ev.preventDefault(); move(-1); }
-  else if (k === "g") decide("keep");
-  else if (k === "x") decide("drop");
-  else if (k === "u") decide(null);
-  else if (k === "e") { ev.preventDefault(); const t = $("line"); t?.focus(); t?.setSelectionRange(t.value.length, t.value.length); }
+  if (ev.target.isContentEditable && ev.key === "Enter") { ev.preventDefault(); document.execCommand("insertLineBreak"); }
+}, true);
+
+// ---------- Views, language, keyboard ----------
+async function setView(v) {
+  view = v;
+  document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+  $("review").hidden = v !== "review"; $("msgs").hidden = v !== "msgs";
+  await load();
+  if (v === "review") { buildQueue(); rv.done = []; rv.inter = null; renderReview(); } else renderMsgs();
+  window.scrollTo(0, 0);
+}
+function paintChrome() {
+  document.documentElement.lang = lang;
+  const [r, m] = document.querySelectorAll("#views button");
+  r.innerHTML = `${L("Review", "Revue")} <kbd>1</kbd>`; m.innerHTML = `${L("Messages", "Messages")} <kbd>2</kbd>`;
+  document.querySelectorAll("#lang button").forEach((b) => b.classList.toggle("on", b.dataset.l === lang));
+  if (data?.day || paintChrome.day) $("day").textContent = new Date(paintChrome.day + "T12:00").toLocaleDateString(loc(), { weekday: "long", day: "numeric", month: "long" });
+}
+$("views").addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (b) setView(b.dataset.v); });
+$("lang").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  lang = b.dataset.l; try { localStorage.setItem("grnbl-lang", lang); } catch {}
+  paintChrome();
+  if (data) view === "review" ? renderReview() : renderMsgs();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.target.isContentEditable) { if (ev.key === "Escape") ev.target.blur(); return; }
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.key === "1") return setView("review");
+  if (ev.key === "2") return setView("msgs");
+  if (view !== "review") return;
+  const q = rv.inter || rv.queue[0];
+  if (ev.key === "ArrowRight") { ev.preventDefault(); if (q?.kind === "group" || q?.kind === "intro") advance(); else act("keep"); }
+  else if (ev.key === "ArrowLeft") { ev.preventDefault(); act("drop"); }
+  else if (ev.key === "ArrowDown") { ev.preventDefault(); act("later"); }
+  else if (ev.key.toLowerCase() === "z" || ev.key === "Backspace") { ev.preventDefault(); undo(); }
 });
 
-if (phone()) $("search").placeholder = "Search";
-fetch("/api/events").then((r) => r.json()).then((d) => {
-  events = d.events;
-  $("day").textContent = new Date(d.day + "T12:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-  if (d.state !== "ready") return waitForRun(d);
-  render();
-});
-
-// No posts yet today: say why, and reload by itself once the morning run is done.
+// No edition yet: say why, and reload by itself once it is ready.
 function waitForRun(d) {
   const say = {
-    preparing: `The edition has been preparing since ${d.since}. It takes 10 to 15 minutes; this page reloads by itself when it is ready.`,
-    failed: `Preparing the edition failed. Log: ${d.log}. Automatic retry at 2 pm.`,
-    none: "Nothing prepared yet: preparation starts at 10 am, and the Discord message arrives when it is ready.",
+    preparing: L(`The edition has been preparing since ${d.since}. It takes 10 to 15 minutes; this page reloads by itself.`, `L'édition se prépare depuis ${d.since}. Ça prend 10 à 15 minutes ; la page se recharge toute seule.`),
+    failed: L(`Preparing the edition failed. Log: ${d.log}. Automatic retry at 2 pm.`, `La préparation a échoué. Journal : ${d.log}. Nouvel essai automatique à 14 h.`),
+    none: L("Nothing prepared yet: preparation starts at 10 am, and the Discord message arrives when it is ready.", "Rien de prêt : la préparation démarre à 10 h, le message Discord arrive quand c'est prêt."),
   }[d.state];
-  const box = `<p class="empty">${esc(say)}</p>`;
-  for (const id of ["list", "insp", "notes", "phone"]) if ($(id)) $(id).innerHTML = box;
-  setTimeout(async () => {
-    const again = await (await fetch("/api/events")).json();
-    if (again.state === "ready") location.reload(); else waitForRun(again);
-  }, 60_000);
+  $("rv-main").innerHTML = `<p class="empty">${esc(say)}</p>`; $("rv-detail").innerHTML = "";
+  setTimeout(async () => { const again = await (await fetch("/api/events")).json(); if (again.state === "ready") location.reload(); else waitForRun(again); }, 60_000);
 }
+
+paintChrome();
+fetch("/api/events").then((r) => r.json()).then((d) => {
+  events = d.events; paintChrome.day = d.day; paintChrome();
+  if (d.state !== "ready") return waitForRun(d);
+  setView("review");
+});
 </script>
 </body>
 </html>

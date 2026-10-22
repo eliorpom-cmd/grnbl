@@ -69,6 +69,17 @@ class Series(unittest.TestCase):
         self.assertEqual(tour["start"], "2026-10-21T15:00")
         self.assertEqual(tour["dates"], ["2026-10-21T15:00", "2026-10-25T15:00"])
 
+    def test_a_later_session_lends_its_price_but_not_its_end_or_booking_dates(self):
+        # Before: the first session took the end of the last one and became a two-week "run".
+        got = collapse([
+            {"title": "Visite", "venue": "Fort", "start": "2026-10-25T14:00", "end": None, "booking_deadline": None},
+            {"title": "Visite", "venue": "Fort", "start": "2026-11-08T14:00", "end": "2026-11-08T16:00",
+             "booking_deadline": "2026-11-06", "price": "5 €"},
+        ])
+        self.assertEqual(len(got), 1)
+        self.assertEqual((got[0]["start"], got[0]["end"], got[0]["booking_deadline"], got[0]["price"]),
+                         ("2026-10-25T14:00", None, None, "5 €"))
+
     def test_session_too_close_to_book_moves_to_the_next(self):
         e = {"title": "Atelier", "booking": "required", "start": "2026-10-19T10:00",
              "dates": ["2026-10-19T10:00", "2026-10-26T10:00"]}
@@ -80,14 +91,41 @@ class Channels(unittest.TestCase):
     def test_each_group_takes_only_its_theme(self):
         broc = {"title": "Vide-grenier à Eybens", "category": "market", "free": True}
         walk = {"title": "Oiseaux des milieux forestiers", "description": "Sortie nature avec la LPO"}
-        kids = {"title": "Atelier", "review": {"family": True, "free": False}}
+        kids = {"title": "Atelier", "description": "Pour les enfants dès 6 ans", "review": {"family": True, "free": False}}
         show = {"title": "Concert", "category": "concert", "review": {"free": False}}
-        self.assertEqual([c for c in channels.CHANNELS if channels.accepts(c, broc)], ["gratuit", "sorties", "bonsplans"])
+        self.assertEqual([c for c in channels.CHANNELS if channels.accepts(c, broc)], ["bonsplans"])
         self.assertTrue(channels.accepts("nature", walk))
         self.assertFalse(channels.accepts("nature", {"title": "Balade théâtralisée - Cadavres exquis",
                                                      "venue": "Musée archéologique"}))
         self.assertTrue(channels.accepts("famille", kids))
         self.assertFalse(any(channels.accepts(c, show) for c in ("gratuit", "famille", "bonsplans", "nature")))
+
+    def test_a_line_outside_its_group_is_never_sent(self):
+        from grnbl.publish import in_their_group
+        events = [{"title": "Vide-grenier", "review": {"free": True}},
+                  {"title": "Concert", "category": "concert", "review": {"free": False}}]
+        sel = [{"i": 0, "post": "week", "channel": "bonsplans"}, {"i": 0, "post": "week", "channel": "gratuit"},
+               {"i": 1, "post": "week", "channel": "sorties"}, {"i": 1, "post": "to_book", "channel": "sorties"}]
+        self.assertEqual([(p["i"], p["channel"], p["post"]) for p in in_their_group(events, sel)],
+                         [(0, "bonsplans", "week"), (1, "sorties", "week")])
+
+    def test_every_event_has_exactly_one_group(self):
+        events = [
+            {"title": "Jeu de piste spécial Halloween à Acrobastille", "category": "outdoor", "review": {"free": False}},
+            {"title": "We Love Pow Pow", "category": "cinema", "description": "le festival du film de ski", "review": {"free": False}},
+            {"title": "Exposition : Les Yeux Ouverts", "category": "exhibition", "review": {"free": True},
+             "description": "Hervé Frumy, artiste amoureux de la montagne, dévoile ses aquarelles"},
+            {"title": "La cascade des usages du bois", "category": "talk", "review": {"free": True},
+             "description": "Elle est prélevée dans la forêt"},
+            {"title": "L'après-midi famille au musée Stendhal", "category": "visit", "review": {"free": True, "family": True}},
+            {"title": "Foire de Grenoble", "category": "market", "review": {"free": False, "family": True}},
+            {"title": "Bourse aux jouets à Gières", "description": "pour les enfants", "review": {"free": None}},
+            {"title": "Soirée Halloween", "category": "party", "review": {"free": False}},
+        ]
+        self.assertEqual([channels.home(e) for e in events],
+                         ["famille", "nature", "gratuit", "gratuit", "famille", "sorties", "bonsplans", "sorties"])
+        for e in events:
+            self.assertEqual(sum(channels.accepts(c, e) for c in channels.CHANNELS), 1, e["title"])
 
 
 class JsonLdDates(unittest.TestCase):
@@ -139,6 +177,29 @@ class FactCheck(unittest.TestCase):
     def test_added_name_number_and_wrong_weekday_are_flagged(self):
         got = factcheck.check("Mardi 22 octobre, Alex Henley et l'Orchestre national, 12 €.", self.EVENT)
         self.assertEqual(got, ["mardi 22 octobre (c'est un jeudi)", "orchestre", "12"])
+
+    def test_wrong_weekday_in_the_short_form_of_the_posts_is_flagged(self):
+        self.assertEqual(factcheck.wrong_weekdays("Mardi 22/10 à 20h", 2026), ["mardi 22/10 (c'est un jeudi)"])
+        self.assertEqual(factcheck.wrong_weekdays("Jeudi 22/10 à 20h", 2026), [])
+        # A time after a comma is not a month.
+        self.assertEqual(factcheck.wrong_weekdays("Samedi 7, 10 h", 2026), [])
+
+    def test_hours_prices_and_words_of_the_same_family_pass(self):
+        visit = {"title": "Visite des archives", "start": "2026-10-24T09:00", "price": "12,50 €",
+                 "description": "Avec une archiviste de la ville."}
+        self.assertEqual(factcheck.check("Samedi 24 à 9h, les archivistes ouvrent leurs réserves, 12,50 €.", visit), [])
+
+    def test_a_name_found_only_on_the_page_passes(self):
+        self.assertEqual(factcheck.check("Alex Henley avec Tom Waits.", self.EVENT, page="Invité : Tom Waits"), [])
+        self.assertEqual(factcheck.check("Alex Henley avec Tom Waits.", self.EVENT), ["tom", "waits"])
+
+    def test_an_event_without_a_date_is_still_checked(self):
+        self.assertEqual(factcheck.check("Avec Alex Henley et Nina Simone.", {"title": "Alex Henley"}), ["nina", "simone"])
+
+    def test_a_january_day_named_by_a_december_event_is_checked_in_the_next_year(self):
+        winter = {"title": "Marché de Noël", "start": "2026-12-01", "end": "2027-01-03"}
+        # 3 January 2027 is a Sunday; read in 2026 it would wrongly be a Saturday.
+        self.assertEqual(factcheck.check("Dimanche 3 janvier, dernier jour du marché de Noël.", winter), [])
 
 
 if __name__ == "__main__":

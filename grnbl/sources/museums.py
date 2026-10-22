@@ -44,9 +44,12 @@ def parse_occurrences(text: str) -> list[tuple[datetime, datetime | None]]:
     """Dated sessions in the text, in order. Empty when it only gives a range."""
     out = []
     for day, month, year, h1, m1, h2, m2 in DAY_RE.findall(text or ""):
-        d = date(int(year), MONTHS[month.lower()], int(day))
-        start = _at(d, h1 or None, m1 or None)
-        end = _at(d, h2, m2) if h2 else None
+        try:
+            d = date(int(year), MONTHS[month.lower()], int(day))
+            start = _at(d, h1 or None, m1 or None)
+            end = _at(d, h2, m2) if h2 else None
+        except ValueError:  # a typo on the page ("31 novembre", "25h") skips that session, not the source
+            continue
         out.append((start, end))
     return sorted(out)
 
