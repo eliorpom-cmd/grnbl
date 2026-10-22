@@ -27,8 +27,8 @@
 <script src="common.js"></script>
 <script>
 const R = CONTENT.run, DURATION = 19;
-document.getElementById("h").textContent = `${R.sources} public sources in, ${R.groups} WhatsApp posts out`;
-document.getElementById("foot").textContent = `Full run on real data, ${R.date}: ${R.minutes} minutes.`;
+document.getElementById("h").textContent = `${R.sources} public sources in, ${R.posts} WhatsApp posts out`;
+document.getElementById("foot").textContent = `Weekly edition on real data, ${R.date}.`;
 
 // The source cloud: rows of chips, measured once, laid out left to right.
 const cloud = document.getElementById("cloud");
@@ -46,7 +46,7 @@ const STAGES = [
   { big: "On time", small: true, lab: "too late to book? not posted", tags: [["code", ""]] },
   { big: fmt(R.kept), lab: "kept after the AI review", tags: [["Claude Sonnet", "ai"]] },
   { big: "≈" + R.linesPerGroup, lab: "lines per group, fact-checked", tags: [["Claude Sonnet", "ai"], ["code", ""]] },
-  { big: String(R.groups), lab: "posts, after a human check", tags: [["human", "human"]] },
+  { big: String(R.posts), lab: "posts, after a human check", tags: [["human", "human"]] },
 ];
 const X0 = 123, GAP = 56, SW = 290, CY = 890, MID = 635;
 const stages = STAGES.map((s, i) => {

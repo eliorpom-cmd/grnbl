@@ -55,7 +55,7 @@ const bold = s => esc(s).replace(/\*([^*\n]+)\*/g, "<b>$1</b>");
 const msg = document.getElementById("msg"), ap = document.getElementById("ap"), ah = document.getElementById("ah");
 const L = ap.getTotalLength(); ap.style.strokeDasharray = L;
 // Highlighted spans: the precise date and the booking deadline (everything after the last "·" and the sub line).
-const when = A.line.split(" · ").pop(), until = A.sub.trim();
+const when = A.when || A.line.split(" · ").pop(), until = A.sub.trim();
 
 function frame(t) {
   show(document.querySelector(".head"), easeOut(span(t, 0, .6)), 16);

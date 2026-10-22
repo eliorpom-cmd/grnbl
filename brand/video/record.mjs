@@ -26,7 +26,8 @@ const clips = args.length ? args : CLIPS;
 const ffmpeg = process.env.FFMPEG || "ffmpeg";
 
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch();
+// CHROME_PATH lets a machine use a Chromium it already has instead of the bundled headless shell.
+const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 for (const clip of clips) {
   for (const font of fonts) {
