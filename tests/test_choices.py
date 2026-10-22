@@ -78,6 +78,30 @@ class PostLines(unittest.TestCase):
         self.assertIn("samedi 24 à 20h · Salle", text)
         self.assertIn("dimanche 25 à 14h30 · Musée", text)
 
+    def test_week_without_editor_keeps_tomorrow_and_running_exhibitions_whatever_the_clock_seconds(self):
+        # The midnight trap: "now" carries seconds; midnight must be 00:00:00, or a no-time start is misread.
+        from datetime import datetime
+        from grnbl.digest import outings_post_reviewed
+        now = datetime(2026, 10, 21, 12, 0, 37, 250000, tzinfo=self.now.tzinfo)
+        kept = {"keep": True, "free": True, "line": "l"}
+        events = [{"title": "Demain", "start": "2026-10-22", "venue": "Parc", "review": kept},
+                  {"title": "Expo longue", "start": "2026-10-01", "end": "2026-11-15", "venue": "Musée", "review": kept},
+                  {"title": "Expo finie", "start": "2026-10-01", "end": "2026-10-20", "venue": "Musée", "review": kept},
+                  {"title": "Ce soir", "start": "2026-10-21T20:00", "venue": "Salle", "review": kept},
+                  {"title": "Trop loin", "start": "2026-11-20", "venue": "Salle", "review": kept}]
+        text = outings_post_reviewed(events, now)
+        self.assertIn("*Demain* · jeudi 22 · Parc", text)
+        self.assertIn("*Expo longue* · jusqu'au 15/11 · Musée", text)
+        for gone in ("Expo finie", "Ce soir", "Trop loin"):  # ended, same day (announced the day before), too far
+            self.assertNotIn(gone, text)
+        self.assertIn("2 sorties repérées, dont 2 gratuites", text)
+
+    def test_nothing_this_week_means_no_post(self):
+        from grnbl.digest import outings_post_reviewed, to_book_post
+        self.assertIsNone(outings_post_reviewed([], self.now))
+        self.assertIsNone(to_book_post([], self.now))
+        self.assertIsNone(self.week([]))
+
     def test_shouting_venue_names_are_calmed_down(self):
         text = self.week([{"title": "Bal", "start": "2026-10-24T20:00", "venue": "SALLE DES FETES",
                            "review": {"keep": True, "free": True, "line": "l"}}])
@@ -113,9 +137,6 @@ class PostLines(unittest.TestCase):
         self.assertNotIn("écart", fuel_post([item(2.0)], self.now))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class EditedBlock(unittest.TestCase):
     """A block edited by hand in the board's preview is sent as written, in its slot."""
@@ -133,3 +154,7 @@ class EditedBlock(unittest.TestCase):
         self.assertIn("🆓 *B, edited* · samedi\n   my own words", text)
         self.assertIn("*A*", text)
         self.assertNotIn("line B", text)
+
+
+if __name__ == "__main__":
+    unittest.main()
