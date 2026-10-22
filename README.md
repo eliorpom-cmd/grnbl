@@ -78,7 +78,7 @@ outbox -> at the group's slot, Discord says "time to post" -> Copy on the board,
 An hourly job (`deploy/tick.sh`, launchd on the Mac) runs `grnbl/tick.py`, which does what is due this hour
 and records it in `data/schedule-state.json` so nothing happens twice:
 
-- **Tuesday from 10:00**: prepare the edition (about 27 minutes on the first full run), then ping Discord.
+- **Tuesday from 10:00**: prepare the edition (under an hour for the 21 October edition), then ping Discord.
 - **Two hours before a slot**: Discord reminder if a post is not approved yet.
 - **At the slot** (Wednesday 12:00, Thursday 18:00): the approved posts become "to post" and Discord says it is
   time. I copy each one from the board into its WhatsApp group, then tap "I posted it", which records it so it is
@@ -133,12 +133,13 @@ and MCP servers turned off (31,067 tokens of wrapper per call down to 560) and w
 an unchanged page is never sent to the AI twice. Every call is logged in `data/usage.jsonl`;
 `extract.usage()` gives a day's total.
 
-Full trial run of 18 October 2026, real data (folder `data/events/2026-10-19/`):
+First weekly edition, prepared on Tuesday 20 October 2026 for the 21 October posts, real data (folder
+`data/events/2026-10-21/`):
 
-- 1,203 events collected, 38 of the 41 sources returned events, 448 kept by the review, about 27 minutes, no
-  error.
-- About 0.72 M tokens in and 0.17 M out for Haiku, 0.36 M in and 0.30 M out for Sonnet, for that afternoon
-  (trial plus editor re-runs, from `data/usage.jsonl`, cached input included).
+- 1,092 events collected from 41 sources (44 collection steps, none failed), 427 kept by the review, 74 picks
+  over 5 groups, in under an hour.
+- About 0.65 M tokens in and 0.16 M out for Haiku, 0.21 M in and 0.16 M out for Sonnet (editor re-runs and
+  English translations included, from `data/usage.jsonl`, cached input included).
 
 ## Run it locally
 
