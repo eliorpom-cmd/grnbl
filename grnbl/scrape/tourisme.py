@@ -97,7 +97,14 @@ def detail_text(page: str, url: str) -> str:
 
 
 def parse_dates(text: str) -> tuple[date, date] | None:
-    """First and last day from the heading line under the title."""
+    """First and last day from the heading line under the title; None when there is none, or no real day."""
+    try:
+        return _parse_dates(text)
+    except ValueError:  # "31 novembre": one event dropped, not the whole tourist office
+        return None
+
+
+def _parse_dates(text: str) -> tuple[date, date] | None:
     m = RANGE_RE.search(text)
     if m:
         d1, mo1, y1, d2, mo2, y2 = m.groups()

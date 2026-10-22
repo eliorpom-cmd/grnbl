@@ -73,6 +73,10 @@ class Tourisme(unittest.TestCase):
         self.assertEqual(tourisme.parse_dates("Du 12 décembre 2026 au 3 janvier 2027"), (date(2026, 12, 12), date(2027, 1, 3)))
         self.assertEqual(tourisme.parse_dates("Le dimanche 18 octobre 2026"), (date(2026, 10, 18), date(2026, 10, 18)))
 
+    def test_an_impossible_date_drops_the_event_not_the_source(self):
+        self.assertIsNone(tourisme.parse_dates("Le mardi 31 novembre 2026"))
+        self.assertIsNone(tourisme.parse_dates("Du 30 février au 3 mars 2026"))
+
     def test_card(self):
         page = '''<li
           id="id_result_27494" data-latitude="45.18" data-longitude="5.75"><figure><figcaption>

@@ -16,6 +16,11 @@ class MuseumDates(unittest.TestCase):
         self.assertEqual(got[0], (datetime(2026, 11, 1, 14, 30, tzinfo=PARIS), datetime(2026, 11, 1, 16, 0, tzinfo=PARIS)))
         self.assertEqual(got[1], (datetime(2026, 11, 12, 18, 30, tzinfo=PARIS), None))
 
+    def test_an_impossible_day_skips_that_session_only(self):
+        got = parse_occurrences("Mardi 31 novembre 2026 de 14h à 15h.\n\nJeudi 12 novembre 2026 de 25h à 26h."
+                                "\n\nDimanche 15 novembre 2026 à partir de 10h.")
+        self.assertEqual(got, [(datetime(2026, 11, 15, 10, 0, tzinfo=PARIS), None)])
+
     def test_exhibition_range_with_and_without_year(self):
         self.assertEqual(parse_range("Du 25/04/2026 au 25/04/2027 le mardi", date(2026, 10, 17)),
                          (date(2026, 4, 25), date(2027, 4, 25)))
