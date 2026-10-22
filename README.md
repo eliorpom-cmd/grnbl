@@ -7,7 +7,6 @@ person in your family who always knows what's on would tell you.
 
 Built for [Neighborhood Hacks 2026](https://neighborhoodhacks.org/).
 
-- Demo video (3 min, French with English subtitles): https://video.byelior.com/grnbl-demo-web
 - Review board, read-only demo of the 21 October edition: https://grnbl-demo.byelior.dev
 - Event pages of that edition, no WhatsApp needed: https://grnbl.pages.dev
 - The WhatsApp community: https://chat.whatsapp.com/LqbkJA0oPhT4ptheJSHBMA
