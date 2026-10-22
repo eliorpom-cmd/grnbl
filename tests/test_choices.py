@@ -78,6 +78,15 @@ class PostLines(unittest.TestCase):
         self.assertIn("samedi 24 à 20h · Salle", text)
         self.assertIn("dimanche 25 à 14h30 · Musée", text)
 
+    def test_event_just_after_midnight_keeps_its_time(self):
+        from grnbl.digest import to_book_post
+        night = {"title": "Nuit des étoiles", "start": "2026-10-24T00:30", "venue": "Bastille",
+                 "review": {"keep": True, "free": True, "line": "l"}}
+        self.assertIn("samedi 24 à 0h30 · Bastille", self.week([night]))
+        night = {**night, "start": "2026-11-07T00:30", "booking": "required"}
+        sel = [{"i": 0, "post": "to_book", "channel": "gratuit"}]
+        self.assertIn("samedi 7/11 à 0h30", to_book_post([night], self.now, selection=sel))
+
     def test_week_without_editor_keeps_tomorrow_and_running_exhibitions_whatever_the_clock_seconds(self):
         # The midnight trap: "now" carries seconds; midnight must be 00:00:00, or a no-time start is misread.
         from datetime import datetime
