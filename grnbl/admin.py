@@ -43,6 +43,7 @@ LABELS = {"gratuit": "🆓 Free", "sorties": "🎭 Outings", "famille": "👨‍
 
 KEY_FILE = DATA / "board-key"
 COOKIE = "grnbl_key"
+MAX_BODY = 1_000_000  # a decision or a post's ticked lines: a few kilobytes at most
 
 
 def board_key() -> str:
@@ -333,7 +334,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path not in ("/api/decide", "/api/publish", "/api/choose", "/api/review"):
             return self._send(404, b"not found", "text/plain")
-        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        size = int(self.headers.get("Content-Length") or 0)
+        if size > MAX_BODY:
+            return self._send(413, b"too large", "text/plain")
+        body = json.loads(self.rfile.read(size) or b"{}")
         if self.path == "/api/review":
             try:
                 save_review(self.day, body)

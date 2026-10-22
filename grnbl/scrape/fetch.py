@@ -3,7 +3,7 @@
 Politely means: grnbl says who it is (no browser disguise), reads each site's
 robots.txt and skips what it disallows, honours its Crawl-delay, and waits at
 least a second between two pages of the same site. On 21/10/2026 none of the
-45 sites read disallowed our pages, and all of them answered the honest name.
+sites read disallowed our pages, and all of them answered the honest name.
 
 The copy matters twice: re-running the extraction does not hit the site again,
 and when an extracted event looks wrong the page it came from is still there.
@@ -40,8 +40,15 @@ _last_hit: dict[str, float] = {}
 _lock = threading.Lock()
 
 
+def _closed() -> urllib.robotparser.RobotFileParser:
+    rp = urllib.robotparser.RobotFileParser()
+    rp.parse(["User-agent: *", "Disallow: /"])
+    return rp
+
+
 def _rules(url: str) -> urllib.robotparser.RobotFileParser | None:
-    """The site's robots.txt, read once per run. None when it has none (everything is allowed)."""
+    """The site's robots.txt, read once per run. None when it has none (everything is allowed);
+    everything disallowed when it cannot be read (server error, timeout)."""
     parts = urlsplit(url)
     site = f"{parts.scheme}://{parts.netloc}"
     with _lock:
@@ -52,8 +59,11 @@ def _rules(url: str) -> urllib.robotparser.RobotFileParser | None:
         req = urllib.request.Request(site + "/robots.txt", headers={"User-Agent": UA})
         with urllib.request.urlopen(req, timeout=15, context=_STRICT_OFF) as resp:
             rp.parse(resp.read().decode("utf-8", errors="ignore").splitlines())
-    except Exception:  # noqa: BLE001 - no robots.txt (404) or unreachable: no rules to follow
-        rp = None
+    except urllib.error.HTTPError as err:
+        # RFC 9309: a 4xx means there are no rules; a 5xx means the site cannot say, so read nothing.
+        rp = None if 400 <= err.code < 500 else _closed()
+    except Exception:  # noqa: BLE001 - unreachable or timed out: same as a 5xx, skip the site this run
+        rp = _closed()
     with _lock:
         _robots[site] = rp
     return rp

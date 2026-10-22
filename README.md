@@ -34,7 +34,7 @@ A WhatsApp community called GRNBL with one group per topic, plus the community's
 | 👨‍👩‍👧 Famille | outings for children and families | Wednesday 12:00 |
 | 🛍️ Bons plans | flea markets, jumble sales, ski swaps | Thursday 18:00 |
 | 🏔️ Nature | hikes, nature outings, mountain events | Thursday 18:00 |
-| ⛽ Carburant | the 3 cheapest stations per fuel type in the Métropole | every day from 10:00, automatic |
+| ⛽ Carburant | the 3 cheapest stations per fuel type in the Métropole | every day from 10:00, pasted by hand after a ping (sent automatically until 21 October) |
 | 🚨 Alerts (announcement group) | red weather warning, air quality "très mauvaise" or worse, strike or stop of the whole tram network | only when it happens, sent by a human |
 
 Each outings group gets two posts per edition:
@@ -271,30 +271,62 @@ Deploying on Cloudflare Pages (direct upload, no build step):
 - **Posting is manual.** WhatsApp has no official API for posting into community groups from a normal account.
   The automatic sender (Baileys) goes against WhatsApp's terms, so it is switched off: I paste each approved post
   myself, about one minute per group. Before 21/10 it did send a few posts (fuel, first tests).
+  `whatsapp/send.mjs` stays in the repo but never runs unless `GRNBL_AUTO_SEND=1` is set
+  (`grnbl/publish.py`); by default the board only records "posted by hand".
   The fix at scale is the official WhatsApp Business Platform with channels.
 - **The Mac is the server.** If it is off at 10:00 on Tuesday or at a sending slot, that work waits for the next
   hourly pass.
 - **Scraping.** Most agendas have no API, so grnbl reads their public pages, politely (`grnbl/scrape/fetch.py`):
   it says who it is (`grnbl/0.1`, with this repo's link, no browser disguise), follows each site's `robots.txt`
   and its Crawl-delay, waits at least a second between two pages of the same site, and keeps a copy so a page
-  is not downloaded twice. On 21 October none of the 45 sites disallowed the pages read. grnbl keeps facts
+  is not downloaded twice. If `robots.txt` cannot be read because of a server error or a timeout, the site is
+  skipped for that run (RFC 9309). On 21 October none of the sites read disallowed the pages grnbl reads.
+  Venues with a broken certificate chain are read a second time without certificate checks: these are
+  public listings and nothing is sent to them. grnbl keeps facts
   (date, place, price, booking link) and writes its own line; it never republishes a site's text or photos, and
   every line links back to the source. A site redesign breaks its extraction until the source line is adjusted.
   Le Petit Bulletin's Grenoble agenda and Chamrousse's (JavaScript only) are not read.
 - **The AI can embellish a line.** The fact-check and the human read are there for that; one real error in the
-  18 October audit (a wrong weekday) led to the weekday check.
+  18 October audit (44 posted lines of the trial run, each compared by hand with its source page) was a wrong
+  weekday, which led to the weekday check.
+- **The fact-check is lexical.** It checks that names and numbers in a line appear on the source page, and that
+  weekdays match their dates. A true word used in a false sentence passes; the human read is the last check.
+- **What the AI review drops is not measured.** Nobody re-reads the events the review drops, so a good event
+  it wrongly drops is never seen.
 - **French only** for the posts, on purpose: the people it is for live in Grenoble, and every source is in
   French. The board shows an English translation of each post; fuel and alerts are not translated.
 - **Grenoble only.** The source list is local.
 
+## Security and data
+
+- **The board** listens on 127.0.0.1 by default. Online, it is reached through a Cloudflare tunnel and needs
+  its own key (32 random bytes, `data/board-key`): the link `/?key=…` sets an HttpOnly, SameSite=Strict
+  cookie, every page and API call checks it, and everything else gets a 403. SameSite=Strict means another
+  site cannot make a visitor's browser call the board. Request bodies are capped at 1 MB. To revoke the key,
+  delete `data/board-key` and restart the board. Nothing reaches WhatsApp without a human click.
+- **The jury demo** (https://grnbl-demo.byelior.dev) is a static copy: no key, no server, nothing saved.
+- **Secrets** (board key, Discord webhook, WhatsApp session, Claude token) live in `data/` or the environment,
+  never in git (`.gitignore`). The history was checked for leaks before the repo went public.
+- **What the AI receives**: the text of public agenda pages and the events drawn from them. Never anything
+  about members.
+- **Members**: grnbl does not read the WhatsApp groups and stores nothing about the people in them. In a
+  WhatsApp group, members can see each other's phone numbers today; WhatsApp has announced usernames, which
+  would hide them.
+- **Where each fact comes from**: every event keeps its source and the URL it came from; the page is saved
+  with its date (`data/raw/`) so a wrong line can be traced back to the page that was read, and the fact-check
+  reads that same page. Cached pages and AI answers expire after 3 to 7 days.
+
 ## What's next
 
-- A page per event on a short link, with a "Book" button to the source and click counts.
+- Short links to the event pages (https://grnbl.pages.dev) inside the posts, to count who goes to book.
 - Moving to the official WhatsApp Business Cloud API.
 - An English group for international students, and an SMS version.
 - Other cities: fuel prices, Météo-France, Brocabrac and vide-greniers.org (by département), Apidae tourist
-  offices and The Events Calendar sites exist across France; a new city is a new source list.
-- Hosting on a small server so it runs with the Mac off.
+  offices and The Events Calendar sites exist across France; a new city is a new source list
+  (guide: [`docs/NEW-CITY.md`](docs/NEW-CITY.md)).
+- Hosting on a small server (the `Dockerfile` runs as is) so it runs with the Mac off.
+- Growing through people who already reach Grenoble: local media, creators and associations sharing the
+  community link. The Métropole's own WhatsApp channel shows the demand (about 1,900 followers).
 
 ## AI use
 

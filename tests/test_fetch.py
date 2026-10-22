@@ -31,6 +31,19 @@ class Polite(unittest.TestCase):
         get.assert_not_called()
         self.assertTrue(fetch.allowed("https://site.example/agenda"))
 
+    def test_robots_txt_errors_follow_rfc_9309(self):
+        import urllib.error
+        def failing(code):
+            def raise_(*a, **k):
+                if code is None:
+                    raise urllib.error.URLError("timed out")
+                raise urllib.error.HTTPError("https://x/robots.txt", code, "", {}, None)
+            return raise_
+        for code, ok in ((404, True), (403, True), (503, False), (None, False)):
+            fetch._robots.clear()
+            with mock.patch("urllib.request.urlopen", failing(code)):
+                self.assertEqual(fetch.allowed("https://site.example/agenda"), ok, code)
+
     def test_no_robots_txt_means_allowed(self):
         fetch._robots["https://open.example"] = None
         self.assertTrue(fetch.allowed("https://open.example/anything"))
