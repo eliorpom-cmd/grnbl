@@ -25,7 +25,8 @@ driven hourly by `tick.py` (`deploy/tick.sh`).
 
 ## Commands
 - `python3 -m grnbl.daily [YYYY-MM-DD]`: prepare an edition. `python3 -m grnbl.tick`: one hourly pass.
-- `python3 -m grnbl.admin`: the board on http://127.0.0.1:8730.
+- `python3 -m grnbl.admin`: the board on http://127.0.0.1:8730. `python3 -m grnbl.demo [YYYY-MM-DD]`: a read-only
+  static copy of the board for one edition, in `data/demo/` (no key, nothing saved or sent).
 - `python3 -m grnbl.publish [channel…] [--send]`: outbox (dry run by default).
 - `python3 -m grnbl fuel`: the fuel post. `python3 -m grnbl.translate [YYYY-MM-DD]`: English translations.
 - `cd whatsapp && npm install`, then `node whatsapp/send.mjs link` once, `node whatsapp/send.mjs groups`.

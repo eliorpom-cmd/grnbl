@@ -162,6 +162,9 @@ python3 -m grnbl fuel                                           # print the fuel
 # the admin board, http://127.0.0.1:8730 (open the link it prints, it carries the key)
 python3 -m grnbl.admin
 
+# a read-only static copy of the board for one edition, in data/demo/ (any static host, no key)
+python3 -m grnbl.demo 2026-10-21
+
 # Discord ping preview
 python3 -m grnbl.notify --print
 
