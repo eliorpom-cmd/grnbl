@@ -56,6 +56,16 @@ class Publish(unittest.TestCase):
         self.assertEqual(report["sorties-week"], "envoyé")
         self.assertFalse(memory.already_posted({"title": "Visite", "start": "2026-10-20"}))
 
+    def test_outings_slot_does_not_wait_for_the_fuel_or_alert_sources(self):
+        # tick.send_slots runs publish for the outings groups only: a fuel or alert source that
+        # is down must not stop them, so those sources are not even read.
+        broken = mock.Mock(side_effect=RuntimeError("source down"))
+        with mock.patch.object(publish.fuel, "collect", broken), mock.patch.object(publish.alerts, "collect", broken):
+            self.assertEqual(publish.run(DAY, send=True, only=["gratuit", "sorties"]), [])
+            with self.assertRaises(RuntimeError):  # the fuel run still reads its source
+                publish.run(DAY, send=True, only=["carburant"])
+        self.assertEqual(broken.call_count, 1)
+
     def test_english_translation_is_never_published(self):
         # A real edition day on disk: one approved free outing picked for the Gratuit group.
         day, now = date(2026, 10, 21), datetime(2026, 10, 20, 11, 0, tzinfo=publish.PARIS)

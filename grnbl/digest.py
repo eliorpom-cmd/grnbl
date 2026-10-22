@@ -291,8 +291,10 @@ def event_block(e: dict, when: str, line: str, channel: str | None, action: str 
     return out + ([action] if action else [])
 
 
-def _short_day(d: datetime) -> str:
-    return f"{DAYS[d.weekday()]} {d.day}/{d.month:02d}" + (f" à {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour else "")
+def _short_day(d: datetime, month: bool = True) -> str:
+    """"samedi 24/10 à 20h", "samedi 24 à 0h30"; no time for a source that gives none (read as 00:00)."""
+    day = f"{DAYS[d.weekday()]} {d.day}" + (f"/{d.month:02d}" if month else "")
+    return day + (f" à {d.hour}h{d.minute:02d}".replace("h00", "h") if d.hour or d.minute else "")
 
 
 def to_book_post(events: list[dict], now: datetime, limit: int = 8, selection: list[dict] | None = None) -> str | None:

@@ -197,7 +197,12 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
     day = day or now.date()
     ids = channel_ids()
     report = []
-    for item in items if items is not None else outbox(day, now):
+    if items is None:
+        # Fuel and alerts are read from the network: not when the run is for other groups only,
+        # so a source that is down cannot hold back the outings posts (tick.send_slots).
+        skip = lambda channel: "" if only and channel not in only else None
+        items = outbox(day, now, fuel_text=skip("carburant"), alerts_text=skip("infos"))
+    for item in items:
         name = f"{item['channel']}-{item['post']}"
         if only and item["channel"] not in only:
             continue

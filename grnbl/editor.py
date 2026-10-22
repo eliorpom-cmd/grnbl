@@ -102,8 +102,13 @@ def select(events: list[dict], today: date, channel: str, n_book: int = 5, n_wee
                            candidates=json.dumps([_brief(i, e, today) for i, e in pool], ensure_ascii=False))
     def ask_once():
         try:
-            return [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
-                    if p.get("i") in allowed and p.get("post") in ("to_book", "week")]
+            picks, seen = [], set()
+            for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600)):
+                # Offered events only, each once: the model sometimes lists a pick again as a reserve.
+                if p.get("i") in allowed and p.get("i") not in seen and p.get("post") in ("to_book", "week"):
+                    seen.add(p["i"])
+                    picks.append(p)
+            return picks
         except Exception as e:  # noqa: BLE001 - one retry below, then an empty group is reported
             print(f"editor: {channel}: {e}")
             return []

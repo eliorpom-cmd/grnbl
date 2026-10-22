@@ -16,6 +16,11 @@ class MuseumDates(unittest.TestCase):
         self.assertEqual(got[0], (datetime(2026, 11, 1, 14, 30, tzinfo=PARIS), datetime(2026, 11, 1, 16, 0, tzinfo=PARIS)))
         self.assertEqual(got[1], (datetime(2026, 11, 12, 18, 30, tzinfo=PARIS), None))
 
+    def test_an_impossible_day_skips_that_session_only(self):
+        got = parse_occurrences("Mardi 31 novembre 2026 de 14h à 15h.\n\nJeudi 12 novembre 2026 de 25h à 26h."
+                                "\n\nDimanche 15 novembre 2026 à partir de 10h.")
+        self.assertEqual(got, [(datetime(2026, 11, 15, 10, 0, tzinfo=PARIS), None)])
+
     def test_exhibition_range_with_and_without_year(self):
         self.assertEqual(parse_range("Du 25/04/2026 au 25/04/2027 le mardi", date(2026, 10, 17)),
                          (date(2026, 4, 25), date(2027, 4, 25)))
@@ -52,6 +57,35 @@ class Fuel(unittest.TestCase):
         now = datetime(2026, 10, 17, 8, tzinfo=timezone.utc)
         items = cheapest_by_fuel([self.station("old", 1.50, age_days=10), self.station("a", 2.3), self.station("b", 2.4)], now)
         self.assertEqual(items[0].data["price"], 2.3)
+
+
+class Fetch(unittest.TestCase):
+    def test_a_broken_certificate_goes_straight_to_the_second_try(self):
+        import ssl
+        import tempfile
+        import urllib.error
+        from pathlib import Path
+        from unittest import mock
+        from grnbl.scrape import fetch
+
+        class Page:
+            headers = mock.Mock(get=lambda *a: None, get_content_charset=lambda: "utf-8")
+            def read(self): return b"<p>agenda</p>"
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        def urlopen(req, timeout, context):
+            if context is fetch._STRICT_OFF:
+                raise urllib.error.URLError(ssl.SSLCertVerificationError("bad chain"))
+            return Page()
+
+        out = Path(tempfile.mkdtemp()) / "page.html"
+        with mock.patch.object(fetch.urllib.request, "urlopen", side_effect=urlopen) as opened, \
+                mock.patch.object(fetch.time, "sleep") as slept, \
+                mock.patch.object(fetch, "allowed", return_value=True), \
+                mock.patch.object(fetch, "_wait_turn"):  # robots.txt and the polite gap are not under test
+            self.assertEqual(fetch.fetch("salle", "https://x.test", path=out), "<p>agenda</p>")
+        self.assertEqual((opened.call_count, slept.call_count), (2, 0))
 
 
 if __name__ == "__main__":
