@@ -30,18 +30,19 @@
 // Part 4 of the script. Real data: gre-mag.fr page and the post sent on 21 Oct (data/outbox/2026-10-21/sorties-to_book.json).
 const $ = id => document.getElementById(id), LN = [...document.querySelectorAll('.ln')];
 const cy = x => 250 + (215 - 250) * x / 1920;
+const [A, B, H] = (new URLSearchParams(location.search).get('at') || '0.6,3.7,6.4').split(',').map(Number), dA = A - .6, dB = B - 3.7;
 window.frame = t => {
   rise($('k'), t, .1); rise($('h'), t, .25);
-  rise($('la'), t, .6); const a = back(span(t, .6, .7)); $('wa').style.opacity = clamp(span(t, .6, .25)); $('wa').style.transform = `translateY(${(1 - a) * 80}px) rotate(-1.5deg)`;
-  $('m').style.transform = `scaleX(${inout(span(t, 1.7, .6))})`;
+  rise($('la'), t, A); const a = back(span(t, A, .7)); $('wa').style.opacity = clamp(span(t, A, .25)); $('wa').style.transform = `translateY(${(1 - a) * 80}px) rotate(-1.5deg)`;
+  $('m').style.transform = `scaleX(${inout(span(t, 1.7 + dA, .6))})`;
   // A cabin carries the event from the agenda to the group.
   const g = $('g'); g.innerHTML = ''; line(g, -40, cy(-40), 1960, cy(1960), 7);
-  const p = inout(span(t, 2.4, 1.6)), x = 300 + (1180 - 300) * p;
-  const deg = p > 0 && p < 1 ? -9 * Math.sin(p * Math.PI) : settle(t - 4.0);
-  if (t > 2.2) cabin(g, x, cy(x), { stem: 0, r: 34, deg, fill: p >= 1 ? '#C6FF3D' : '#F4F4F6' });
-  rise($('lb'), t, 3.7); const b = back(span(t, 3.7, .7)); $('wb').style.opacity = clamp(span(t, 3.7, .25)); $('wb').style.transform = `translateY(${(1 - b) * 80}px) rotate(1.2deg)`;
-  LN.forEach((l, i) => { const v = out(span(t, 4.4 + i * .28, .4)); l.style.opacity = v; l.style.transform = `translateX(${(1 - v) * 16}px)`; });
-  $('hl').style.backgroundSize = `${inout(span(t, 6.4, .7)) * 100}% 100%`;
+  const p = inout(span(t, 2.4 + dB, 1.6)), x = 300 + (1180 - 300) * p;
+  const deg = p > 0 && p < 1 ? -9 * Math.sin(p * Math.PI) : settle(t - 4.0 - dB);
+  if (t > 2.2 + dB) cabin(g, x, cy(x), { stem: 0, r: 34, deg, fill: p >= 1 ? '#C6FF3D' : '#F4F4F6' });
+  rise($('lb'), t, B); const b = back(span(t, B, .7)); $('wb').style.opacity = clamp(span(t, B, .25)); $('wb').style.transform = `translateY(${(1 - b) * 80}px) rotate(1.2deg)`;
+  LN.forEach((l, i) => { const v = out(span(t, B + .7 + i * .28, .4)); l.style.opacity = v; l.style.transform = `translateX(${(1 - v) * 16}px)`; });
+  $('hl').style.backgroundSize = `${inout(span(t, H, .7)) * 100}% 100%`;
 };
 frame(0);
 </script></body></html>

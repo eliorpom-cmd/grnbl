@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
+html,body { background:transparent; }
+.kick { position:absolute; left:120px; top:400px; }
+.h { position:absolute; left:120px; top:450px; width:440px; font-size:60px; }
+</style></head><body>
+<svg class="layer" viewBox="0 0 1920 1080">
+  <defs><mask id="m"><rect width="1920" height="1080" fill="#fff"/><rect x="629" y="40" width="462" height="1000" rx="58" fill="#000"/></mask></defs>
+  <!-- Blue everywhere but the screen; then the phone body as a sticker: ink outline and hard shadow. -->
+  <rect width="1920" height="1080" fill="#2F4BFF" mask="url(#m)"/>
+  <rect x="643" y="56" width="462" height="1000" rx="58" fill="#121212" mask="url(#m)"/>
+  <rect x="623" y="34" width="474" height="1012" rx="64" fill="none" stroke="#121212" stroke-width="12"/>
+</svg>
+<div class="kick">Real posts, sent this week</div><div class="h" id="h">Two posts a week, per group.</div>
+<script>window.frame = () => {};</script></body></html>

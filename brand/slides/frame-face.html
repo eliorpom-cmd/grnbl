@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
+html,body { background:transparent; }
+#logo { position:absolute; left:58px; top:42px; width:236px; overflow:visible; }
+</style></head><body>
+<svg class="layer" viewBox="0 0 1920 1080">
+  <defs><mask id="m"><rect width="1920" height="1080" fill="#fff"/><rect x="28" y="28" width="1864" height="1024" rx="44" fill="#000"/></mask></defs>
+  <!-- Full-screen face-cam framing: a grnbl-blue border with rounded corners and an ink line inside. -->
+  <rect width="1920" height="1080" fill="#2F4BFF" mask="url(#m)"/>
+  <rect x="28" y="28" width="1864" height="1024" rx="44" fill="none" stroke="#121212" stroke-width="5"/>
+</svg>
+<svg id="logo"></svg>
+<script src="../render/lib.js"></script>
+<script>
+const svg = document.getElementById('logo'); drawLogo(svg, 34);
+// Centre the cable and its cabins under the word (the sticker shadow pulls the word's box to the right).
+const g = svg.querySelector('g'), kids = [...g.children], word = kids.filter(k => k.tagName === 'text').pop();
+const tb = kids.filter(k => k.tagName === 'text').map(k => k.getBBox()), wb = { x: Math.min(...tb.map(b => b.x)), width: Math.max(...tb.map(b => b.x + b.width)) - Math.min(...tb.map(b => b.x)) }, rest = kids.filter(k => k.tagName !== 'text');
+const bx = rest.filter(k => k.tagName === 'circle' && k.getAttribute('stroke')).map(k => k.getBBox()), left = Math.min(...bx.map(b => b.x)), right = Math.max(...bx.map(b => b.x + b.width));
+const dx = (wb.x + wb.width / 2) - (left + right) / 2;
+rest.forEach(k => k.setAttribute('transform', `translate(${dx} 0)`));
+window.frame = () => {};
+</script></body></html>

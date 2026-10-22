@@ -16,7 +16,7 @@
 <script src="../render/lib.js"></script><script src="da.js"></script>
 <script>
 // Part 5 of the script: "the AI reads... the rules are code... I check about ten lines per group".
-const $ = id => document.getElementById(id), cy = x => 380 + (330 - 380) * x / 1920, X = [170, 618, 1066], ARR = [.9, 2.3, 3.7];
+const $ = id => document.getElementById(id), cy = x => 380 + (330 - 380) * x / 1920, X = [170, 618, 1066], ARR = (new URLSearchParams(location.search).get('at') || '.9,2.3,3.7').split(',').map(Number);
 window.frame = t => {
   rise($('k'), t, .1); rise($('h'), t, .25);
   const g = $('g'); g.innerHTML = ''; line(g, -40, cy(-40), 1960, cy(1960), 7);
