@@ -1,5 +1,7 @@
 # grnbl
 
+[![tests](https://github.com/eliorpom-cmd/grnbl/actions/workflows/tests.yml/badge.svg)](https://github.com/eliorpom-cmd/grnbl/actions/workflows/tests.yml)
+
 A WhatsApp community for Grenoble that posts the week's outings, deals and the cheapest fuel, the way the
 person in your family who always knows what's on would tell you.
 
@@ -9,6 +11,10 @@ Built for [Neighborhood Hacks 2026](https://neighborhoodhacks.org/).
 - Review board, read-only demo of the 21 October edition: https://grnbl-demo.byelior.dev
 - Event pages of that edition, no WhatsApp needed: https://grnbl.pages.dev
 - The WhatsApp community: https://chat.whatsapp.com/LqbkJA0oPhT4ptheJSHBMA
+
+![The review board: one card at a time, the WhatsApp text it becomes, and where it comes from](docs/img/board.png)
+
+![A real post of the 21 October edition in the Gratuit group, with the board's English translation](docs/img/post.png)
 
 ## The problem
 

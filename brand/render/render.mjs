@@ -156,16 +156,16 @@ for (const F of K.FONTS) {
     .chips span { font-size: 21px; font-weight: 500; padding: 10px 18px; border-radius: 99px; background: rgba(244,244,246,.12); color: #F4F4F6; }
     .chips span.more { background: #C6FF3D; color: #121212; font-weight: 700; }`,
     body: `<div class="w"><span class="k">The problem</span><h1>Without someone like my mum, nobody hears about it.</h1>
-      <p class="p">Free concerts, museum Sundays, the cheapest fuel: it is all public, but spread over 38 sources that nobody checks every week.</p>
-      <div class="chips">${SOURCES.map(s => `<span>${s}</span>`).join("")}<span class="more">+ 16 more</span></div></div>` });
+      <p class="p">Free concerts, museum Sundays, the cheapest fuel: it is all public, but spread over 41 sources that nobody checks every week.</p>
+      <div class="chips">${SOURCES.map(s => `<span>${s}</span>`).join("")}<span class="more">+ 19 more</span></div></div>` });
 
   // 2. The pipeline, as a cable with five cabins.
   const STEPS = [
-    ["38", "public sources", "Code collects; Claude Haiku reads pages with no structured data"],
-    ["1,203", "events collected", "Code reads dates, prices and booking, and merges repeats"],
-    ["448", "kept after review", "Claude Sonnet judges interest; code decides the timing"],
-    ["~11", "lines per group", "A human ticks or unticks, then presses All good"],
-    ["7", "WhatsApp groups", "Sent on schedule: Wednesday 12:00, Thursday 18:00"],
+    ["41", "public sources", "Code collects; Claude Haiku reads pages with no structured data"],
+    ["1,092", "events collected", "Code reads dates, prices and booking, and merges repeats"],
+    ["427", "kept after review", "Claude Sonnet judges interest; code decides the timing"],
+    ["~11", "lines per group", "A human keeps or removes each line on the review board"],
+    ["7", "WhatsApp groups", "Pasted by hand at each group's slot, after a reminder"],
   ];
   job("devpost", "2-pipeline" + sfx, 1200, 800, { font, css: DEV + `
     .w { position: absolute; inset: 76px 76px 70px; }
@@ -176,10 +176,10 @@ for (const F of K.FONTS) {
     .t { font-size: 21px; font-weight: 600; margin: 8px 0 10px; }
     .d { font-size: 16px; line-height: 1.38; color: rgba(244,244,246,.75); }
     .meta { position: absolute; left: 0; bottom: 0; }`,
-    body: `<div class="w"><span class="k">How it works</span><h1>From 38 sources to one short post per group.</h1>
+    body: `<div class="w"><span class="k">How it works</span><h1>From 41 sources to one short post per group.</h1>
       <svg class="cable" viewBox="0 0 1200 120" preserveAspectRatio="none"><g id="cb"></g></svg>
       <div class="steps">${STEPS.map(s => `<div><div class="n">${s[0]}</div><div class="t">${s[1]}</div><div class="d">${s[2]}</div></div>`).join("")}</div>
-      <p class="meta">Full trial run on 18 October 2026: 1,203 events, 38 sources, 448 kept, 27 minutes, no errors.</p></div>`,
+      <p class="meta">First weekly edition, 21 October 2026: 1,092 events, 41 sources, 427 kept, under an hour, no source failing.</p></div>`,
     script: `const g = document.getElementById("cb"); const cy = x => 46 - x * .03;
       line(g, 0, cy(0), 1200, cy(1200), 6);
       const col = (1048 - 4 * 22) / 5; [0,1,2,3,4].forEach(i => { const x = 76 + i * (col + 22) + 18; line(g, x, cy(x), x, cy(x) + 30, 5); bubble(g, x, cy(x) + 30 + 16, 16, 5); });` });
@@ -211,56 +211,20 @@ for (const F of K.FONTS) {
     .a { background: #C6FF3D; color: #121212; } .b { background: #F4F4F6; color: #121212; } .c { background: #121212; color: #F4F4F6; }
     .c .n { color: #C6FF3D; }`,
     body: `<div class="w"><span class="k">The proof</span><h1>One week of Grenoble, in numbers.</h1><div class="tiles">
-      <div class="tile a"><span class="n">45</span><span class="t">free outings worth going to near Grenoble, this week</span><span class="s">Week of 21 October 2026</span></div>
-      <div class="tile b"><span class="n">15–17&thinsp;€</span><span class="t">between the cheapest and the dearest full tank in the metro area</span><span class="s">Official prices, 17 October 2026</span></div>
-      <div class="tile c"><span class="n">1,203</span><span class="t">events from 38 public sources, read in 27 minutes</span><span class="s">Trial run, 18 October 2026</span></div></div></div>` });
+      <div class="tile a"><span class="n">42</span><span class="t">free walk-in outings worth going to near Grenoble, in one week</span><span class="s">Week of 21 October 2026</span></div>
+      <div class="tile b"><span class="n">17&thinsp;€</span><span class="t">between the cheapest and the dearest full tank of E10 in the metro area</span><span class="s">Official prices, 19 October 2026</span></div>
+      <div class="tile c"><span class="n">1,092</span><span class="t">events from 41 public sources, in under an hour</span><span class="s">First weekly edition, 21 October 2026</span></div></div></div>` });
 
-  // 5. The review board (a reconstruction of the Publish screen of grnbl/admin.html, same labels).
-  const ap = post("gratuit-a-reserver"), wk = post("gratuit-cette-semaine");
-  const titles = t => [...t.matchAll(/^🆓 \*([^*]+)\* · ([^·\n]+)/gm)].map(m => [m[1], m[2].trim()]);
-  const rowsB = titles(ap.text), rowsW = titles(wk.text);
-  const cand = ([t, d], on = true) => `<div class="cd ${on ? "on" : ""}"><span class="bx">${on ? "✓" : ""}</span><div><div class="ct">${t}${on ? ' <span class="ok">approved</span>' : ""}</div><div class="cm2">${d} · free</div></div></div>`;
+  // 5. The review board: a real screenshot of the jury demo (board-review.png, from grnbl-demo.byelior.dev).
+  const shot = "data:image/png;base64," + fs.readFileSync(new URL("./board-review.png", import.meta.url)).toString("base64");
   job("devpost", "5-board" + sfx, 1200, 800, { font, css: DEV + `
     .hd { position: absolute; left: 76px; right: 76px; top: 64px; }
     h1 { font-size: 46px; margin: 14px 0 0; }
-    .board { position: absolute; left: 76px; right: 76px; top: 222px; bottom: 0; border-radius: 22px 22px 0 0; background: #fbfbfd; color: #1d1d1f;
-      font: 14px/1.45 'Inter', 'Noto Color Emoji', sans-serif; display: grid; grid-template-columns: 1fr 380px; overflow: hidden; box-shadow: 0 30px 80px rgba(8,14,60,.35); }
-    .top { grid-column: 1 / -1; height: 48px; display: flex; align-items: center; gap: 14px; padding: 0 18px; border-bottom: 1px solid rgba(0,0,0,.08); }
-    .top b { font-weight: 650; font-size: 15px; } .top .d { color: #86868b; }
-    .seg { display: flex; background: #f2f2f5; border-radius: 8px; padding: 2px; gap: 2px; }
-    .seg span { padding: 3px 11px; border-radius: 6px; font-size: 12.5px; color: #515154; }
-    .seg span.on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-    .notes { padding: 14px 18px; border-right: 1px solid rgba(0,0,0,.08); overflow: hidden; }
-    .notes .seg { margin-bottom: 12px; width: fit-content; }
-    .sum { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 12px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); margin-bottom: 12px; }
-    .sum small { display: block; color: #86868b; font-size: 12px; }
-    .btn { background: #1a7f37; color: #fff; border-radius: 8px; padding: 7px 14px; font-weight: 600; font-size: 13px; }
-    h2 { font-size: 13px; font-weight: 650; margin: 10px 0 4px; display: flex; gap: 8px; } h2 span { color: #86868b; font-weight: 500; }
-    .cd { display: grid; grid-template-columns: 20px 1fr; gap: 10px; padding: 6px 4px; border-radius: 8px; }
-    .bx { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #c7c7cc; display: grid; place-items: center; font-size: 11px; color: #fff; margin-top: 2px; }
-    .cd.on .bx { background: #0071e3; border-color: #0071e3; }
-    .ct { font-weight: 600; font-size: 13.5px; } .cm2 { color: #86868b; font-size: 12px; }
-    .ok { font-size: 10.5px; font-weight: 600; color: #1a7f37; background: rgba(26,127,55,.1); padding: 1px 6px; border-radius: 99px; margin-left: 4px; }
-    .more { color: #0071e3; font-size: 12.5px; padding: 2px 4px 0 34px; }
-    .pv { background: #efeae2; padding: 0; display: flex; flex-direction: column; }
-    .pv .chan { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f6f5f4; border-bottom: 1px solid rgba(0,0,0,.08); }
-    .pv .chan b { display: block; font-size: 13.5px; } .pv .chan small { color: #667781; font-size: 11.5px; }
-    .pv .wa-msg { margin: 12px 12px 6px; font: 12.5px/1.38 'Inter', 'Noto Color Emoji', sans-serif; }
-    .pv .en { margin: 0 12px; color: #54656f; font: 12px/1.38 'Inter', 'Noto Color Emoji', sans-serif; white-space: pre-wrap; }
-    .pv .en b { color: #3b4a54; }
-    .pv .en .h { display: block; font-weight: 600; color: #667781; margin-bottom: 4px; }`,
-    body: `<div class="hd"><span class="k">The review board</span><h1>A human checks about 11 lines, not 1,203 events.</h1></div>
-      <div class="board"><div class="top"><b>grnbl</b><span class="d">Edition of Wednesday 21 October</span><div class="seg"><span class="on">Publish</span><span>Browse</span></div></div>
-      <div class="notes"><div class="seg"><span class="on">🆓 Gratuit</span><span>🎭 Sorties</span><span>👨‍👩‍👧 Famille</span><span>🛍️ Bons plans</span><span>🏔️ Nature</span><span>⛽ Carburant</span></div>
-        <div class="sum"><div><b>${rowsB.length + rowsW.length} lines ticked</b><small>Tick what should go out, then approve: sending is scheduled.</small></div><span class="btn">All good</span></div>
-        <h2>Book now <span>${rowsB.length} ticked</span></h2>${rowsB.map(r => cand(r)).join("")}<div class="more">Show 4 other options</div>
-        <h2>This week <span>${rowsW.length} ticked</span></h2>${rowsW.map(r => cand(r)).join("")}<div class="more">Show 6 other options</div></div>
-      <div class="pv"><div class="chan"><span id="pav"></span><div><b>grnbl · Gratuit</b><small>Group · preview before posting</small></div></div>
-        <div class="wa-msg"><div class="wa-txt" id="pt"></div><span class="wa-time">12:00</span></div>
-        <div class="en"><span class="h">English translation (not posted)</span><span id="pe"></span></div></div></div>`,
-    script: `avatar(document.getElementById("pav"), "gratuit", 30);
-      document.getElementById("pt").innerHTML = wa(${JSON.stringify(ap.text)});
-      document.getElementById("pe").innerHTML = wa(${JSON.stringify(K.POST_EN.split("\n").slice(0, 6).join("\n"))});` });
+    .board { position: absolute; left: 76px; right: 76px; top: 222px; bottom: 0; border-radius: 22px 22px 0 0; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(8,14,60,.35); background: #fbfbfd; }
+    .board img { width: 100%; display: block; }`,
+    body: `<div class="hd"><span class="k">The review board</span><h1>A human checks about 11 lines per group, not 1,092 events.</h1></div>
+      <div class="board"><img src="${shot}"></div>` });
 
   // 6. The community and its groups.
   const SIGNS = K.GROUPS.filter(g => g.id !== "community");
@@ -332,7 +296,8 @@ for (const F of K.FONTS) {
 const only = process.argv.slice(2);
 const todo = jobs.filter(j => !only.length || only.includes(j.family));
 fs.mkdirSync(BUILD, { recursive: true });
-const browser = await chromium.launch();
+// CHROME_PATH lets a machine use a Chromium it already has instead of the bundled headless shell.
+const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
 let bad = 0;
 for (const j of todo) {
   const ctx = await browser.newContext({ viewport: { width: j.w, height: j.h }, deviceScaleFactor: j.scale });

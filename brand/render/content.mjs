@@ -1,6 +1,6 @@
 // Everything the visuals say. Edit here, then `node render.mjs` (see brand/render/README.md).
-// Post texts follow the exact format of grnbl/digest.py, but the events, prices and addresses
-// are EXAMPLES (data/ is not in the repo): replace them with real posts copied from the board.
+// The Gratuit posts and their English translation are real (21 October 2026 edition, the first
+// events of each post); the other posts are examples in the same format as grnbl/digest.py.
 
 export const GROUPS = [
   { id: "community", name: "grnbl", file: "communaute", label: "Communauté" },
@@ -23,33 +23,40 @@ export const FONTS = [
 export const POSTS = [
   { file: "gratuit-a-reserver", group: "gratuit", day: "Aujourd'hui", time: "12:00", text:
 `📅 *À réserver maintenant*
-_Ce qui part vite : les places se prennent avant le jour J._
+_Les places partent avant le jour J : on vous prévient tant qu'il en reste._
 
-🆓 *Visite de la tour Perret* · dimanche 1/11 à 14h30 · Parc Paul-Mistral
-   La tour de béton de 1925, fermée le reste de l'année : 20 places par créneau.
-   👉 Réserver avant vendredi 30/10 : grenoble-tourisme.com
+*Visite au musée Lumière sur le noir*
+Mercredi 28 oct. · 18h · Musée de Grenoble
+Visite thématique « Lumière sur le noir » au Musée de Grenoble, sur réservation.
+👉 Réserver : https://tmg-billetterie.mapado.com/event/788721-lumiere-sur-le-noir-visite-guidee-au-musee-de-grenoble
 
-🆓 *Atelier gravure au Musée de Grenoble* · samedi 24/10 à 10h · Musée de Grenoble
-   On repart avec sa propre estampe, dès 8 ans.
-   ⏰ Réservations dès jeudi 22/10 à 9h : museedegrenoble.fr
+*Florie*
+Vendredi 6 nov. · 20h30 · L'Atrium, Fontanil-Cornillon
+Concert gratuit de Florie, révélée dans La Nouvelle Star, pop sensible entre guitare et nappes électro, à l'Atrium de Fontanil-Cornillon.
+👉 Réserver : https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/detail/florie-7924519/
 
-🆓 *Soirée étoiles au fort de la Bastille* · vendredi 23/10 à 20h30 · Bastille
-   Télescopes tournés vers Saturne, si le ciel est dégagé.
-   👉 Réserver : bastille-grenoble.fr` },
+*Festival Livres à vous (18e édition)*
+Mercredi 18 nov. · Pays voironnais
+Festival du livre « Livres à vous », 18e édition, à Voiron et dans le Pays voironnais, du 18 au 22 novembre.
+👉 Réserver : https://livresavous.fr/affiche-18eme-edition/` },
   { file: "gratuit-cette-semaine", group: "gratuit", day: "Aujourd'hui", time: "12:00", text:
-`🎭 *Cette semaine à Grenoble* · notre sélection parmi 78 sorties repérées
+`🆓 *Gratuit cette semaine*
+_Sans réservation. 5 sorties choisies parmi les 29 repérées cette semaine._
 
-🆓 *Concert de midi de l'orchestre universitaire* · jeudi 22 à 12h30 · Campus de Saint-Martin-d'Hères
-   Quarante minutes de Dvořák sur la pause déjeuner, entrée libre.
+*Les Forestivités*
+Jusqu'au 1er nov. · Grenoble
+Les Forestivités : deux semaines d'animations, visites et expositions autour de la forêt et du bois, gratuit.
+🔗 https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/detail/les-forestivites-6223920/
 
-🆓 *Visite libre du Muséum* · dimanche 25 · Muséum de Grenoble
-   Les collections et le jardin des plantes, gratuits toute la journée.
+*Blues Tour / Alex Henley*
+Jeudi 22 oct. · Grenoble
+Concert gratuit du bluesman texan Alex Henley à Grenoble.
+🔗 https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/detail/blues-tour-alex-henley-8012795/
 
-🆓 *Projection en plein air à la Casemate* · vendredi 23 à 19h · La Casemate
-   Un documentaire sur les glaciers des Alpes, suivi d'un échange.
-
-🆓 *Bal folk sur le parvis* · samedi 24 à 18h · Place Saint-André
-   Initiation pour débutants la première demi-heure.` },
+*Balade théâtralisée - Cadavres exquis*
+Samedi 24 oct. · 4 Pl. Saint-Laurent
+Balade théâtralisée gratuite « Cadavres exquis » au musée archéologique Saint-Laurent.
+🔗 https://allevents.in/grenoble/balade-théâtralisée-cadavres-exquis/200030788986922` },
   { file: "sorties-cette-semaine", group: "sorties", day: "Aujourd'hui", time: "12:00", text:
 `🎭 *Cette semaine à Grenoble* · notre sélection parmi 169 sorties repérées
 
@@ -122,15 +129,17 @@ _Sources : Météo-France, Atmo AuRA, Mobilités M._` },
 
 // English translation of the first post, as the board shows it ("English translation (not posted)").
 export const POST_EN = `📅 *Book now*
-_What goes fast: places are taken before the day._
+_Tickets sell out before the big day: we'll let you know while there are still some left._
 
-🆓 *Visit of the Perret tower* · Sunday 1/11 at 2:30 pm · Parc Paul-Mistral
-   The 1925 concrete tower, closed the rest of the year: 20 places per slot.
-   👉 Book before Friday 30/10
+*Light on the Dark Visit*
+Wednesday 28 Oct · 6pm · Musée de Grenoble
+Thematic visit "Light on the Dark" at the Musée de Grenoble, by reservation.
+👉 Book: https://tmg-billetterie.mapado.com/event/788721-lumiere-sur-le-noir-visite-guidee-au-musee-de-grenoble
 
-🆓 *Printmaking workshop at the Musée de Grenoble* · Saturday 24/10 at 10 am
-   You leave with your own print, from age 8.
-   ⏰ Booking opens Thursday 22/10 at 9 am`;
+*Florie*
+Friday 6 Nov · 8:30pm · L'Atrium, Fontanil-Cornillon
+Free concert by Florie, revealed on La Nouvelle Star, sensitive pop mixing guitar and electronic layers, at the L'Atrium in Fontanil-Cornillon.
+👉 Book: https://www.grenoble-tourisme.com/fr/decouvrir/evenements/agenda/detail/florie-7924519/`;
 
 // ---------- Video (English) ----------
 // Parts of the PROPOSED VIDEO PLAN (neighborhood-hacks-recherche/recherche/jury-2026-10-20.md, section 5).

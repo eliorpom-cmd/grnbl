@@ -97,9 +97,11 @@ SHIM = """<script>
 </script>
 """
 
-BANNER = """<div class="demo-note">Demo: the board as it stood on {day}, before the review. Try it freely:
-nothing you do is saved, and nothing is posted to WhatsApp.</div>
-<style>.demo-note { background: #2f4bff; color: #fff; font-size: 13px; padding: 8px 16px; text-align: center; }</style>
+BANNER = """<div class="demo-note"><b>Demo: the board on {day}, before my review.</b> Keep a card with → or
+<i>Keep</i>, remove it with ←; a replacement comes next. Then open <i>Messages</i> (key 2) to see each WhatsApp
+post and its English translation. Nothing is saved, nothing is posted.</div>
+<style>.demo-note { background: #2f4bff; color: #fff; font-size: 13px; line-height: 1.45; padding: 8px 16px; text-align: center; }
+.demo-note i { font-style: normal; font-weight: 600; }</style>
 """
 
 
@@ -200,6 +202,9 @@ def build(day: date, out: Path) -> Path:
     (out / "api" / "posts.json").write_text(json.dumps(posts, ensure_ascii=False))
     page = admin.PAGE.read_text()
     page = page.replace("<script>", SHIM + "<script>", 1)
+    # In English the card shows the translation: say so, the post itself goes out in French.
+    for en in ("As sent on WhatsApp", "Joins the message if kept"):
+        page = page.replace(f'L("{en}"', f'L("{en} (English translation)"')
     page = page.replace('<header class="top">', BANNER.replace("{day}", day.strftime("%-d %B %Y")) + '<header class="top">', 1)
     page = page.replace("<title>grnbl · editor</title>", '<title>grnbl · demo board</title><link rel="icon" href="data:,">', 1)
     (out / "index.html").write_text(page)
