@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>html,body{background:transparent}</style></head><body>
+<svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
+<script src="../render/lib.js"></script><script src="da.js"></script>
+<script>
+// Overlay for Elior's head: a cabin on its own cable in the bottom-right corner. The montage fills the hole
+// (centre HX, HY, radius HR) with the face-cam, so this PNG goes on top of the face with the hole transparent.
+const HX = 1660, HY = 845, HR = 175, g = document.getElementById('g');
+const cy = x => 590 + (520 - 590) * (x - 1460) / 460;
+line(g, 1460, cy(1460), 1940, cy(1940), 9);
+line(g, HX, cy(HX), HX, HY - HR, 9);
+// Ink shadow and outline drawn as rings, so the inside stays empty for the video.
+const m = el('mask', { id: 'hole' }, el('defs', {}, g)); el('rect', { x: 0, y: 0, width: 1920, height: 1080, fill: '#fff' }, m); el('circle', { cx: HX, cy: HY, r: HR, fill: '#000' }, m);
+const k = el('g', { mask: 'url(#hole)' }, g);
+el('circle', { cx: HX + HR * .12, cy: HY + HR * .15, r: HR + 6, fill: '#121212' }, k);
+el('circle', { cx: HX, cy: HY, r: HR + 10, fill: 'none', stroke: '#C6FF3D', 'stroke-width': 14 }, g);
+el('circle', { cx: HX, cy: HY, r: HR + 18, fill: 'none', stroke: '#121212', 'stroke-width': 6 }, g);
+el('circle', { cx: HX, cy: HY, r: HR + 3, fill: 'none', stroke: '#121212', 'stroke-width': 6 }, g);
+window.frame = () => {};
+</script></body></html>

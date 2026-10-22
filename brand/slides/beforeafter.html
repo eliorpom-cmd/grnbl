@@ -5,7 +5,7 @@
 .view img.page { width:1178px; left:-442px; top:-92px; }
 .mark { position:absolute; background:var(--lime); mix-blend-mode:multiply; transform-origin:0 50%; border-radius:4px; }
 .chat { position:absolute; left:0; right:0; top:59px; bottom:0; background:#EFE7DC; padding:34px 30px; }
-.msg { background:#fff; border-radius:16px; padding:22px 26px; font-size:29px; line-height:1.42; color:#111; box-shadow:0 2px 0 rgba(0,0,0,.08); }
+.msg { background:#fff; border-radius:16px; padding:20px 24px; font-size:26px; line-height:1.42; color:#111; box-shadow:0 2px 0 rgba(0,0,0,.08); }
 .msg b { font-weight:700; }
 .msg .ln { opacity:0; }
 .msg .hl { background:linear-gradient(var(--lime), var(--lime)) no-repeat 0 100% / 0% 100%; border-radius:4px; padding:0 4px; margin:0 -4px; }
@@ -13,10 +13,10 @@
 <svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
 <div class="txt"><div class="kick" id="k">Before / after</div><div class="h" id="h">Same event. One tells you what to do.</div></div>
 <div class="lab" id="la" style="left:120px;top:300px">What the agenda says</div>
-<div class="win" id="wa" style="left:120px;top:350px;width:700px;height:620px"><div class="bar"><i></i><i></i><i></i><span>gre-mag.fr</span></div>
+<div class="win" id="wa" style="left:120px;top:350px;width:640px;height:600px"><div class="bar"><i></i><i></i><i></i><span>gre-mag.fr</span></div>
   <div class="view"><img class="page" src="assets/gremag.png"><div class="mark" id="m" style="left:398px;top:447px;width:290px;height:28px"></div></div></div>
-<div class="lab" id="lb" style="left:1080px;top:300px">What grnbl sends, in 🎭 Sorties</div>
-<div class="win" id="wb" style="left:1080px;top:350px;width:720px;height:620px"><div class="bar"><i></i><i></i><i></i><span>grnbl · Sorties</span></div>
+<div class="lab" id="lb" style="left:820px;top:300px">What grnbl sends, in 🎭 Sorties</div>
+<div class="win" id="wb" style="left:820px;top:350px;width:600px;height:600px"><div class="bar"><i></i><i></i><i></i><span>grnbl · Sorties</span></div>
   <div class="chat"><div class="msg" id="msg">
     <div class="ln">📅 <b>À réserver maintenant</b></div>
     <div class="ln">&nbsp;</div>
@@ -36,7 +36,7 @@ window.frame = t => {
   $('m').style.transform = `scaleX(${inout(span(t, 1.7, .6))})`;
   // A cabin carries the event from the agenda to the group.
   const g = $('g'); g.innerHTML = ''; line(g, -40, cy(-40), 1960, cy(1960), 7);
-  const p = inout(span(t, 2.4, 1.6)), x = 300 + (1740 - 300) * p;
+  const p = inout(span(t, 2.4, 1.6)), x = 300 + (1180 - 300) * p;
   const deg = p > 0 && p < 1 ? -9 * Math.sin(p * Math.PI) : settle(t - 4.0);
   if (t > 2.2) cabin(g, x, cy(x), { stem: 0, r: 34, deg, fill: p >= 1 ? '#C6FF3D' : '#F4F4F6' });
   rise($('lb'), t, 3.7); const b = back(span(t, 3.7, .7)); $('wb').style.opacity = clamp(span(t, 3.7, .25)); $('wb').style.transform = `translateY(${(1 - b) * 80}px) rotate(1.2deg)`;

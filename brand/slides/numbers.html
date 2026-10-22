@@ -1,31 +1,33 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
-.kick { position:absolute; left:120px; top:560px; }
-.cols { position:absolute; left:120px; right:120px; top:620px; display:grid; grid-template-columns:repeat(4, 1fr); column-gap:48px; }
-.n { font-size:148px; font-weight:700; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums; }
-.l { font-size:30px; margin-top:14px; color:var(--mute); }
+.kick { position:absolute; left:120px; top:375px; }
+.rows { position:absolute; left:120px; top:425px; }
+.row { display:flex; align-items:baseline; gap:30px; height:140px; }
+.n { width:430px; font-size:132px; font-weight:700; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums; text-align:right; }
+.l { font-size:38px; color:var(--mute); }
 .hl .n { color:var(--lime); }
 </style></head><body>
 <svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
 <div class="kick" id="k">One week of Grenoble, 21 Oct 2026</div>
-<div class="cols" id="cols"></div>
+<div class="rows" id="rows"></div>
 <script src="../render/lib.js"></script><script src="da.js"></script>
 <script>
-// Part 5 of the script: "grnbl reads 41 sources... 1,092 events... keeps 427".
+// Part 5 of the script: "grnbl reads 41 sources... 1,092 events... keeps 427". The bottom-right corner stays free for Elior's head.
 const STOPS = [{ n: 41, l: "public sources read" }, { n: 1092, l: "events found" }, { n: 427, l: "worth going to", hl: true }, { n: 10, l: "posts, checked by hand" }];
-const cy = x => 230 + (150 - 230) * (x + 100) / 2120;
-const colX = i => 120 + 420 * i + 70, ARRIVE = [0.6, 2.4, 4.2, 6.0], TRAVEL = 1.5;
-const cols = document.getElementById("cols");
-const els = STOPS.map(s => { const d = document.createElement("div"); d.className = s.hl ? "hl" : ""; d.innerHTML = '<div class="n">0</div><div class="l"></div>'; d.querySelector(".l").textContent = s.l; cols.appendChild(d); return d; });
+// Arrival times can be overridden from the URL (?at=1.2,3.4,...) to land on Elior's words.
+const AT = (new URLSearchParams(location.search).get('at') || '0.6,2.4,4.2,6.0').split(',').map(Number), TRAVEL = 1.5;
+const cy = x => 210 + (150 - 210) * (x + 100) / 2120, colX = i => 400 + 300 * i;
+const rows = document.getElementById("rows");
+const els = STOPS.map(s => { const d = document.createElement("div"); d.className = "row" + (s.hl ? " hl" : ""); d.innerHTML = '<div class="n">0</div><div class="l"></div>'; d.querySelector(".l").textContent = s.l; rows.appendChild(d); return d; });
 window.frame = t => {
   const g = document.getElementById("g"); g.innerHTML = "";
   line(g, -100, cy(-100), 2020, cy(2020), 7);
   STOPS.forEach((s, i) => {
-    // Each cabin rides in from the right, stops above its column, swings and settles; then its number counts up.
-    const p = inout(span(t, ARRIVE[i], TRAVEL)), x = 2100 + (colX(i) - 2100) * p;
-    const deg = p < 1 ? -9 * Math.sin(p * Math.PI) : settle(t - ARRIVE[i] - TRAVEL);
-    cabin(g, x, cy(x), { deg, fill: p >= 1 ? "#C6FF3D" : "#F4F4F6" });
-    const c = out(span(t, ARRIVE[i] + TRAVEL - .2, .9));
-    els[i].style.opacity = c; els[i].style.transform = `translateY(${(1 - c) * 24}px)`;
+    // AT[i] is when the cabin stops (on the word); it starts riding TRAVEL seconds before.
+    const p = inout(span(t, AT[i] - TRAVEL, TRAVEL)), x = 2100 + (colX(i) - 2100) * p;
+    const deg = p < 1 ? -9 * Math.sin(p * Math.PI) : settle(t - AT[i]);
+    cabin(g, x, cy(x), { stem: 60, r: 46, sw: 7, deg, fill: p >= 1 ? "#C6FF3D" : "#F4F4F6" });
+    const c = out(span(t, AT[i] - .15, .8));
+    els[i].style.opacity = c; els[i].style.transform = `translateX(${(1 - c) * -24}px)`;
     els[i].querySelector(".n").textContent = Math.round(s.n * c).toLocaleString("en-US");
   });
   document.getElementById("k").style.opacity = out(span(t, .2, .6));

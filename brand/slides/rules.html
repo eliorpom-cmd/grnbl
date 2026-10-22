@@ -1,9 +1,9 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
 .txt { position:absolute; left:120px; top:84px; }
 .txt .h { font-size:72px; margin-top:12px; }
-.cols { position:absolute; left:120px; right:120px; top:560px; display:grid; grid-template-columns:repeat(3, 1fr); column-gap:64px; }
+.cols { position:absolute; left:120px; width:1280px; top:560px; display:grid; grid-template-columns:repeat(3, 1fr); column-gap:64px; }
 .who { font-size:46px; font-weight:700; letter-spacing:-.02em; }
-.what { font-size:31px; color:var(--mute); line-height:1.32; margin-top:16px; }
+.what { font-size:29px; color:var(--mute); line-height:1.32; margin-top:16px; }
 .tag { display:inline-block; margin-top:22px; padding:8px 18px; border:4px solid var(--ink); border-radius:999px; background:var(--off); color:var(--ink); font-size:24px; font-weight:600; box-shadow:5px 6px 0 var(--ink); }
 </style></head><body>
 <svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
@@ -16,7 +16,7 @@
 <script src="../render/lib.js"></script><script src="da.js"></script>
 <script>
 // Part 5 of the script: "the AI reads... the rules are code... I check about ten lines per group".
-const $ = id => document.getElementById(id), cy = x => 380 + (330 - 380) * x / 1920, X = [170, 751, 1332], ARR = [.9, 2.3, 3.7];
+const $ = id => document.getElementById(id), cy = x => 380 + (330 - 380) * x / 1920, X = [170, 618, 1066], ARR = [.9, 2.3, 3.7];
 window.frame = t => {
   rise($('k'), t, .1); rise($('h'), t, .25);
   const g = $('g'); g.innerHTML = ''; line(g, -40, cy(-40), 1960, cy(1960), 7);
