@@ -166,6 +166,14 @@ class EditorSelect(unittest.TestCase):
                                         ' {"i": "0", "post": "week"}, {"i": 0, "post": "elsewhere"}]')
         self.assertEqual([p["i"] for p in picks], [0])
 
+    def test_an_event_listed_twice_is_picked_once(self):
+        events = [_kept("Visite", "2026-10-20"), _kept("Expo", "2026-10-20")]
+        picks, _ = self.select(events, '[{"i": 0, "post": "week"}, {"i": 1, "post": "week"}, {"i": 0, "post": "week"},'
+                                        ' {"i": 1, "post": "week", "reserve": true}]')
+        self.assertEqual([(p["i"], p["reserve"]) for p in picks], [(0, False), (1, False)])
+        week = [e["title"] for e, _ in picked(events, picks, "week")]
+        self.assertEqual(week, ["Visite", "Expo"])
+
     def test_post_follows_the_timing_not_the_ai(self):
         events = [_kept("Concert", "2026-10-20"),
                   _kept("Visite de la tour", "2026-11-01", booking="required")]

@@ -105,8 +105,12 @@ def select(events: list[dict], today: date, channel: str, n_book: int = 5, n_wee
                            already=(f"Already posted by other groups (offered again only when exceptional): "
                                     f"{json.dumps(taken, ensure_ascii=False)}\n") if taken else "",
                            candidates=json.dumps([_brief(i, e, today) for i, e in pool], ensure_ascii=False))
-    picks = [p for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600))
-             if p.get("i") in allowed and p.get("post") in ("to_book", "week")]
+    picks, seen = [], set()
+    for p in parse_array_raw(ask(prompt, model="sonnet", timeout=600)):
+        # Offered events only, each once: the model sometimes lists a pick again as a reserve.
+        if p.get("i") in allowed and p.get("i") not in seen and p.get("post") in ("to_book", "week"):
+            seen.add(p["i"])
+            picks.append(p)
     # The rules stay the rules: the post follows the timing, the channel is written on each pick.
     for p in picks:
         p["post"] = "week" if editorial.timing(events[p["i"]], today) == "this_week" else "to_book"
