@@ -210,7 +210,7 @@ server (from `claude setup-token`).
 python3 -m unittest discover -s tests -t .
 ```
 
-58 tests, all passing (booking windows, group rules, schedule, outbox, parsing, sources, board choices). They
+117 tests, all passing (booking windows, group rules, schedule, outbox, parsing, sources, board choices). They
 run offline in under a second.
 
 ## Hosting
