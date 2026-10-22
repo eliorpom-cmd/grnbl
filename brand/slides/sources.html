@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
+.txt { position:absolute; left:120px; top:150px; width:620px; }
+.txt .h { margin-top:18px; }
+.txt .sub { margin-top:26px; }
+</style></head><body>
+<svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
+<div class="txt"><div class="kick" id="k">The problem</div><div class="h" id="h">The info is public.</div><div class="sub" id="s">But it is spread over dozens of websites, and found too late.</div></div>
+<div class="win" id="w0" style="left:820px;top:120px;width:640px;height:520px"><div class="bar"><i></i><i></i><i></i><span>grenoble-tourisme.com</span></div><div class="view"><img src="assets/page-tourisme.png"></div></div>
+<div class="win" id="w1" style="left:1220px;top:300px;width:600px;height:500px"><div class="bar"><i></i><i></i><i></i><span>grenoble.fr</span></div><div class="view"><img src="assets/page-ville.png"></div></div>
+<div class="win" id="w2" style="left:900px;top:560px;width:620px;height:440px"><div class="bar"><i></i><i></i><i></i><span>la-belle-electrique.com</span></div><div class="view"><img src="assets/page-belle.png"></div></div>
+<script src="../render/lib.js"></script><script src="da.js"></script>
+<script>
+// Part 2 of the script: "the info is public, spread over dozens of websites, found too late".
+const W = [0, 1, 2].map(i => document.getElementById("w" + i)), IN = [0.5, 1.1, 1.7], SPEED = [70, 55, 80];
+window.frame = t => {
+  rise(document.getElementById("k"), t, .1); rise(document.getElementById("h"), t, .3); rise(document.getElementById("s"), t, 1.2);
+  W.forEach((w, i) => {
+    // Windows drop in one by one with a small overshoot, then each page keeps scrolling at its own pace.
+    const v = back(span(t, IN[i], .7)), tilt = [-2.5, 2, -1.2][i];
+    w.style.opacity = clamp(span(t, IN[i], .25)); w.style.transform = `translateY(${(1 - v) * 80}px) rotate(${tilt}deg)`;
+    const img = w.querySelector("img"), s = Math.max(0, t - IN[i] - .6);
+    img.style.transform = `translateY(${-s * SPEED[i]}px)`;
+  });
+};
+frame(0);
+</script></body></html>

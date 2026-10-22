@@ -1,0 +1,16 @@
+/* Shared look of the video slides: grnbl brand (brand/couleurs-6.html, logo-7.html), 1920 x 1080. */
+@font-face { font-family: 'Bagel Fat One'; src: url(../fonts/BagelFatOne-Regular.ttf); }
+@font-face { font-family: F; src: url(../fonts/FamiljenGrotesk.ttf); }
+:root { --blue:#2F4BFF; --lime:#C6FF3D; --ink:#121212; --off:#F4F4F6; --mute:rgba(244,244,246,.78); }
+html,body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--blue); font-family:F; color:var(--off); }
+svg.layer { position:absolute; inset:0; width:1920px; height:1080px; }
+.kick { color:var(--lime); font-size:30px; font-weight:600; letter-spacing:.02em; }
+.h { font-size:84px; font-weight:700; letter-spacing:-.03em; line-height:1.02; }
+.sub { font-size:34px; color:var(--mute); line-height:1.3; }
+/* A browser window as a sticker: off-white, ink outline, hard ink shadow like the bubbles. */
+.win { position:absolute; background:var(--off); border:6px solid var(--ink); border-radius:22px; box-shadow:14px 16px 0 var(--ink); overflow:hidden; }
+.win .bar { height:54px; border-bottom:5px solid var(--ink); display:flex; align-items:center; gap:12px; padding:0 20px; background:#fff; color:#5a5a62; font-size:22px; }
+.win .bar i { width:16px; height:16px; border-radius:50%; border:3px solid var(--ink); }
+.win .bar span { margin-left:10px; }
+.win .view { position:absolute; left:0; right:0; top:59px; bottom:0; overflow:hidden; }
+.win .view img { position:absolute; left:0; top:0; width:100%; }

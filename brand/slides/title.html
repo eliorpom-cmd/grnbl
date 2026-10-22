@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
+.tag { position:absolute; left:0; right:0; top:700px; text-align:center; font-size:46px; font-weight:600; }
+.meta { position:absolute; left:0; right:0; top:775px; text-align:center; font-size:28px; color:var(--lime); }
+</style></head><body>
+<svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
+<div class="tag" id="t">Grenoble, in your pocket.</div>
+<div class="meta" id="m">Neighborhood Hacks 2026 · Grenoble</div>
+<script src="../render/lib.js"></script><script src="da.js"></script>
+<script>
+// Opening and closing card: the wordmark, then five cabins ride in under it, like the logo.
+const $ = id => document.getElementById(id);
+const END = new URLSearchParams(location.search).get('end');
+if (END) { $('t').textContent = 'github.com/eliorpom-cmd/grnbl'; $('m').textContent = 'Grenoble, in your pocket. · Neighborhood Hacks 2026'; }
+const cy = x => 520 + (480 - 520) * (x - 560) / 800, X = [660, 810, 960, 1110, 1260];
+window.frame = t => {
+  const g = $('g'); g.innerHTML = '';
+  const w = out(span(t, .1, .8));
+  const word = el('g', { transform: `translate(960 ${410 + (1 - w) * 30}) scale(${.92 + .08 * back(span(t, .1, .8))})`, opacity: w }, g);
+  stickerText(word, 'grnbl', -330, 0, 260, 22).setAttribute('text-anchor', 'start');
+  line(g, 560, cy(560), 560 + 800 * out(span(t, .5, .7)), cy(560 + 800 * out(span(t, .5, .7))), 12);
+  X.forEach((x0, i) => {
+    const a = .9 + i * .18, p = out(span(t, a, .7)), x = x0 + (1 - p) * 300;
+    if (t > a) cabin(g, x, cy(x), { stem: 22, r: 40, sw: 9, deg: p < 1 ? -10 * (1 - p) : settle(t - a - .7, 7) });
+  });
+  rise($('t'), t, 1.9); rise($('m'), t, 2.2);
+};
+frame(0);
+</script></body></html>

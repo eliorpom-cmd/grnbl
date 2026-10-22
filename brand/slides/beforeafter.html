@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="da.css"><style>
+.txt { position:absolute; left:120px; top:84px; }
+.txt .h { font-size:64px; margin-top:12px; }
+.lab { position:absolute; font-size:28px; font-weight:600; color:var(--lime); }
+.view img.page { width:1178px; left:-442px; top:-92px; }
+.mark { position:absolute; background:var(--lime); mix-blend-mode:multiply; transform-origin:0 50%; border-radius:4px; }
+.chat { position:absolute; left:0; right:0; top:59px; bottom:0; background:#EFE7DC; padding:34px 30px; }
+.msg { background:#fff; border-radius:16px; padding:22px 26px; font-size:29px; line-height:1.42; color:#111; box-shadow:0 2px 0 rgba(0,0,0,.08); }
+.msg b { font-weight:700; }
+.msg .ln { opacity:0; }
+.msg .hl { background:linear-gradient(var(--lime), var(--lime)) no-repeat 0 100% / 0% 100%; border-radius:4px; padding:0 4px; margin:0 -4px; }
+</style></head><body>
+<svg class="layer" viewBox="0 0 1920 1080"><g id="g"></g></svg>
+<div class="txt"><div class="kick" id="k">Before / after</div><div class="h" id="h">Same event. One tells you what to do.</div></div>
+<div class="lab" id="la" style="left:120px;top:300px">What the agenda says</div>
+<div class="win" id="wa" style="left:120px;top:350px;width:700px;height:620px"><div class="bar"><i></i><i></i><i></i><span>gre-mag.fr</span></div>
+  <div class="view"><img class="page" src="assets/gremag.png"><div class="mark" id="m" style="left:398px;top:447px;width:290px;height:28px"></div></div></div>
+<div class="lab" id="lb" style="left:1080px;top:300px">What grnbl sends, in 🎭 Sorties</div>
+<div class="win" id="wb" style="left:1080px;top:350px;width:720px;height:620px"><div class="bar"><i></i><i></i><i></i><span>grnbl · Sorties</span></div>
+  <div class="chat"><div class="msg" id="msg">
+    <div class="ln">📅 <b>À réserver maintenant</b></div>
+    <div class="ln">&nbsp;</div>
+    <div class="ln"><b>Foire de Grenoble</b></div>
+    <div class="ln">Vendredi 30 oct. · Alpexpo</div>
+    <div class="ln">Foire de Grenoble à Alpexpo, du 30 octobre au 8 novembre, 5 à 7 €.</div>
+    <div class="ln"><span class="hl" id="hl">👉 Réserver avant jeudi 29 oct.</span></div>
+  </div></div></div>
+<script src="../render/lib.js"></script><script src="da.js"></script>
+<script>
+// Part 4 of the script. Real data: gre-mag.fr page and the post sent on 21 Oct (data/outbox/2026-10-21/sorties-to_book.json).
+const $ = id => document.getElementById(id), LN = [...document.querySelectorAll('.ln')];
+const cy = x => 250 + (215 - 250) * x / 1920;
+window.frame = t => {
+  rise($('k'), t, .1); rise($('h'), t, .25);
+  rise($('la'), t, .6); const a = back(span(t, .6, .7)); $('wa').style.opacity = clamp(span(t, .6, .25)); $('wa').style.transform = `translateY(${(1 - a) * 80}px) rotate(-1.5deg)`;
+  $('m').style.transform = `scaleX(${inout(span(t, 1.7, .6))})`;
+  // A cabin carries the event from the agenda to the group.
+  const g = $('g'); g.innerHTML = ''; line(g, -40, cy(-40), 1960, cy(1960), 7);
+  const p = inout(span(t, 2.4, 1.6)), x = 300 + (1740 - 300) * p;
+  const deg = p > 0 && p < 1 ? -9 * Math.sin(p * Math.PI) : settle(t - 4.0);
+  if (t > 2.2) cabin(g, x, cy(x), { stem: 0, r: 34, deg, fill: p >= 1 ? '#C6FF3D' : '#F4F4F6' });
+  rise($('lb'), t, 3.7); const b = back(span(t, 3.7, .7)); $('wb').style.opacity = clamp(span(t, 3.7, .25)); $('wb').style.transform = `translateY(${(1 - b) * 80}px) rotate(1.2deg)`;
+  LN.forEach((l, i) => { const v = out(span(t, 4.4 + i * .28, .4)); l.style.opacity = v; l.style.transform = `translateX(${(1 - v) * 16}px)`; });
+  $('hl').style.backgroundSize = `${inout(span(t, 6.4, .7)) * 100}% 100%`;
+};
+frame(0);
+</script></body></html>
