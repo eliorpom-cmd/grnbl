@@ -322,11 +322,11 @@ class Handler(BaseHTTPRequestHandler):
             channels.append({"id": "carburant", "name": "grnbl · Carburant", "label": LABELS["carburant"], "posts": [fuel_text] if fuel_text else [], "picks": []})
             # Fuel and alerts are daily, filed under today; the groups under their edition.
             today = now.date()
-            sent, ids = {**publish.status(self.day), **{k: v for k, v in publish.status(today).items() if k in DAILY}}, publish.channel_ids()
+            sent = {**publish.status(self.day), **{k: v for k, v in publish.status(today).items() if k in DAILY}}
             for c in channels:
-                c["outbox"], c["linked"] = sent.get(c["id"], {}), c["id"] in ids
+                c["outbox"] = sent.get(c["id"], {})
             return self._json({"channels": channels, "watch": watch, "translating": translate.busy(), "review": load_review(self.day),
-                               "auto_send": publish.AUTO_SEND})
+                               "auto_send": False})
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):
@@ -357,11 +357,9 @@ class Handler(BaseHTTPRequestHandler):
             channel = str(body.get("channel"))
             day = datetime.now(PARIS).date() if channel in DAILY else self.day
             report = publish.run(day, send=True, only=[channel])
-            if not publish.AUTO_SEND:  # posted by hand from the board's Copy button: record it
-                report += [(name, "posté à la main") for name in publish.mark_posted(day, channel)]
-            # publish.py reports in French for the command line; the board only needs the failures.
-            failed = [what.split(":", 1)[-1].strip() for _, what in report if what.startswith("échec")]
-            return self._json({"ok": True, "report": report, "failed": failed})
+            # Posted by hand from the board's Copy button: record it.
+            report += [(name, "posté à la main") for name in publish.mark_posted(day, channel)]
+            return self._json({"ok": True, "report": report, "failed": []})
         i = body.get("i")
         if not isinstance(i, int):
             return self._json({"ok": False}, 400)

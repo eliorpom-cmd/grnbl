@@ -130,9 +130,6 @@ def send_slots(now: datetime) -> None:
             report = publish.run(edition, send=True, only=slot["channels"])
             for name, what in report:
                 print(f"slot {slot['id']}: {name} {what}")
-            out = sorted({CHANNELS[n.split('-')[0]]["label"] for n, w in report if w == "envoyé"})
-            if out:
-                notify.ping(f"✅ *grnbl* · envoyé : {', '.join(out)}")
             by_hand = sorted({CHANNELS[n.split('-')[0]]["label"] for n, w in report if w == "à poster à la main"})
             if by_hand:
                 notify.ping(notify.to_post(by_hand))

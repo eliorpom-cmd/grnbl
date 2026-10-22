@@ -1,6 +1,7 @@
-# grnbl on a container host (Deployxa): the board always on, the morning run at
-# 10:00 Paris (14:00 retry), WhatsApp sent from here. data/ must be a persistent
-# volume mounted at /app/data; everything else is rebuilt on each deploy.
+# grnbl on a container host: the board always on and the hourly job. Posting to
+# WhatsApp stays by hand from the board. data/ must be a persistent volume mounted
+# at /app/data; everything else is rebuilt on each deploy. Node is only there for
+# the Claude Code CLI.
 FROM node:22-slim AS node
 
 FROM python:3.14-slim
@@ -13,8 +14,6 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 ENV TZ=Europe/Paris PYTHONUNBUFFERED=1 GRNBL_HOST=0.0.0.0 PORT=8730
 WORKDIR /app
-COPY whatsapp/package.json whatsapp/package-lock.json whatsapp/
-RUN cd whatsapp && npm ci --omit=dev && npm cache clean --force
 COPY . .
 EXPOSE 8730
 CMD ["/bin/bash", "deploy/serve.sh"]

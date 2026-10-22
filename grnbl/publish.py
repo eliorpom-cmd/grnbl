@@ -1,28 +1,22 @@
-"""Sends the day's posts to the WhatsApp channels, once, and only what was approved.
+"""Prepares the day's posts for the WhatsApp groups, once, and only what was approved.
 
-The outings posts go out only after the human pressed "Tout est bon" on the
-board, that is when every line of the post carries a "keep" decision. The fuel
-post is automatic. Each post is written to the outbox before sending:
+The outings posts are ready only after the human pressed "Tout est bon" on the
+board, that is when every line of the post carries a "keep" decision. Each post
+is written to the outbox:
 
-    data/outbox/<day>/<channel>-<post>.json   {"text", "events", "status", "sent_at", "id"}
+    data/outbox/<day>/<channel>-<post>.json   {"text", "events", "status", "sent_at", "by_hand"}
 
-A post marked "sent" is never sent again, so the command can run as often as
-needed (from the board, from a scheduler, by hand). Sending is a dry run unless
-`send=True`: the dry run only writes the outbox and says what would go out.
-
-The WhatsApp side is a separate Node script (whatsapp/send.mjs) that connects,
-sends one message and disconnects: no server stays up, the same command runs on
-this Mac now and on a small Linux server later. grnbl posts into the groups of
-one WhatsApp community, one group per topic (admins only can write). Their ids
-live in data/whatsapp.json, {"gratuit": "<id>@g.us", ...}, listed once by
-`node whatsapp/send.mjs groups`.
+Posting is done by hand: WhatsApp has no official way to post into community
+groups from a normal account, and an unofficial client would break its terms.
+At its slot an approved post becomes "to_post"; the human copies it from the
+board into the group and clicks "I posted it" (mark_posted). A post marked
+"sent" is never offered again. Without `send=True` the run is a dry run that
+only says what is ready.
 """
 
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -35,8 +29,6 @@ from .sources import alerts, fuel
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
-CONFIG = DATA / "whatsapp.json"
-SENDER = ROOT / "whatsapp" / "send.mjs"
 PARIS = ZoneInfo("Europe/Paris")
 POSTS = (("to_book", to_book_post), ("week", outings_post_reviewed))
 
@@ -156,25 +148,6 @@ def status(day: date) -> dict[str, dict[str, dict]]:
     return out
 
 
-def channel_ids() -> dict[str, str]:
-    return json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
-
-
-def deliver(jid: str, text: str) -> str:
-    """One message through the Node sender; returns WhatsApp's message id."""
-    out = subprocess.run(["node", str(SENDER), "send", jid], input=json.dumps({"text": text}),
-                         capture_output=True, text=True, timeout=120, cwd=ROOT)
-    if out.returncode != 0:
-        raise RuntimeError(out.stderr.strip()[-300:] or f"sender exited {out.returncode}")
-    return json.loads(out.stdout.strip().splitlines()[-1])["id"]
-
-
-# Hackathon rule: "projects must comply with the terms of service of any third-party platform used", and
-# whatsapp/send.mjs (Baileys) is an unofficial client. So nothing is sent by it unless GRNBL_AUTO_SEND=1:
-# at its slot a post becomes "to_post", Elior copies it from the board into the group, then marks it posted.
-AUTO_SEND = os.environ.get("GRNBL_AUTO_SEND") == "1"
-
-
 def mark_posted(day: date, channel: str) -> list[str]:
     """The human pasted the channel's approved posts into WhatsApp: record them as sent, once."""
     done = []
@@ -195,7 +168,6 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
     Returns (post, what happened) for each post."""
     now = datetime.now(PARIS)
     day = day or now.date()
-    ids = channel_ids()
     report = []
     if items is None:
         # Fuel and alerts are read from the network: not when the run is for other groups only,
@@ -217,21 +189,9 @@ def run(day: date | None = None, send: bool = False, only: list[str] | None = No
             report.append((name, "en attente de « Tout est bon »"))
         elif not send:
             report.append((name, "prêt (essai : rien envoyé)"))
-        elif not AUTO_SEND:
+        else:
             record["status"] = "to_post"
             report.append((name, "à poster à la main"))
-        elif item["channel"] not in ids:
-            report.append((name, f"groupe pas encore relié ({CONFIG.name})"))
-        else:
-            try:
-                record["id"] = deliver(ids[item["channel"]], item["text"])
-            except Exception as e:  # noqa: BLE001 - one failed post is reported, the others still go
-                record["status"], record["error"] = "failed", str(e)[:300]
-                report.append((name, f"échec : {record['error']}"))
-            else:
-                record["status"], record["sent_at"] = "sent", datetime.now(PARIS).isoformat(timespec="seconds")
-                memory.mark_posted(item["events"], day)
-                report.append((name, "envoyé"))
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(record, ensure_ascii=False, indent=1))
     return report

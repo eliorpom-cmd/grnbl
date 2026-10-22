@@ -148,8 +148,7 @@ First weekly edition, prepared on Tuesday 20 October 2026 for the 21 October pos
 
 ## Run it locally
 
-Requirements: Python 3 (tested on 3.14, standard library only), the `claude` CLI signed in, and Node.js for
-the WhatsApp side.
+Requirements: Python 3 (tested on 3.14, standard library only) and the `claude` CLI signed in.
 
 ```bash
 # prepare an edition (collect, booking pages, calendar, review, editor, translation)
@@ -173,14 +172,9 @@ python3 -m grnbl.demo 2026-10-21
 # Discord ping preview
 python3 -m grnbl.notify --print
 
-# outbox: dry run by default, --send to send, group names to filter
+# outbox: dry run by default; --send marks approved posts "to post", group names to filter
 python3 -m grnbl.publish
 python3 -m grnbl.publish gratuit sorties --send
-
-# WhatsApp, once per machine
-cd whatsapp && npm install
-node whatsapp/send.mjs link [phone]    # link the account as a device (QR code or pairing code)
-node whatsapp/send.mjs groups          # list the groups and their ids for data/whatsapp.json
 ```
 
 The first collection is slow (the tourist office alone is about 95 list pages, plus about 100 press
@@ -229,10 +223,7 @@ During the hackathon, everything runs on my Mac, which is on from 9:00 to 21:00:
   `data/logs/<day>.log`.
 - `deploy/dev.byelior.grnbl.board.plist`: the board, kept alive by launchd, published through a Cloudflare
   tunnel and protected by its key.
-- Posting is done by hand from the board (Copy, then paste in the group). `whatsapp/send.mjs` (Node,
-  [Baileys](https://github.com/WhiskeySockets/Baileys) 7.0.0-rc14) can send instead, but it is an unofficial
-  client, so it is **off unless `GRNBL_AUTO_SEND=1`** and was not used for the posts of the hackathon week
-  after 21/10.
+- Posting is done by hand from the board (Copy, paste in the group, then "I posted it").
 
 The same folder runs in a container: `Dockerfile` plus `deploy/serve.sh` (board kept alive, `tick.sh` every
 hour, Paris time), with `data/` on a persistent volume. `deploy/make-seed.sh` packs the Mac's data for a first
@@ -269,11 +260,9 @@ Deploying on Cloudflare Pages (direct upload, no build step):
 ## Limits
 
 - **Posting is manual.** WhatsApp has no official API for posting into community groups from a normal account.
-  The automatic sender (Baileys) goes against WhatsApp's terms, so it is switched off: I paste each approved post
-  myself, about one minute per group. Before 21/10 it did send a few posts (fuel, first tests).
-  `whatsapp/send.mjs` stays in the repo but never runs unless `GRNBL_AUTO_SEND=1` is set
-  (`grnbl/publish.py`); by default the board only records "posted by hand".
-  The fix at scale is the official WhatsApp Business Platform with channels.
+  An unofficial client (Baileys) could post automatically, but it breaks WhatsApp's terms. I used it for a few
+  test posts and the fuel post until 21 October, then removed it from the code: I paste each approved post
+  myself, about one minute per group. The fix at scale is the official WhatsApp Business Platform with channels.
 - **The Mac is the server.** If it is off at 10:00 on Tuesday or at a sending slot, that work waits for the next
   hourly pass.
 - **Scraping.** Most agendas have no API, so grnbl reads their public pages, politely (`grnbl/scrape/fetch.py`):

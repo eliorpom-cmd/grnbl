@@ -6,7 +6,8 @@ Private working notes (deployment, account details, schedule) live in `CLAUDE.lo
 published.
 
 ## Conventions
-- Python 3.11+, standard library only. The only other dependency is `whatsapp/` (Node + Baileys).
+- Python 3.11+, standard library only (Node only for the Claude Code CLI and the brand renderers).
+- Posting to WhatsApp is by hand from the board: no automatic sender (an unofficial client breaks WhatsApp's terms).
 - Code, comments, README and commits in English; the posts themselves are in French.
 - Timing and guarantees are code, never AI: booking deadlines (`editorial.py`), which channel an event
   belongs to (`channels.home`: exactly one group per event, bargains > kids > nature > free > paid; checked
@@ -20,7 +21,7 @@ published.
 sources (`grnbl/scrape/`, `grnbl/sources/`) -> one event shape -> repeated sessions merged (`run.collapse`)
 -> booking status (`editorial.py`) -> AI review (`scrape/review.py`) -> AI editor-in-chief per channel
 (`editor.py`, with reserves and a fact check, `factcheck.py`) -> human check on the board (`admin.py`)
--> outbox and WhatsApp (`publish.py`, `whatsapp/send.mjs`). Weekly rhythm and slots: `schedule.py`,
+-> outbox, then pasted by hand into WhatsApp (`publish.py`, `mark_posted`). Weekly rhythm and slots: `schedule.py`,
 driven hourly by `tick.py` (`deploy/tick.sh`).
 
 ## Commands
@@ -29,7 +30,6 @@ driven hourly by `tick.py` (`deploy/tick.sh`).
   static copy of the board for one edition, in `data/demo/` (no key, nothing saved or sent).
 - `python3 -m grnbl.publish [channel…] [--send]`: outbox (dry run by default).
 - `python3 -m grnbl fuel`: the fuel post. `python3 -m grnbl.translate [YYYY-MM-DD]`: English translations.
-- `cd whatsapp && npm install`, then `node whatsapp/send.mjs link` once, `node whatsapp/send.mjs groups`.
 - Tests: `python3 -m unittest discover -s tests -t .`
 
 ## Pitfalls

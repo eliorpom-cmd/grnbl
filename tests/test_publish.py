@@ -20,41 +20,26 @@ def item(channel, approved, title="Visite"):
 class Publish(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        # These tests cover the automatic sender; ManualPosting below covers the default.
-        for target, name, value in ((publish, "DATA", self.tmp), (publish, "CONFIG", self.tmp / "whatsapp.json"),
-                                    (memory, "POSTED", self.tmp / "posted.json"), (publish, "AUTO_SEND", True)):
+        for target, name, value in ((publish, "DATA", self.tmp), (memory, "POSTED", self.tmp / "posted.json")):
             p = mock.patch.object(target, name, value)
             p.start()
             self.addCleanup(p.stop)
-        (self.tmp / "whatsapp.json").write_text(json.dumps({"gratuit": "1@newsletter", "sorties": "2@newsletter"}))
 
-    def run_publish(self, items, send=True):
-        with mock.patch.object(publish, "deliver", return_value="MSG1") as deliver:
-            report = dict(publish.run(DAY, send=send, items=items))
-        return report, deliver
-
-    def test_waiting_post_is_not_sent(self):
-        report, deliver = self.run_publish([item("gratuit", False)])
-        self.assertEqual(deliver.call_count, 0)
+    def test_waiting_post_is_not_offered(self):
+        report = dict(publish.run(DAY, send=True, items=[item("gratuit", False)]))
         self.assertIn("attente", report["gratuit-week"])
 
-    def test_dry_run_sends_nothing(self):
-        _, deliver = self.run_publish([item("gratuit", True)], send=False)
-        self.assertEqual(deliver.call_count, 0)
+    def test_dry_run_changes_nothing(self):
+        report = dict(publish.run(DAY, send=False, items=[item("gratuit", True)]))
+        self.assertIn("essai", report["gratuit-week"])
+        self.assertEqual(publish.status(DAY)["gratuit"]["week"]["status"], "ready")
 
-    def test_sent_once_and_remembered(self):
-        self.run_publish([item("gratuit", True)])
-        report, deliver = self.run_publish([item("gratuit", True)])
-        self.assertEqual(deliver.call_count, 0)
+    def test_posted_once_and_remembered(self):
+        publish.run(DAY, send=True, items=[item("gratuit", True)])
+        publish.mark_posted(DAY, "gratuit")
+        report = dict(publish.run(DAY, send=True, items=[item("gratuit", True)]))
         self.assertEqual(report["gratuit-week"], "déjà envoyé")
         self.assertTrue(memory.already_posted({"title": "Visite", "start": "2026-10-20"}))
-
-    def test_one_failure_does_not_stop_the_others(self):
-        with mock.patch.object(publish, "deliver", side_effect=[RuntimeError("offline"), "MSG2"]):
-            report = dict(publish.run(DAY, send=True, items=[item("gratuit", True), item("sorties", True, "Bal")]))
-        self.assertIn("échec", report["gratuit-week"])
-        self.assertEqual(report["sorties-week"], "envoyé")
-        self.assertFalse(memory.already_posted({"title": "Visite", "start": "2026-10-20"}))
 
     def test_outings_slot_does_not_wait_for_the_fuel_or_alert_sources(self):
         # tick.send_slots runs publish for the outings groups only: a fuel or alert source that
@@ -86,30 +71,25 @@ class Publish(unittest.TestCase):
         self.assertEqual(stored["en"], "ENGLISH: free visit of the fort.")
         items = publish.outbox(day, now, fuel_text="", alerts_text="")
         self.assertEqual([i["text"] for i in items], [stored["fr"]])
-        with mock.patch.object(publish, "deliver", return_value="MSG1") as deliver:
-            report = dict(publish.run(day, send=True, items=items))
-        self.assertEqual(report["gratuit-week"], "envoyé")
-        sent = deliver.call_args.args[1]
-        self.assertIn("Visite gratuite du fort.", sent)
-        self.assertNotIn("ENGLISH", sent)
+        report = dict(publish.run(day, send=True, items=items))
+        self.assertEqual(report["gratuit-week"], "à poster à la main")
+        posted = json.loads((self.tmp / "outbox" / day.isoformat() / "gratuit-week.json").read_text())["text"]
+        self.assertIn("Visite gratuite du fort.", posted)
+        self.assertNotIn("ENGLISH", posted)
 
 
 class ManualPosting(unittest.TestCase):
-    """The default during the hackathon: the unofficial client never sends, Elior pastes by hand."""
+    """Elior pastes each approved post by hand, then marks it posted."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        for target, name, value in ((publish, "DATA", self.tmp), (publish, "CONFIG", self.tmp / "whatsapp.json"),
-                                    (memory, "POSTED", self.tmp / "posted.json"), (publish, "AUTO_SEND", False)):
+        for target, name, value in ((publish, "DATA", self.tmp), (memory, "POSTED", self.tmp / "posted.json")):
             p = mock.patch.object(target, name, value)
             p.start()
             self.addCleanup(p.stop)
-        (self.tmp / "whatsapp.json").write_text(json.dumps({"gratuit": "1@newsletter"}))
 
-    def test_nothing_is_sent_and_the_post_waits_for_a_human(self):
-        with mock.patch.object(publish, "deliver") as deliver:
-            report = dict(publish.run(DAY, send=True, items=[item("gratuit", True), item("sorties", False)]))
-        self.assertEqual(deliver.call_count, 0)
+    def test_approved_post_waits_for_a_human(self):
+        report = dict(publish.run(DAY, send=True, items=[item("gratuit", True), item("sorties", False)]))
         self.assertEqual(report["gratuit-week"], "à poster à la main")
         self.assertEqual(publish.status(DAY)["gratuit"]["week"]["status"], "to_post")
 
