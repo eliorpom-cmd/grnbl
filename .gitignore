@@ -5,6 +5,7 @@ __pycache__/
 data/
 whatsapp/node_modules/
 deploy/seed/
+brand/video/export/*.png
 node_modules/
 *.log
 .env.*
