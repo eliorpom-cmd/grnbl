@@ -146,6 +146,18 @@ class FactCheck(unittest.TestCase):
         # A time after a comma is not a month.
         self.assertEqual(factcheck.wrong_weekdays("Samedi 7, 10 h", 2026), [])
 
+    def test_hours_prices_and_words_of_the_same_family_pass(self):
+        visit = {"title": "Visite des archives", "start": "2026-10-24T09:00", "price": "12,50 €",
+                 "description": "Avec une archiviste de la ville."}
+        self.assertEqual(factcheck.check("Samedi 24 à 9h, les archivistes ouvrent leurs réserves, 12,50 €.", visit), [])
+
+    def test_a_name_found_only_on_the_page_passes(self):
+        self.assertEqual(factcheck.check("Alex Henley avec Tom Waits.", self.EVENT, page="Invité : Tom Waits"), [])
+        self.assertEqual(factcheck.check("Alex Henley avec Tom Waits.", self.EVENT), ["tom", "waits"])
+
+    def test_an_event_without_a_date_is_still_checked(self):
+        self.assertEqual(factcheck.check("Avec Alex Henley et Nina Simone.", {"title": "Alex Henley"}), ["nina", "simone"])
+
     def test_a_january_day_named_by_a_december_event_is_checked_in_the_next_year(self):
         winter = {"title": "Marché de Noël", "start": "2026-12-01", "end": "2027-01-03"}
         # 3 January 2027 is a Sunday; read in 2026 it would wrongly be a Saturday.
