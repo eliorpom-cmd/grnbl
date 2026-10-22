@@ -5,6 +5,11 @@ person in your family who always knows what's on would tell you.
 
 Built for [Neighborhood Hacks 2026](https://neighborhoodhacks.org/).
 
+- Demo video (3 min, French with English subtitles): https://video.byelior.com/grnbl-demo-web
+- Review board, read-only demo of the 21 October edition: https://grnbl-demo.byelior.dev
+- Event pages of that edition, no WhatsApp needed: https://grnbl.pages.dev
+- The WhatsApp community: https://chat.whatsapp.com/LqbkJA0oPhT4ptheJSHBMA
+
 ## The problem
 
 In my family, my mum is the one who finds the outings and the deals: free concerts, concerts inside museums,
@@ -278,7 +283,8 @@ Deploying on Cloudflare Pages (direct upload, no build step):
   Le Petit Bulletin's Grenoble agenda and Chamrousse's (JavaScript only) are not read.
 - **The AI can embellish a line.** The fact-check and the human read are there for that; one real error in the
   18 October audit (a wrong weekday) led to the weekday check.
-- **French only** for the posts. Fuel and alerts are not translated.
+- **French only** for the posts, on purpose: the people it is for live in Grenoble, and every source is in
+  French. The board shows an English translation of each post; fuel and alerts are not translated.
 - **Grenoble only.** The source list is local.
 
 ## What's next
