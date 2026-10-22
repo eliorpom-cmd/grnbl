@@ -40,6 +40,10 @@ def _series_key(e: dict) -> str:
     return re.sub(r"[^a-z0-9|]+", " ", t.lower()).strip()
 
 
+# What belongs to one session only: never lent by a later session to the first one.
+SESSION_FIELDS = ("start", "end", "booking_opens", "booking_deadline", "sold_out")
+
+
 def collapse(events: list[dict]) -> list[dict]:
     """The same session repeated through the weeks (a guided tour every Sunday) is one
     event with its dates, not a dozen lines for the review to judge one by one."""
@@ -54,7 +58,7 @@ def collapse(events: list[dict]) -> list[dict]:
             first["dates"] = [str(e["start"]) for e in group]
             for e in group[1:]:
                 for k, v in e.items():  # a later session may say what the first one does not
-                    if first.get(k) in (None, "") and v not in (None, ""):
+                    if k not in SESSION_FIELDS and first.get(k) in (None, "") and v not in (None, ""):
                         first[k] = v
         out.append(first)
     return out

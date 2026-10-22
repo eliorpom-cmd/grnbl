@@ -69,6 +69,17 @@ class Series(unittest.TestCase):
         self.assertEqual(tour["start"], "2026-10-21T15:00")
         self.assertEqual(tour["dates"], ["2026-10-21T15:00", "2026-10-25T15:00"])
 
+    def test_a_later_session_lends_its_price_but_not_its_end_or_booking_dates(self):
+        # Before: the first session took the end of the last one and became a two-week "run".
+        got = collapse([
+            {"title": "Visite", "venue": "Fort", "start": "2026-10-25T14:00", "end": None, "booking_deadline": None},
+            {"title": "Visite", "venue": "Fort", "start": "2026-11-08T14:00", "end": "2026-11-08T16:00",
+             "booking_deadline": "2026-11-06", "price": "5 €"},
+        ])
+        self.assertEqual(len(got), 1)
+        self.assertEqual((got[0]["start"], got[0]["end"], got[0]["booking_deadline"], got[0]["price"]),
+                         ("2026-10-25T14:00", None, None, "5 €"))
+
     def test_session_too_close_to_book_moves_to_the_next(self):
         e = {"title": "Atelier", "booking": "required", "start": "2026-10-19T10:00",
              "dates": ["2026-10-19T10:00", "2026-10-26T10:00"]}
